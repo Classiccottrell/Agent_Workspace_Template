@@ -1,0 +1,54 @@
+# ── OS / editor cruft ────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.code-workspace
+
+# ── Dependencies / build output ──────────────────────────────────────────
+node_modules/
+.pnpm-store/
+.yarn/
+dist/
+build/
+.next/
+out/
+.nuxt/
+.output/
+.cache/
+.turbo/
+.parcel-cache/
+
+# ── Logs / temp ──────────────────────────────────────────────────────────
+*.log
+*.tmp
+
+# ── System_Config runtime artifacts ──────────────────────────────────────
+# Keep the logs/ directory (via .gitkeep) but ship none of its contents.
+System_Config/logs/*
+!System_Config/logs/.gitkeep
+# Health-check output is generated at runtime, never committed.
+System_Config/status.json
+System_Config/status_page.html
+# Rendered launchd plists live in ~/Library/LaunchAgents, but ignore any
+# accidentally-generated copies in the tree.
+*.plist
+!System_Config/*.plist.tmpl
+
+# ── Vault_Brain runtime / Obsidian internals ─────────────────────────────
+Vault_Brain/sources/.ingested.log
+.obsidian/
+**/.obsidian/
+**/.obsidian/workspace*.json
+
+# ── Claude Code local state ──────────────────────────────────────────────
+.claude/settings.local.json
+
+# ── MCP config (user-specific; the .example is tracked) ──────────────────
+.mcp.json
+
+# ── Secrets / credentials (never commit) ─────────────────────────────────
+.env
+.env.*
+*.key
+*.pem
+*.cert

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>__LABEL__</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>__WORKSPACE_ROOT__/System_Config/daily_ingest.sh</string>
+    </array>
+
+    <!-- Run daily at 07:00. If the Mac is ASLEEP at 07:00, launchd runs the
+         missed job once at next wake. A run missed while the Mac is fully
+         POWERED OFF is NOT replayed at boot — RunAtLoad below covers that by
+         also running at login. The script no-ops when there are no new clips,
+         so the extra login run is harmless. -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>7</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>__WORKSPACE_ROOT__/System_Config/logs/daily_ingest.launchd.out</string>
+    <key>StandardErrorPath</key>
+    <string>__WORKSPACE_ROOT__/System_Config/logs/daily_ingest.launchd.err</string>
+</dict>
+</plist>

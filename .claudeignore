@@ -1,0 +1,68 @@
+# .claudeignore — Context Exclusion Rules for Claude Code
+# Prevents heavy/binary/irrelevant content from entering agent context
+
+# Package managers & dependencies
+node_modules/
+.pnpm-store/
+.yarn/
+.npm/
+
+# Build outputs & compiled artifacts
+dist/
+build/
+.next/
+out/
+.nuxt/
+.output/
+
+# Lock files (large, auto-managed)
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+bun.lockb
+
+# Binary & media assets (read by dedicated tools only)
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.svg
+*.ico
+*.pdf
+*.mp4
+*.mov
+*.zip
+*.tar.gz
+*.dmg
+*.woff
+*.woff2
+*.ttf
+*.otf
+
+# Cache & temp
+.cache/
+.turbo/
+.parcel-cache/
+*.log
+*.tmp
+
+# IDE & OS artifacts
+.DS_Store
+.vscode/
+*.code-workspace
+Thumbs.db
+
+# Secrets & env (never in context)
+.env
+.env.*
+*.pem
+*.key
+*.cert
+
+# Obsidian vault internals (managed externally)
+.obsidian/
+
+# Docker & CI artifacts
+.dockerignore
+certs/

@@ -1,0 +1,4 @@
+{
+  "_comment": "MCP config template. Copy this file to .mcp.json (same directory) and add your own servers under mcpServers. Example entry: \"example-server\": { \"command\": \"npx\", \"args\": [\"-y\", \"@your-org/your-mcp-server\"], \"env\": { \"SERVER_URL\": \"https://your-server.example.com\" } }. For an HTTP/SSE server use: \"example-server\": { \"type\": \"sse\", \"url\": \"https://your-server.example.com/sse\" }. After adding a server, enable it in .claude/settings.json via enabledMcpjsonServers. Do NOT commit a real .mcp.json containing internal URLs or credentials.",
+  "mcpServers": {}
+}

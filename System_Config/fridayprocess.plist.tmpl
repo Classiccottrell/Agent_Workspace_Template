@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>__LABEL__</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>__WORKSPACE_ROOT__/System_Config/friday_process.sh</string>
+    </array>
+
+    <!-- Friday 19:00. Weekday 5 = Friday. If the Mac is asleep at 19:00, launchd
+         runs the missed job once at next wake. RunAtLoad is false: this job should
+         only run on Fridays, never just because the agent was (re)loaded. -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>5</integer>
+        <key>Hour</key>
+        <integer>19</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>__WORKSPACE_ROOT__/System_Config/logs/friday_process.launchd.out</string>
+    <key>StandardErrorPath</key>
+    <string>__WORKSPACE_ROOT__/System_Config/logs/friday_process.launchd.err</string>
+</dict>
+</plist>
