@@ -4,6 +4,8 @@ This is your Obsidian knowledge vault. Open **this folder** (`Vault_Brain/`) in 
 
 > Obsidian regenerates a `.obsidian/` config folder the first time you open this vault. It is intentionally not shipped with the template and should stay git-ignored.
 
+> **No MCP server required.** The vault, the Web Clipper, and the daily auto-ingest pipeline run entirely on Claude Code's built-in file tools — they have no dependency on any MCP server. The Obsidian Web Clipper is a browser extension, not an MCP integration. `.mcp.json` is optional: wire in your own server (e.g. a design/Figma MCP) only if a specific project needs one, then enable it in `.claude/settings.json`.
+
 ---
 
 ## Weekly Notes — Your Weekly Rhythm
