@@ -2,6 +2,14 @@
 
 A one-person, multi-agent operating environment for [Claude Code](https://docs.claude.com/en/docs/claude-code). A root **orchestrator** decomposes work and delegates to five scoped subagents (architect, coder, eng-manager, archivist, curator); a small Obsidian LLM-wiki ("Vault_Brain") holds your durable knowledge and is fed automatically from browser clips; and a set of macOS `launchd` jobs ("System_Config") keep the whole thing ingesting, summarizing, and self-checking in the background. Clone it, run one script, and you have a relocatable knowledge-and-delivery system that runs itself.
 
+**Live overview:** https://classiccottrell.github.io/Agent_Workspace_Template/
+
+---
+
+## Why this exists
+
+A solo operator drowns in context sprawl: scattered notes, half-remembered decisions, and AI workflows reinvented from scratch every session. This template fixes that with one owner per layer — delivery, automation, knowledge — so nothing falls between the cracks. Background jobs do the dull work (ingest, summarize, health-check) while you sleep, and everything you learn compounds in a local wiki instead of evaporating in chat history. The result is clone-and-run, relocatable to any path, and self-checking, so the system tells you when something needs attention.
+
 ---
 
 ## Prerequisites
@@ -130,3 +138,9 @@ Start a fresh weekly note any time with `bash System_Config/monday_init.sh`. Ful
 - [`System_Config/README.md`](System_Config/README.md) — automation hub, installers, Full Disk Access setup
 - [`Vault_Brain/README.md`](Vault_Brain/README.md) — how the knowledge vault works (weekly rhythm, clipper pipeline)
 - `Vault_Brain/CLAUDE.md` — the LLM-wiki schema (read by agents first)
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).

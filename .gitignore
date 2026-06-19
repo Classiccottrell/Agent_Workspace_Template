@@ -1,8 +1,11 @@
 # ── OS / editor cruft ────────────────────────────────────────────────────
 .DS_Store
+**/.DS_Store
 Thumbs.db
 *.swp
 *.code-workspace
+.idea/
+.vscode/
 
 # ── Dependencies / build output ──────────────────────────────────────────
 node_modules/
@@ -45,6 +48,7 @@ Vault_Brain/sources/.ingested.log
 
 # ── MCP config (user-specific; the .example is tracked) ──────────────────
 .mcp.json
+!.mcp.json.example
 
 # ── Secrets / credentials (never commit) ─────────────────────────────────
 .env
