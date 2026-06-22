@@ -145,10 +145,23 @@ fi
 for ws in monday_init.sh friday_archive.sh; do
   [ -f "$SYSCFG/$ws" ] && check PASS "Weekly script: $ws" "present" || check WARN "Weekly script: $ws" "missing"
 done
-if crontab -l 2>/dev/null | grep -qE 'monday_init|friday_archive'; then
-  check PASS "Weekly cron wiring" "cron entries present"
+# Weekly note automation is wired via launchd LaunchAgents (preferred) or cron.
+# Capture once + match in-shell: `launchctl list | grep -q` trips SIGPIPE under
+# `set -o pipefail` (grep exits on first hit → launchctl dies 141 → the pipeline
+# reads as false), making detection flaky by output position.
+mon_sched=""; fri_sched=""
+ll_out="$(launchctl list 2>/dev/null || true)"
+cron_out="$(crontab -l 2>/dev/null || true)"
+case "$ll_out" in *"$LABEL_PREFIX.mondayinit"*)    mon_sched="launchd";; esac
+case "$ll_out" in *"$LABEL_PREFIX.fridayprocess"*) fri_sched="launchd";; esac
+if [ -z "$mon_sched" ]; then case "$cron_out" in *monday_init*) mon_sched="cron";; esac; fi
+if [ -z "$fri_sched" ]; then case "$cron_out" in *friday_process*|*friday_archive*) fri_sched="cron";; esac; fi
+if [ -n "$mon_sched" ] && [ -n "$fri_sched" ]; then
+  check PASS "Weekly automation wiring" "monday_init ($mon_sched) + Friday close-out ($fri_sched) scheduled"
+elif [ -n "$mon_sched" ] || [ -n "$fri_sched" ]; then
+  check WARN "Weekly automation wiring" "partial — monday=${mon_sched:-none}, friday=${fri_sched:-none}"
 else
-  check WARN "Weekly cron wiring" "monday_init/friday_archive not scheduled (manual)"
+  check WARN "Weekly automation wiring" "monday_init / Friday close-out not scheduled (manual)"
 fi
 hline="$(launchctl list 2>/dev/null | grep "$HEALTH_LABEL" || true)"
 [ -n "$hline" ] && check PASS "Health-check job" "self-scheduled in launchd" || check WARN "Health-check job" "not installed (run install_healthcheck.sh)"

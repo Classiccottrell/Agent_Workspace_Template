@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# friday_process.sh — Weekly close-out (runs Fri 19:00 via launchd)
+# friday_process.sh — Weekly close-out (runs Fri 16:30 via launchd)
 # Claude writes a summary to a scratch file and does append-only wiki cross-refs;
 # deterministic bash then edits the Master Note row (with backup + validation +
 # rollback) and stamps the close-out. The note STAYS in weekly-logs/.
@@ -165,5 +165,15 @@ awk -v line="$CLOSEOUT" '
   { print }
   END { if (!done) print line }
 ' "$NOTE_ABS" > "$NOTE_ABS.tmp" && mv "$NOTE_ABS.tmp" "$NOTE_ABS" || rm -f "$NOTE_ABS.tmp"
+
+# ── WEEKEND-CHANGE BASELINE ───────────────────────────────────────────────────
+# Snapshot the just-closed note. monday_init.sh diffs this against the note's
+# Monday-morning state to detect — and merge forward — any weekend edits.
+SNAP_ABS="$WEEKLY_LOGS/.${WEEK_TAG}.fridayclose.snapshot.md"
+if cp "$NOTE_ABS" "$SNAP_ABS" 2>/dev/null; then
+  log "weekend-change baseline saved: .${WEEK_TAG}.fridayclose.snapshot.md"
+else
+  log "WARNING: could not write Friday-close snapshot for $WEEK_TAG"
+fi
 
 log "friday_process done — $WEEK_TAG closed out OK"

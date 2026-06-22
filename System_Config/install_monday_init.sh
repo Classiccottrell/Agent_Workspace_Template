@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
-# install_friday_process.sh — activate the Friday 16:30 weekly close-out LaunchAgent.
-# Idempotent: renders the plist template, reinstalls, and reloads the agent. The
-# launchd label and all paths are derived at runtime. (Full Disk Access for
-# /bin/bash — the same grant the daily-ingest agent needs — also covers this one.)
+# install_monday_init.sh — activate the Monday weekly-note initializer LaunchAgent.
+# Runs monday_init.sh at login/startup AND every Monday 08:00. Idempotent: renders
+# the plist template, reinstalls, and reloads the agent; monday_init.sh itself skips
+# if the week's note already exists. Manual kickoff (bash System_Config/monday_init.sh)
+# still works exactly as before — this only ADDS the automatic trigger.
 
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/config.sh"
 
 SYSCFG="$WORKSPACE/System_Config"
-LABEL="$LABEL_PREFIX.fridayprocess"
-TMPL="$SYSCFG/fridayprocess.plist.tmpl"
+LABEL="$LABEL_PREFIX.mondayinit"
+TMPL="$SYSCFG/mondayinit.plist.tmpl"
 PLIST_NAME="$LABEL.plist"
 DEST_PLIST="$HOME/Library/LaunchAgents/$PLIST_NAME"
 UID_NUM="$(id -u)"
@@ -34,21 +35,19 @@ fi
 
 echo "→ Verifying registration:"
 launchctl print "gui/$UID_NUM/$LABEL" 2>/dev/null | grep -E "state|path" || \
-  echo "  (check with: launchctl list | grep fridayprocess)"
+  echo "  (check with: launchctl list | grep mondayinit)"
 
 cat <<NOTE
 
 ────────────────────────────────────────────────────────────────────────────
-Scheduled for Fridays at 16:30. Same prerequisites as daily ingest:
-  • Full Disk Access for /bin/bash (already granted if daily-ingest works)
-  • Login keychain auth (or the optional ~/.config/anthropic/key file)
+Scheduled at login/startup AND Mondays 08:00. Same prerequisite as the other
+agents: Full Disk Access for /bin/bash (already granted if daily-ingest works).
 
-Test it now without waiting for Friday:
-   DRY_RUN=1 bash System_Config/friday_process.sh    # preview, no Claude
-   bash System_Config/friday_process.sh              # real run
-   tail -f System_Config/logs/friday_process.log
+Manual kickoff still works (and is unaffected by this agent):
+   DRY_RUN=1 bash System_Config/monday_init.sh    # preview
+   bash System_Config/monday_init.sh              # create this week's note now
 
-Disable later:
+Disable the automatic trigger later (manual kickoff keeps working):
    launchctl bootout gui/$UID_NUM/$LABEL
 ────────────────────────────────────────────────────────────────────────────
 NOTE

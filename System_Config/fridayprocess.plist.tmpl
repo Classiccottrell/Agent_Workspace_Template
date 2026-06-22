@@ -11,7 +11,7 @@
         <string>__WORKSPACE_ROOT__/System_Config/friday_process.sh</string>
     </array>
 
-    <!-- Friday 19:00. Weekday 5 = Friday. If the Mac is asleep at 19:00, launchd
+    <!-- Friday 16:30. Weekday 5 = Friday. If the Mac is asleep at 16:30, launchd
          runs the missed job once at next wake. RunAtLoad is false: this job should
          only run on Fridays, never just because the agent was (re)loaded. -->
     <key>StartCalendarInterval</key>
@@ -19,9 +19,9 @@
         <key>Weekday</key>
         <integer>5</integer>
         <key>Hour</key>
-        <integer>19</integer>
+        <integer>16</integer>
         <key>Minute</key>
-        <integer>0</integer>
+        <integer>30</integer>
     </dict>
 
     <key>RunAtLoad</key>

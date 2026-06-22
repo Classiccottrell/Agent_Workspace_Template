@@ -74,37 +74,57 @@ echo "           /bin/bash via Finder ⌘⇧G → /bin). See System_Config/READM
 echo
 
 # ---------------------------------------------------------------------------
-# 5. Optionally install the background automation. Default: No.
+# 5. Scheduling choice — auto (launchd agents) vs manual (run by hand) vs skip.
 # ---------------------------------------------------------------------------
-INSTALL_AUTOMATION="n"
+SCHEDULE="skip"
 if [ "$(uname -s)" = "Darwin" ]; then
-  printf "Install background automation now (daily ingest + health check + weekly notes)? [y/N] "
+  echo "Weekly-note + ingest automation — how do you want to run it?"
+  echo "  [a] auto   — install launchd agents: daily ingest (07:00), health check,"
+  echo "               Friday close-out (16:30), Monday note init (login + Mon 08:00)"
+  echo "  [m] manual — no agents; you run the scripts by hand when you want"
+  echo "  [s] skip   — decide later (default)"
+  printf "Choose [a/m/s]: "
   if [ -t 0 ]; then
     read -r REPLY || REPLY=""
   else
     REPLY=""
-    echo "(non-interactive: skipping automation install)"
+    echo "(non-interactive: skipping — install later with the commands below)"
   fi
   case "$REPLY" in
-    [yY]|[yY][eE][sS]) INSTALL_AUTOMATION="y" ;;
-    *)                 INSTALL_AUTOMATION="n" ;;
+    [aA]|[aA][uU][tT][oO])         SCHEDULE="auto" ;;
+    [mM]|[mM][aA][nN][uU][aA][lL]) SCHEDULE="manual" ;;
+    *)                             SCHEDULE="skip" ;;
   esac
 fi
 
-if [ "$INSTALL_AUTOMATION" = "y" ]; then
-  echo
-  echo "→ Installing launchd agents…"
-  bash "$SYSCFG/install_daily_ingest.sh"
-  bash "$SYSCFG/install_healthcheck.sh"
-  bash "$SYSCFG/install_friday_process.sh"
-  echo "→ Automation installed. Verify with: launchctl list | grep vaultbrain"
-else
-  echo "→ Skipping background automation."
-  echo "    Install later, individually:"
-  echo "      bash System_Config/install_daily_ingest.sh"
-  echo "      bash System_Config/install_healthcheck.sh"
-  echo "      bash System_Config/install_friday_process.sh"
-fi
+case "$SCHEDULE" in
+  auto)
+    echo
+    echo "→ Installing launchd agents (auto scheduling)…"
+    bash "$SYSCFG/install_daily_ingest.sh"
+    bash "$SYSCFG/install_healthcheck.sh"
+    bash "$SYSCFG/install_friday_process.sh"
+    bash "$SYSCFG/install_monday_init.sh"
+    echo "→ Automation installed. Verify with: launchctl list | grep vaultbrain"
+    ;;
+  manual)
+    echo
+    echo "→ Manual mode — no agents installed. Run the weekly scripts by hand:"
+    echo "      bash System_Config/monday_init.sh      # start the week (DRY_RUN=1 to preview)"
+    echo "      bash System_Config/friday_process.sh   # close out the week"
+    echo "      bash System_Config/daily_ingest.sh     # ingest new clips"
+    echo "    Switch to auto anytime by running the install_*.sh scripts."
+    ;;
+  *)
+    echo
+    echo "→ Skipping scheduling for now. Install later — auto (all four agents):"
+    echo "      bash System_Config/install_daily_ingest.sh"
+    echo "      bash System_Config/install_healthcheck.sh"
+    echo "      bash System_Config/install_friday_process.sh"
+    echo "      bash System_Config/install_monday_init.sh"
+    echo "    …or just run them by hand (manual): bash System_Config/monday_init.sh, etc."
+    ;;
+esac
 
 # ---------------------------------------------------------------------------
 # 6. Next steps.

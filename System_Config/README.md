@@ -1,9 +1,10 @@
 # System_Config — Automation Hub
 
-Scheduled jobs and installers that run the workspace. Three launchd agents (clip
-ingestion + weekly Friday close-out + health check) plus weekly note scripts. All
+Scheduled jobs and installers that run the workspace. Four launchd agents (clip
+ingestion, Friday close-out, Monday note init, health check) plus their scripts. All
 scripts target macOS `/bin/bash` **3.2** — no bash 4+ features (no associative
-arrays).
+arrays). Every scheduled script also runs by hand — the LaunchAgents only ADD the
+automatic trigger; manual kickoff always works.
 
 ## Relocatable by design
 
@@ -41,13 +42,15 @@ jobs that read your `~/Documents` workspace fail with `Operation not permitted`
 | `daily_ingest.sh` | Ingest new `Vault_Brain/sources/*.md` clips into the wiki, one headless `claude -p` call per clip. Content-hash dedup via `sources/.ingested.log` (`<sha256>\t<filename>`). |
 | `dailyingest.plist.tmpl` | launchd agent template: runs ingest daily at 07:00 + at login. Rendered into `~/Library/LaunchAgents/` by the installer. |
 | `install_daily_ingest.sh` | Render + install/reload the ingest agent (idempotent). |
-| `friday_process.sh` | Friday 19:00 weekly close-out: Claude writes a 1–2 sentence summary + append-only wiki cross-refs, then deterministic bash edits the Master Note row (backup + validate + rollback). |
-| `fridayprocess.plist.tmpl` | launchd agent template: runs the close-out Fridays at 19:00. |
+| `friday_process.sh` | Friday 16:30 weekly close-out: Claude writes a 1–2 sentence summary + append-only wiki cross-refs, deterministic bash edits the Master Note row (backup + validate + rollback), and a `.<week>.fridayclose.snapshot.md` baseline is saved (used Monday to detect weekend edits). |
+| `fridayprocess.plist.tmpl` | launchd agent template: runs the close-out Fridays at 16:30. |
 | `install_friday_process.sh` | Render + install/reload the Friday agent (idempotent). |
 | `healthcheck.sh` | Probe all 5 architecture layers + doc currency → `status_page.html` + `status.json`. Always exits 0; never reports green on a broken system. |
 | `healthcheck.plist.tmpl` | launchd agent template: runs the health check at login + every 4 hours. |
 | `install_healthcheck.sh` | Render + install/reload the health-check agent (idempotent). |
-| `monday_init.sh` | Create the current ISO-week note from the template (manual / `cron 0 6 * * 1`). |
+| `monday_init.sh` | Create the current ISO-week note from the template. Carries open tasks forward **grouped under their `#### Project` header** (with sub-bullets), and **merges weekend edits** to last week's note into the new one. Runs at login + Mon 08:00 via launchd, or by hand. |
+| `mondayinit.plist.tmpl` | launchd agent template: runs `monday_init.sh` at login/startup + Mondays 08:00. |
+| `install_monday_init.sh` | Render + install/reload the Monday agent (idempotent). |
 | `friday_archive.sh` | Archive the week's note (manual / `cron 0 18 * * 5`). |
 | `obsidian-webclipper-template.json` | Obsidian Web Clipper template → writes clips to the vault's `sources/` folder with frontmatter (filename via `{{title\|safe_name}}`). |
 | `logs/` | Per-job logs (`daily_ingest.log`, `healthcheck.log`, launchd `.out`/`.err`). |
@@ -64,6 +67,7 @@ The installers render each `*.plist.tmpl` into
 
 - `com.<username>.vaultbrain.dailyingest.plist`
 - `com.<username>.vaultbrain.fridayprocess.plist`
+- `com.<username>.vaultbrain.mondayinit.plist`
 - `com.<username>.vaultbrain.healthcheck.plist`
 
 (`<username>` defaults to your `$USER`; override with `$AGENT_WS_LABEL_PREFIX`.)
@@ -86,12 +90,18 @@ tail -f System_Config/logs/daily_ingest.log
 DRY_RUN=1 bash System_Config/friday_process.sh      # preview, no Claude call
 bash    System_Config/friday_process.sh             # real run
 
+# Weekly Monday init — manual kickoff (works regardless of the LaunchAgent)
+DRY_RUN=1 bash System_Config/monday_init.sh         # preview this week's note
+bash    System_Config/monday_init.sh                # create this week's note now
+
 # Install / disable the scheduled agents
 bash System_Config/install_daily_ingest.sh
 bash System_Config/install_friday_process.sh
+bash System_Config/install_monday_init.sh
 bash System_Config/install_healthcheck.sh
 launchctl bootout gui/$(id -u)/com.${USER}.vaultbrain.dailyingest
 launchctl bootout gui/$(id -u)/com.${USER}.vaultbrain.fridayprocess
+launchctl bootout gui/$(id -u)/com.${USER}.vaultbrain.mondayinit
 launchctl bootout gui/$(id -u)/com.${USER}.vaultbrain.healthcheck
 
 # Verify a scheduled agent (col 2 = last exit status; 0 = healthy)

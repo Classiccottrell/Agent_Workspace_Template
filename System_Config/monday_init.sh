@@ -84,15 +84,27 @@ PW=$(date -v-7d -j -f "%Y-%m-%d" "$MONDAY" +%V 2>/dev/null || date -d "$MONDAY -
 PREV_NOTE="$WEEKLY_LOGS/${PY}-W${PW}.md"
 CARRIED=""
 if [[ -f "$PREV_NOTE" ]]; then
-  # Only harvest open tasks from real task sections: stop at the cheat-sheet,
-  # skip any prior "Carried From" block (so carried items don't re-carry), and
-  # drop the template's "Action item one" scaffold lines.
+  # Group each open task under its '#### Project' header. A header is emitted
+  # only if it has >=1 open '- [ ]' item; indented sub-bullets/context lines
+  # under an open item are carried with it. Safeguards: stop at the cheat-sheet
+  # (matches '## 📋 Markdown Snippets' too), ignore prior 'Carried From' /
+  # 'Weekend Edits' blocks (so items don't re-carry), drop 'Action item one'.
   CARRIED=$(awk '
-    /^## Markdown Snippets/ { exit }
-    /^## Carried From/      { skip=1; next }
-    /^## /                  { skip=0 }
-    !skip && /^[[:space:]]*-[[:space:]]*\[ \]/ { print }
-  ' "$PREV_NOTE" 2>/dev/null | grep -v "Action item one" || true)
+    /^##.*Markdown Snippets/                   { exit }
+    /^## Carried From/ || /^## Weekend Edits/  { skip=1; hdr=""; printed=0; cap=0; next }
+    /^## /                  { skip=0; hdr=""; cap=0; next }
+    skip                    { next }
+    /^#### /                { hdr=$0; printed=0; cap=0; next }
+    /^---[[:space:]]*$/     { cap=0; next }
+    /^[[:space:]]*-[[:space:]]*\[ \]/ {
+        if ($0 ~ /Action item one/) { cap=0; next }
+        if (hdr != "" && !printed) { print ""; print hdr; printed=1 }
+        print; cap=1; next
+    }
+    /^[[:space:]]*-[[:space:]]*\[[^ ]\]/ { cap=0; next }
+    cap && /^[[:space:]]+[^[:space:]]/    { print; next }
+    { cap=0 }
+  ' "$PREV_NOTE" 2>/dev/null || true)
 fi
 
 # ── GENERATE NEW NOTE FROM TEMPLATE ──────────────────────────────────────────
@@ -116,6 +128,37 @@ if [[ -n "$CARRIED" ]]; then
 fi
 
 echo "[monday_init] Note created: $NOTE_FILE"
+
+# ── WEEKEND-CHANGE DETECTION + MERGE ──────────────────────────────────────────
+# Compare last week's note against the snapshot friday_process.sh saved at the
+# Friday 16:30 close. Lines added over the weekend are merged forward into the
+# new note (under '## Weekend Edits') and logged. No snapshot → log + skip.
+WEEKEND_LOG="$LOG_DIR/weekend_edits.log"
+SNAP="$WEEKLY_LOGS/.${PY}-W${PW}.fridayclose.snapshot.md"
+wts() { date "+%Y-%m-%d %H:%M:%S"; }
+if [[ -f "$PREV_NOTE" && -f "$SNAP" ]]; then
+  if ! cmp -s "$SNAP" "$PREV_NOTE"; then
+    # Added/changed lines = the '>' side of the diff (present now, not at close).
+    ADDED=$(diff "$SNAP" "$PREV_NOTE" | sed -n 's/^> //p' || true)
+    if [[ -n "$ADDED" ]]; then
+      NLINES=$(printf '%s\n' "$ADDED" | grep -c . || true)
+      {
+        echo ""
+        echo "## Weekend Edits (from W${PW})"
+        echo "> Added to [[${PY}-W${PW}]] after Friday close — review and refile."
+        echo '```text'
+        printf '%s\n' "$ADDED"
+        echo '```'
+      } >> "$NOTE_FILE"
+      echo "[$(wts)] W${PW}: ${NLINES} weekend line(s) merged into ${YEAR}-W${WEEK_NUM}.md" >> "$WEEKEND_LOG"
+      echo "[monday_init] Weekend edits on W${PW} (${NLINES} line(s)) merged into the new note."
+    else
+      echo "[$(wts)] W${PW}: snapshot differs but no added lines — nothing merged" >> "$WEEKEND_LOG"
+    fi
+  fi
+elif [[ -f "$PREV_NOTE" ]]; then
+  echo "[$(wts)] W${PW}: no Friday-close baseline (snapshot missing) — detection skipped" >> "$WEEKEND_LOG"
+fi
 
 # ── UPDATE MASTER NOTE WEEKLY INDEX ───────────────────────────────────────────
 if [[ ! -f "$MASTER" ]]; then
