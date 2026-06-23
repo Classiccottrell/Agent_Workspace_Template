@@ -26,13 +26,21 @@ export AGENT_WS_LABEL_PREFIX="com.acme.vaultbrain"
 bash System_Config/install_daily_ingest.sh
 ```
 
-## Prerequisite (once)
+## Prerequisites (once)
 
-**Full Disk Access for `/bin/bash`** — System Settings → Privacy & Security →
+**1. Full Disk Access for `/bin/bash`** — System Settings → Privacy & Security →
 Full Disk Access. The `+` picker resists system binaries, so drag it in: Finder
-→ ⌘⇧G → `/bin` → drag `bash` onto the list → toggle on. Without it, launchd
-jobs that read your `~/Documents` workspace fail with `Operation not permitted`
-(exit 126).
+→ ⌘⇧G → `/bin` → drag `bash` onto the list → toggle on. Without it, the scheduled
+scripts can't read your `~/Documents` workspace.
+
+**2. launchd log redirects live OUTSIDE the workspace.** Each agent's
+`StandardOutPath`/`StandardErrorPath` resolve to `~/Library/Logs/$LABEL_PREFIX/`
+(via `LAUNCHD_LOG_DIR` in `config.sh`), not the workspace — and this matters if you
+clone into `~/Documents`. launchd opens those redirect files *itself, before*
+exec'ing `/bin/bash`, and that open is **not** covered by bash's Full Disk Access, so
+a redirect inside `~/Documents` makes the job die at spawn with `EX_CONFIG` (exit 78)
+and **no output**, before the script runs. The scripts' own logs still live in
+`System_Config/logs/` (written by bash, which has FDA).
 
 ## Contents
 
@@ -53,7 +61,7 @@ jobs that read your `~/Documents` workspace fail with `Operation not permitted`
 | `install_monday_init.sh` | Render + install/reload the Monday agent (idempotent). |
 | `friday_archive.sh` | Archive the week's note (manual / `cron 0 18 * * 5`). |
 | `obsidian-webclipper-template.json` | Obsidian Web Clipper template → writes clips to the vault's `sources/` folder with frontmatter (filename via `{{title\|safe_name}}`). |
-| `logs/` | Per-job logs (`daily_ingest.log`, `healthcheck.log`, launchd `.out`/`.err`). |
+| `logs/` | Per-job **script** logs (`daily_ingest.log`, `healthcheck.log`, …) in the workspace. The launchd `.out`/`.err` redirects live in `~/Library/Logs/$LABEL_PREFIX/` (see Prerequisites). |
 
 > **Generated at runtime, not shipped:** `healthcheck.sh` writes
 > `status_page.html` and `status.json` into this directory each time it runs.
