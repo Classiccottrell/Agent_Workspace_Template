@@ -329,7 +329,7 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
       <div class="rule-top">
         <p class="eyebrow">// automation &amp; health</p>
         <h2>launchd jobs that keep it running</h2>
-        <p><code>bootstrap.sh</code> can install three <code>launchd</code> agents — it asks first, default No. You can also run each installer directly later.</p>
+        <p><code>bootstrap.sh</code> can install <strong>four</strong> <code>launchd</code> agents — it asks first, default No. You can also run each installer directly later.</p>
         <div class="jobs">
           <div class="job">
             <div class="pip-row"><span class="pip" aria-hidden="true"></span><span>healthy</span></div>
@@ -351,6 +351,13 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
             <p class="sched tabnum">Fridays 19:00</p>
             <p>Writes a 1–2 sentence weekly summary into the Master Note and builds wiki cross-references.</p>
             <p class="inst">install_friday_process.sh</p>
+          </div>
+          <div class="job">
+            <div class="pip-row"><span class="pip" aria-hidden="true"></span><span>healthy</span></div>
+            <h3>Skill sync</h3>
+            <p class="sched tabnum">on install + hourly</p>
+            <p>Watches <code>~/.agents/skills/</code> for <code>npx</code>-installed skills and syncs them to <code>~/.claude/skills/</code>, then flags new arrivals in the <code>master-orchestrator</code> index.</p>
+            <p class="inst">install_sync_skills.sh</p>
           </div>
         </div>
         <p>Run the health check on demand and open the dashboard:</p>

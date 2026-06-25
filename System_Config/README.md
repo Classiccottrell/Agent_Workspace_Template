@@ -1,7 +1,7 @@
 # System_Config — Automation Hub
 
-Scheduled jobs and installers that run the workspace. Four launchd agents (clip
-ingestion, Friday close-out, Monday note init, health check) plus their scripts. All
+Scheduled jobs and installers that run the workspace. Five launchd agents (clip
+ingestion, Friday close-out, Monday note init, health check, skill sync) plus their scripts. All
 scripts target macOS `/bin/bash` **3.2** — no bash 4+ features (no associative
 arrays). Every scheduled script also runs by hand — the LaunchAgents only ADD the
 automatic trigger; manual kickoff always works.
@@ -59,6 +59,9 @@ and **no output**, before the script runs. The scripts' own logs still live in
 | `monday_init.sh` | Create the current ISO-week note from the template. Carries open tasks forward **grouped under their `#### Project` header** (with sub-bullets), and **merges weekend edits** to last week's note into the new one. Runs at login + Mon 08:00 via launchd, or by hand. |
 | `mondayinit.plist.tmpl` | launchd agent template: runs `monday_init.sh` at login/startup + Mondays 08:00. |
 | `install_monday_init.sh` | Render + install/reload the Monday agent (idempotent). |
+| `sync-skills.sh` | Sync skills installed via `npx skills add -g` from `~/.agents/skills/` into `~/.claude/skills/` (Claude Code's actual read path), then flag any unindexed skills in `master-orchestrator`. |
+| `syncskills.plist.tmpl` | launchd agent template: fires via WatchPaths on `~/.agents/skills` + hourly + at login. Rendered into `~/Library/LaunchAgents/` by the installer. |
+| `install_sync_skills.sh` | Render + install/reload the skill-sync agent (idempotent). |
 | `friday_archive.sh` | Archive the week's note (manual / `cron 0 18 * * 5`). |
 | `obsidian-webclipper-template.json` | Obsidian Web Clipper template → writes clips to the vault's `sources/` folder with frontmatter (filename via `{{title\|safe_name}}`). |
 | `logs/` | Per-job **script** logs (`daily_ingest.log`, `healthcheck.log`, …) in the workspace. The launchd `.out`/`.err` redirects live in `~/Library/Logs/$LABEL_PREFIX/` (see Prerequisites). |
@@ -107,10 +110,17 @@ bash System_Config/install_daily_ingest.sh
 bash System_Config/install_friday_process.sh
 bash System_Config/install_monday_init.sh
 bash System_Config/install_healthcheck.sh
+bash System_Config/install_sync_skills.sh
 launchctl bootout gui/$(id -u)/com.${USER}.vaultbrain.dailyingest
 launchctl bootout gui/$(id -u)/com.${USER}.vaultbrain.fridayprocess
 launchctl bootout gui/$(id -u)/com.${USER}.vaultbrain.mondayinit
 launchctl bootout gui/$(id -u)/com.${USER}.vaultbrain.healthcheck
+launchctl bootout gui/$(id -u)/com.${USER}.vaultbrain.syncskills
+
+# Skill sync
+bash    System_Config/sync-skills.sh        # manual sync + re-index
+tail -f System_Config/logs/sync-skills.log
+launchctl bootout gui/$(id -u)/$LABEL_PREFIX.syncskills  # disable
 
 # Verify a scheduled agent (col 2 = last exit status; 0 = healthy)
 launchctl list | grep vaultbrain

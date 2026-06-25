@@ -100,13 +100,14 @@ your-workspace/
 
 ## Automation & health
 
-`bootstrap.sh` can install three `launchd` agents (it asks first — default No). You can also run each installer directly later:
+`bootstrap.sh` can install five `launchd` agents (it asks first — default No). You can also run each installer directly later:
 
 | Job | Installer | Schedule | What it does |
 |-----|-----------|----------|--------------|
 | **Daily ingest** | `System_Config/install_daily_ingest.sh` | daily 07:00 + at login | Reads new `Vault_Brain/sources/*.md` clips and files them into the wiki (one headless `claude -p` call per clip, content-hash dedup). |
 | **Health check** | `System_Config/install_healthcheck.sh` | at login + every 4h | Probes all layers + doc currency, writes the status dashboard. |
 | **Weekly notes** | `System_Config/install_friday_process.sh` | Fridays 19:00 | Writes a 1–2 sentence weekly summary into the Master Note and builds wiki cross-references. |
+| **Skill sync** | `System_Config/install_sync_skills.sh` | on install + hourly | Watches `~/.agents/skills/` for `npx`-installed skills and syncs them to `~/.claude/skills/`, keeping the master-orchestrator index current. |
 
 Run the health check on demand and open the dashboard:
 
