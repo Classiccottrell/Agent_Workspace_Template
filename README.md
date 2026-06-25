@@ -1,6 +1,6 @@
 # Agent Workspace Template
 
-A one-person, multi-agent operating environment for [Claude Code](https://docs.claude.com/en/docs/claude-code). A root **orchestrator** decomposes work and delegates to five scoped subagents (architect, coder, eng-manager, archivist, curator); a small Obsidian LLM-wiki ("Vault_Brain") holds your durable knowledge and is fed automatically from browser clips; and a set of macOS `launchd` jobs ("System_Config") keep the whole thing ingesting, summarizing, and self-checking in the background. Clone it, run one script, and you have a relocatable knowledge-and-delivery system that runs itself.
+A one-person, multi-agent operating environment — works with **[Claude Code](https://docs.claude.com/en/docs/claude-code)** and **[Gemini CLI](https://github.com/google-gemini/gemini-cli)** (Antigravity). A root **orchestrator** decomposes work and delegates to five scoped subagents (architect, coder, eng-manager, archivist, curator); a small Obsidian LLM-wiki ("Vault_Brain") holds your durable knowledge and is fed automatically from browser clips; and a set of macOS `launchd` jobs ("System_Config") keep the whole thing ingesting, summarizing, and self-checking in the background. Clone it, run one script, and you have a relocatable knowledge-and-delivery system that runs itself.
 
 **Live overview:** https://classiccottrell.github.io/Agent_Workspace_Template/
 
@@ -14,8 +14,10 @@ A solo operator drowns in context sprawl: scattered notes, half-remembered decis
 
 ## Prerequisites
 
-- **macOS** — the automation uses `launchd` (the install step is mac-only; the agents and vault work anywhere Claude Code runs).
-- **Claude Code CLI** installed and logged in — verify with `command -v claude` and `claude --version`.
+- **macOS** — the automation uses `launchd` (the install step is mac-only; the agents and vault work anywhere the CLI runs).
+- **AI CLI** — one of:
+  - **Claude Code** — `command -v claude && claude --version`
+  - **Gemini CLI** — `command -v gemini && gemini --version` (Antigravity)
 - **bash** — the stock macOS `/bin/bash` (3.2) is enough; every script targets it (no bash 4+ features).
 - **Obsidian** *(optional)* — only needed if you want to browse/edit `Vault_Brain/` and use the Web Clipper. The vault is plain Markdown and works fine without it.
 - **Full Disk Access for `/bin/bash`** *(one-time, only if you install the background automation)* — so the scheduled jobs can read your workspace. Setup is in [`System_Config/README.md`](System_Config/README.md).
@@ -32,7 +34,9 @@ cd agent-workspace
 
 `bootstrap.sh` is idempotent and never deletes or overwrites your data. It makes the scripts executable, creates the log directory, seeds `.mcp.json` from the example if you don't have one, prints a prerequisite check, and **asks before** installing any background automation (default is No). You can re-run it any time.
 
-Open this workspace folder in Claude Code (`claude` from the workspace root) and you're operating. The orchestrator rules load from `CLAUDE.md`; the agent roster lives in `.claude/agents/`.
+Open this workspace in your AI CLI and you're operating:
+- **Claude Code** — `claude` from the workspace root. Orchestrator rules load from `CLAUDE.md`; agent roster in `.claude/agents/`.
+- **Gemini CLI** — `gemini` from the workspace root. Orchestrator rules load from `.agents/AGENTS.md`; skill roster in `.agents/skills/`.
 
 ---
 
@@ -48,15 +52,18 @@ This template is an Integrated Context Management (ICM) folder pattern layered o
 
 ### Agent roster
 
-Subagents live in `.claude/agents/` and are invoked by name via the Task tool — never paste their role text into a prompt.
+The same five agents are available for both Claude Code and Gemini — the role definitions are identical, only the harness format differs.
 
-| Agent | Scope | Entry file | Hands off to |
-|-------|-------|-----------|--------------|
-| **architect** | Schema, API, structure design | `.claude/agents/architect.md` | coder |
-| **coder** | Implementation only | `.claude/agents/coder.md` | orchestrator |
-| **eng-manager** | `Projects/` lifecycle | `.claude/agents/eng-manager.md` | architect, coder |
-| **archivist** | `Final_Products/` artifacts | `.claude/agents/archivist.md` | orchestrator |
-| **curator** | `Vault_Brain/` knowledge | `.claude/agents/curator.md` | orchestrator |
+| Agent | Scope | Claude Code entry | Gemini entry | Hands off to |
+|-------|-------|-------------------|--------------|--------------|
+| **architect** | Schema, API, structure design | `.claude/agents/architect.md` | `.agents/skills/architect/SKILL.md` | coder |
+| **coder** | Implementation only | `.claude/agents/coder.md` | `.agents/skills/coder/SKILL.md` | orchestrator |
+| **eng-manager** | `Projects/` lifecycle | `.claude/agents/eng-manager.md` | `.agents/skills/eng-manager/SKILL.md` | architect, coder |
+| **archivist** | `Final_Products/` artifacts | `.claude/agents/archivist.md` | `.agents/skills/archivist/SKILL.md` | orchestrator |
+| **curator** | `Vault_Brain/` knowledge | `.claude/agents/curator.md` | `.agents/skills/curator/SKILL.md` | orchestrator |
+
+**Claude Code** — agents are invoked by name via the Task tool; never paste role text into a prompt.  
+**Gemini CLI** — skills are loaded from `.agents/skills/<role>/SKILL.md`; the orchestrator entry point is `.agents/AGENTS.md`.
 
 ### Layout
 
@@ -66,10 +73,13 @@ your-workspace/
 ├── bootstrap.sh                ← one-command setup
 ├── .gitignore
 ├── .claudeignore               ← context-window guard
-├── .AGENT.MD                   ← root orchestrator + workspace map
-├── CLAUDE.md                   ← orchestrator rules ("Caveman Protocol")
+├── .AGENT.MD                   ← root orchestrator + workspace map (provider-agnostic)
+├── CLAUDE.md                   ← Claude Code orchestrator rules ("Caveman Protocol")
 ├── .mcp.json.example           ← MCP config template (copy to .mcp.json, fill in)
 ├── .cursor/rules/skill.md      ← design-engineering skill profile (injected for UI work)
+├── .agents/                    ← Gemini CLI orchestration root
+│   ├── AGENTS.md               ← Gemini orchestrator directives
+│   └── skills/                 ← architect, coder, eng-manager, archivist, curator
 ├── .claude/
 │   ├── settings.json           ← project permissions + MCP allow-list
 │   └── agents/                 ← architect, coder, eng-manager, archivist, curator
