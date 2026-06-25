@@ -4,55 +4,76 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-    <meta name="theme-color" content="#1b2230" media="(prefers-color-scheme: dark)">
-    <title>Page Title — Directory_2026</title>
+    <meta name="theme-color" content="hsl(222,84%,5%)" media="(prefers-color-scheme: dark)">
+    <title>Page Title — Agent Workspace Template</title>
     <style>
-/* ── Mineral design tokens (OKLCH) — source: AI-Mineral-system-0.3/active/DESIGN.md ── */
+/* shadcn/ui Vega theme — 2026-06-25 */
 /* DO NOT EDIT THIS BLOCK — copy it verbatim when creating new HTML pages. */
-/* Last updated: 2026-06-23. If the design system changes, update this block in html-template.html and all pages will be refreshed from it. */
-:root{--bg:oklch(1 0 0);--surface:oklch(1 0 0);--ink:oklch(0.2289 0.0197 258.35);--ink-2:oklch(0.341 0.0197 258.35);--muted:oklch(0.5502 0.0272 262.02);--rule:oklch(0.8583 0.023 260.72);--accent:oklch(0.5667 0.1712 259.62);--accent-soft:oklch(0.9684 0.0108 256.69);--accent-soft-ink:oklch(0.3406 0.1106 259.64);--btn-ink:oklch(1 0 0);--radius:0.1875rem;--shadow:0 1px 2px oklch(0.2289 0.0197 258.35/.08);--sans:"Open Sans",-apple-system,system-ui,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;--mono:"SF Mono",Monaco,Consolas,"Courier New",monospace}
-@media (prefers-color-scheme:dark){:root{--bg:oklch(0.2289 0.0197 258.35);--surface:oklch(0.2889 0.0197 258.35);--ink:oklch(0.9747 0.0119 259.82);--ink-2:oklch(0.9028 0.015 259);--muted:oklch(0.7826 0.0271 259.05);--rule:oklch(1 0 0/15%);--accent:oklch(0.7573 0.1164 259.79);--accent-soft:oklch(0.4551 0.018 260.70);--accent-soft-ink:oklch(0.9028 0.0426 260.43);--btn-ink:oklch(0.1939 0.0697 257.3);--shadow:none}}
+:root{
+  --bg:#ffffff;--surface:#ffffff;
+  --ink:hsl(222,47%,11%);--ink-2:hsl(215,16%,35%);--muted:hsl(215,16%,47%);--rule:hsl(214,32%,91%);
+  --accent:hsl(221,83%,53%);--accent-hover:hsl(221,83%,45%);--accent-ink:#ffffff;
+  --accent-soft:hsl(214,96%,97%);--accent-soft-ink:hsl(221,60%,30%);
+  --ok:hsl(142,71%,45%);--warn:hsl(38,92%,50%);--fail:hsl(0,84%,60%);
+  --radius:0.5rem;--shadow:0 1px 3px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.06);
+  --sans:"Inter",ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:hsl(222,84%,5%);--surface:hsl(222,47%,11%);
+    --ink:hsl(210,40%,98%);--ink-2:hsl(215,20%,82%);--muted:hsl(215,20%,60%);--rule:hsl(217,33%,18%);
+    --accent:hsl(217,91%,60%);--accent-hover:hsl(217,91%,70%);--accent-ink:#ffffff;
+    --accent-soft:hsl(217,33%,15%);--accent-soft-ink:hsl(214,85%,75%);
+    --ok:hsl(142,71%,55%);--warn:hsl(38,92%,60%);--fail:hsl(0,72%,60%);--shadow:none;
+  }
+}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink-2);font-family:var(--sans);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink-2);font-family:var(--sans);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 .wrap{max-width:60rem;margin:0 auto;padding:0 clamp(1.25rem,5vw,3rem)}
 a{color:var(--accent)}
-header.site{position:sticky;top:0;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:saturate(140%) blur(8px);border-bottom:1px solid var(--rule)}
+header.site{position:sticky;top:0;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:saturate(120%) blur(12px);border-bottom:1px solid var(--rule)}
 header.site .wrap{display:flex;align-items:center;justify-content:space-between;gap:1rem;min-height:56px}
-.wordmark{font-family:var(--mono);font-size:.9rem;font-weight:600;color:var(--ink);text-decoration:none}
+.wordmark{font-family:var(--mono);font-size:.875rem;font-weight:600;color:var(--ink);text-decoration:none}
 .wordmark .pr{color:var(--accent)}
-.back{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-decoration:none;border:1px solid var(--rule);padding:.4rem .65rem;border-radius:var(--radius)}
+.back{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-decoration:none;border:1px solid var(--rule);padding:.4rem .75rem;border-radius:var(--radius)}
 .back:hover{border-color:var(--accent);color:var(--accent)}
 main{padding:clamp(2.5rem,6vw,4rem) 0}
-.eyebrow{font-family:var(--mono);text-transform:uppercase;font-size:.72rem;letter-spacing:.08em;color:var(--muted);margin:0 0 .5rem}
+.eyebrow{font-family:var(--mono);text-transform:uppercase;font-size:.72rem;letter-spacing:.1em;color:var(--muted);margin:0 0 .5rem}
 h1{color:var(--ink);font-weight:700;font-size:clamp(1.9rem,1.4rem + 2vw,2.6rem);letter-spacing:-.02em;line-height:1.1;margin:.3rem 0 1rem}
-h2{color:var(--ink);font-weight:700;font-size:1.375rem;line-height:1.25;margin:2rem 0 .75rem}
-h3{color:var(--ink);font-weight:700;font-size:1.125rem;margin:1.5rem 0 .5rem}
-h4{color:var(--ink);font-weight:700;font-size:1rem;margin:1rem 0 .5rem}
+h2{color:var(--ink);font-weight:600;font-size:1.375rem;line-height:1.25;margin:2rem 0 .75rem}
+h3{color:var(--ink);font-weight:600;font-size:1.125rem;margin:1.5rem 0 .5rem}
+h4{color:var(--ink);font-weight:600;font-size:1rem;margin:1rem 0 .5rem}
 p{max-width:68ch;margin:0 0 1rem}
-.lede{font-size:1.2rem;color:var(--ink-2);max-width:60ch}
-ul,ol{max-width:68ch;padding-left:1.5rem;margin:0.5em 0}
+.lede{font-size:1.15rem;color:var(--ink-2);max-width:60ch;line-height:1.6}
+ul,ol{max-width:68ch;padding-left:1.5rem;margin:.5em 0}
 li{margin:.35rem 0}
-code{font-family:var(--mono);font-size:.85rem;background:var(--accent-soft);color:var(--accent-soft-ink);padding:1px 6px;border-radius:var(--radius)}
+code{font-family:var(--mono);font-size:.85rem;background:var(--accent-soft);color:var(--accent-soft-ink);padding:2px 6px;border-radius:calc(var(--radius)/2)}
 pre{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:1rem;overflow-x:auto;margin:1rem 0}
-pre code{background:none;color:var(--ink-2);padding:0}
+pre code{background:none;color:var(--ink-2);padding:0;font-family:var(--mono)}
 table{border-collapse:collapse;width:100%;max-width:68ch;margin:1rem 0}
-th{font-family:var(--mono);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);text-align:left;font-weight:600;padding:.55rem .75rem;border-bottom:1px solid var(--rule)}
-td{font-size:.92rem;padding:.55rem .75rem;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-family:var(--mono);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);text-align:left;font-weight:600;padding:.6rem .8rem;border-bottom:2px solid var(--rule)}
+td{font-size:.92rem;padding:.6rem .8rem;border-bottom:1px solid var(--rule);vertical-align:top}
+tbody tr:hover{background:var(--accent-soft)}
 hr{border:none;border-top:1px solid var(--rule);margin:2rem 0}
-.card{border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);background:var(--surface);padding:1rem 1.25rem;margin:1.5rem 0;box-shadow:var(--shadow)}
-.btn{display:inline-flex;align-items:center;gap:.4rem;font-size:.875rem;font-weight:600;padding:0 1rem;min-height:2.5rem;border-radius:var(--radius);text-decoration:none;background:var(--accent);color:var(--btn-ink)}
-.btn:hover{filter:brightness(.95)}
-footer{border-top:1px solid var(--rule);margin-top:3rem}
-footer .wrap{padding:2rem 0;color:var(--muted);font-size:.85rem}
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.card{border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:var(--radius);background:var(--surface);padding:1.1rem 1.375rem;margin:1.5rem 0;box-shadow:var(--shadow);max-width:68ch}
+.btn{display:inline-flex;align-items:center;gap:.4rem;font-size:.875rem;font-weight:600;padding:0 1.1rem;min-height:2.5rem;border-radius:var(--radius);text-decoration:none;background:var(--accent);color:var(--accent-ink);border:1px solid transparent;transition:background .15s}
+.btn.alt{background:transparent;color:var(--accent);border-color:var(--rule)}
+.btn:hover{background:var(--accent-hover)}
+.btn.alt:hover{background:var(--accent-soft);border-color:var(--accent)}
+footer.site{border-top:1px solid var(--rule);margin-top:3rem}
+footer.site .wrap{padding:2rem 0;color:var(--muted);font-size:.85rem}
+footer.site a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--radius)}
     </style>
 </head>
 <body>
 <!-- HEADER: Update the wordmark href and back button href to match your page depth -->
 <header class="site">
     <div class="wrap">
-        <a class="wordmark" href="../index.html">Directory_2026 <span class="pr">~ %</span></a>
-        <a class="back" href="../index.html">← back</a>
+        <a class="wordmark" href="../docs/index.html">agent-workspace <span class="pr">~ %</span></a>
+        <a class="back" href="../docs/index.html">← back</a>
     </div>
 </header>
 
@@ -75,14 +96,8 @@ footer .wrap{padding:2rem 0;color:var(--muted);font-size:.85rem}
         </ul>
 
         <table>
-            <tr>
-                <th>Column A</th>
-                <th>Column B</th>
-            </tr>
-            <tr>
-                <td>Data</td>
-                <td>More data</td>
-            </tr>
+            <thead><tr><th>Column A</th><th>Column B</th></tr></thead>
+            <tbody><tr><td>Data</td><td>More data</td></tr></tbody>
         </table>
 
         <p>
@@ -91,10 +106,10 @@ footer .wrap{padding:2rem 0;color:var(--muted);font-size:.85rem}
     </div>
 </main>
 
-<!-- FOOTER: Update the footer links to match your page location and available sections -->
-<footer>
+<!-- FOOTER: Update the footer links to match your page location -->
+<footer class="site">
     <div class="wrap">
-        Directory_2026 · Page Name · <a href="../index.html">home</a> · <a href="../System_Config/status_page.html">health</a>
+        agent-workspace · Page Name · <a href="../docs/index.html">home</a> · <a href="../System_Config/status_page.html">health</a>
     </div>
 </footer>
 
