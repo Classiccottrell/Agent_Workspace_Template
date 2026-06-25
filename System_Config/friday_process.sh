@@ -96,11 +96,17 @@ DO NOT edit 'Master Note.md'. DO NOT edit ${NOTE_REL}. DO NOT touch sources/. Cr
 
 run_claude() {
   cd "$VAULT"
-  "$CLAUDE" -p "$PROMPT" \
-        --allowedTools "Read,Write,Edit,Glob,Grep" \
-        --disallowedTools "Bash,KillShell,Task,WebFetch,WebSearch,NotebookEdit" \
-        --permission-mode acceptEdits \
-        --max-budget-usd "$MAX_BUDGET" >> "$LOG" 2>&1 &
+  if [[ "${AGENT_TYPE:-}" == "gemini" ]]; then
+    "$CLAUDE" -p "$PROMPT" \
+          --sandbox \
+          --dangerously-skip-permissions >> "$LOG" 2>&1 &
+  else
+    "$CLAUDE" -p "$PROMPT" \
+          --allowedTools "Read,Write,Edit,Glob,Grep" \
+          --disallowedTools "Bash,KillShell,Task,WebFetch,WebSearch,NotebookEdit" \
+          --permission-mode acceptEdits \
+          --max-budget-usd "$MAX_BUDGET" >> "$LOG" 2>&1 &
+  fi
   local pid wd rc
   pid=$!
   ( sleep "$MAX_SECONDS"; kill -TERM "$pid" 2>/dev/null ) &

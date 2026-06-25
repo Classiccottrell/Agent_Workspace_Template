@@ -134,11 +134,17 @@ chmod a-w "$SOURCES"/*.md 2>/dev/null || true
 run_claude() {
   local prompt="$1" pid wd rc
   cd "$VAULT"
-  "$CLAUDE" -p "$prompt" \
-        --allowedTools "Read,Write,Edit,Glob,Grep" \
-        --disallowedTools "Bash,KillShell,Task,WebFetch,WebSearch,NotebookEdit" \
-        --permission-mode acceptEdits \
-        --max-budget-usd "$MAX_BUDGET" >> "$LOG" 2>&1 &
+  if [[ "${AGENT_TYPE:-}" == "gemini" ]]; then
+    "$CLAUDE" -p "$prompt" \
+          --sandbox \
+          --dangerously-skip-permissions >> "$LOG" 2>&1 &
+  else
+    "$CLAUDE" -p "$prompt" \
+          --allowedTools "Read,Write,Edit,Glob,Grep" \
+          --disallowedTools "Bash,KillShell,Task,WebFetch,WebSearch,NotebookEdit" \
+          --permission-mode acceptEdits \
+          --max-budget-usd "$MAX_BUDGET" >> "$LOG" 2>&1 &
+  fi
   pid=$!
   ( sleep "$MAX_SECONDS"; kill -TERM "$pid" 2>/dev/null ) &
   wd=$!
