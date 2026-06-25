@@ -39,10 +39,10 @@
 * Treat a stale README (a documented file changed after its README) as work to close in the same task.
 * Update docs in place. Never spawn a separate summary.md.
 
-## HTML Page Template (Mineral Design System)
-* **Single source of truth:** `System_Config/html-template.html` — canonical template with Mineral CSS, header, footer, and structure.
+## HTML Page Template (Vega Design System)
+* **Single source of truth:** `System_Config/html-template.html` — canonical template with Vega CSS, header, footer, and structure.
 * **When creating or updating any `.html` file:** Copy `System_Config/html-template.html` as the scaffold. Never hand-write the CSS block.
-* **The CSS block (Mineral OKLCH tokens)** is frozen at the top of the template with an update date. All pages inline this block; it's designed for portability across independent workspace instances.
+* **The CSS block (Vega HSL design tokens)** is frozen at the top of the template with an update date. All pages inline this block; it's designed for portability across independent workspace instances.
 * **Structure required on every page:**
   - Sticky header with `.wordmark` (links to parent index) and `.back` button
   - `<main><div class="wrap">` content area
