@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>__LABEL__</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>__WORKSPACE_ROOT__/System_Config/sync-skills.sh</string>
+    </array>
+
+    <!-- Fire immediately when a new skill lands in ~/.agents/skills (npx skills add -g).
+         Also run hourly to catch skills dropped directly into ~/.claude/skills/. -->
+    <key>WatchPaths</key>
+    <array>
+        <string>__HOME__/.agents/skills</string>
+    </array>
+    <key>StartInterval</key>
+    <integer>3600</integer>
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>__LOG_DIR__/sync-skills.launchd.out</string>
+    <key>StandardErrorPath</key>
+    <string>__LOG_DIR__/sync-skills.launchd.err</string>
+</dict>
+</plist>
