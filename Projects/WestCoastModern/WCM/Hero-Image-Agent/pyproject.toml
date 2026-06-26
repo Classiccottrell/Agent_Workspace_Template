@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=67"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wcm-hero"
+version = "0.1.0"
+description = "West Coast Modern — automated hero-image selection pipeline"
+requires-python = ">=3.9"
+dependencies = [
+    "anthropic>=0.40",
+    "Pillow>=9.1",
+    "watchdog>=3.0",
+]
+
+[project.scripts]
+wcm = "wcm_cli:main"
+
+[tool.setuptools]
+py-modules = ["wcm_cli", "hero_select", "watch_folder"]
