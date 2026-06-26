@@ -21,6 +21,13 @@
     4.  If answer is novel, file back as a new wiki page or update existing.
 *   Schema: `Vault_Brain/CLAUDE.md`
 
+## Orchestration Rules
+*   Break complex requests into atomic units.
+*   Match tasks to the optimal agent/skill.
+*   Provide precise context/file paths for handoff.
+*   Act as final arbiter on agent conflicts based on project constraints.
+*   Strictly forbid auto-generating `summary.md` or documentation files unless specifically asked.
+
 ## Context Window Protection Directives
 *   NEVER pull full directory trees into context.
 *   Index with `rg --files <dir>` or `find <dir> -maxdepth 2 -name "*.md"` before reading.
@@ -36,8 +43,22 @@ Subagents and skills are configured in `.agents/skills/`. You can define them dy
 *   **Archivist** (`archivist`): `Final_Products/` archival.
 *   **Curator** (`curator`): `Vault_Brain/` knowledge management.
 
+For UI work, load the relevant design skill(s) and inject their rules into the `coder` skill prompt. The `.cursor/rules/skill.md` design-engineering profile is the portable fallback design source.
+
 ## Documentation Integrity
 *   After ANY change to system files (scripts, agents, config, schema, structure), check the governing doc and update it IN THE SAME TASK if now out of date.
 *   Governing docs: `System_Config/README.md` (automation), `Vault_Brain/README.md` (vault + ingest), root `.AGENT.MD` (workspace map + agent roster). Per-project: that project's `README.md` / `BRIEF.md`.
 *   Treat a stale README (a documented file changed after its README) as work to close in the same task.
 *   Update docs in place. Never spawn a separate `summary.md`.
+
+## HTML Page Template (Vega Design System)
+*   **Single source of truth:** `System_Config/html-template.html` — canonical template with Vega CSS, header, footer, and structure.
+*   **When creating or updating any `.html` file:** Copy `System_Config/html-template.html` as the scaffold. Never hand-write the CSS block.
+*   **The CSS block (Vega HSL design tokens)** is frozen at the top of the template with an update date. All pages inline this block; it's designed for portability across independent workspace instances.
+*   **Structure required on every page:**
+    - Sticky header with `.wordmark` (links to parent index) and `.back` button
+    - `<main><div class="wrap">` content area
+    - Footer with links back to home and health dashboard
+    - All inline CSS from the template
+*   **When the design system changes** (new tokens, new components): update the CSS block in `html-template.html` with the new date, then refresh all pages that copy from it.
+*   **Template is portable:** no external CSS files, no relative paths that break when a workspace is instantiated in a different folder. Everything self-contained.
