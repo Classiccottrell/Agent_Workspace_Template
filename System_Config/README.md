@@ -17,7 +17,7 @@ hardcoded**. Clone this workspace anywhere and the scripts just work.
 | `WORKSPACE` | the parent of `System_Config/` (resolved at runtime) | — |
 | `VAULT` / `SOURCES` / `LOG_DIR` | `$WORKSPACE` | — |
 | `LABEL_PREFIX` | `$AGENT_WS_LABEL_PREFIX`, else `com.$USER.vaultbrain` | `com.<username>.vaultbrain` |
-| `CLAUDE` | `command -v claude`, else `~/.local/bin/claude` | — |
+| `CLAUDE` | `command -v agy`, then `command -v claude`, else fallback | — |
 
 Override the launchd namespace before installing if you want a custom label:
 
@@ -39,7 +39,7 @@ jobs that read your `~/Documents` workspace fail with `Operation not permitted`
 | File | Purpose |
 |------|---------|
 | `config.sh` | Shared, relocatable configuration. Sourced first by every other script. |
-| `daily_ingest.sh` | Ingest new `Vault_Brain/sources/*.md` clips into the wiki, one headless `claude -p` call per clip. Content-hash dedup via `sources/.ingested.log` (`<sha256>\t<filename>`). |
+| `daily_ingest.sh` | Ingest new `Vault_Brain/sources/*.md` clips into the wiki, one headless `agy -p` or `claude -p` call per clip. Content-hash dedup via `sources/.ingested.log` (`<sha256>\t<filename>`). |
 | `dailyingest.plist.tmpl` | launchd agent template: runs ingest daily at 07:00 + at login. Rendered into `~/Library/LaunchAgents/` by the installer. |
 | `install_daily_ingest.sh` | Render + install/reload the ingest agent (idempotent). |
 | `friday_process.sh` | Friday 16:30 weekly close-out: Claude writes a 1–2 sentence summary + append-only wiki cross-refs, deterministic bash edits the Master Note row (backup + validate + rollback), and a `.<week>.fridayclose.snapshot.md` baseline is saved (used Monday to detect weekend edits). |

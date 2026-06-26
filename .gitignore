@@ -56,3 +56,7 @@ Vault_Brain/sources/.ingested.log
 *.key
 *.pem
 *.cert
+
+# ── WCM project — local-only folders (never commit) ──────────────────────
+Projects/WestCoastModern/WCM_Local_Files/
+Projects/WestCoastModern/WCM-Test/
