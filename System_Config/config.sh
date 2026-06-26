@@ -6,6 +6,16 @@ SOURCES="$VAULT/sources"
 LOG_DIR="$WORKSPACE/System_Config/logs"
 # launchd label namespace - overridable; defaults to the current user.
 LABEL_PREFIX="${AGENT_WS_LABEL_PREFIX:-com.${USER}.vaultbrain}"
-# Resolve the claude CLI from PATH, with a common fallback.
-CLAUDE="$(command -v claude || echo "$HOME/.local/bin/claude")"
+# Resolve the agent CLI (prioritizing agy/Gemini, falling back to claude).
+if command -v agy >/dev/null 2>&1; then
+  CLAUDE="$(command -v agy)"
+  AGENT_TYPE="gemini"
+elif [[ -x "$HOME/.local/bin/agy" ]]; then
+  CLAUDE="$HOME/.local/bin/agy"
+  AGENT_TYPE="gemini"
+else
+  CLAUDE="$(command -v claude || echo "$HOME/.local/bin/claude")"
+  AGENT_TYPE="claude"
+fi
+export AGENT_TYPE
 export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"

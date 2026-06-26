@@ -4,7 +4,7 @@ This is your Obsidian knowledge vault. Open **this folder** (`Vault_Brain/`) in 
 
 > Obsidian regenerates a `.obsidian/` config folder the first time you open this vault. It is intentionally not shipped with the template and should stay git-ignored.
 
-> **No MCP server required.** The vault, the Web Clipper, and the daily auto-ingest pipeline run entirely on Claude Code's built-in file tools — they have no dependency on any MCP server. The Obsidian Web Clipper is a browser extension, not an MCP integration. `.mcp.json` is optional: wire in your own server (e.g. a design/Figma MCP) only if a specific project needs one, then enable it in `.claude/settings.json`.
+> **No MCP server required.** The vault, the Web Clipper, and the daily auto-ingest pipeline run entirely on `agy` or `claude`'s built-in file tools — they have no dependency on any MCP server. The Obsidian Web Clipper is a browser extension, not an MCP integration. `.mcp.json` is optional: wire in your own server (e.g. a design/Figma MCP) only if a specific project needs one, then enable it in `.claude/settings.json`.
 
 ---
 
@@ -104,7 +104,7 @@ Browser (Web Clipper)  →  Vault_Brain/sources/YYYY-MM-DD_Title.md
    - The Full Disk Access **+** file picker resists system binaries, so use **drag-and-drop**: open System Settings → Privacy & Security → Full Disk Access; in Finder press ⌘⇧G → `/bin` → drag the `bash` file onto the list; toggle it on.
    - The child `claude` process is covered as launchd's responsible process, so granting `/bin/bash` alone covers the whole job.
 
-4. **Auth — usually nothing to do.** Headless `claude` authenticates via your login keychain, which is unlocked while you're logged into the Mac (when the agent runs). *Optional* fallback for fully-detached runs:
+4. **Auth — usually nothing to do.** Headless `agy`/`claude` authenticates via your login session/keychain, which is unlocked while you're logged into the Mac (when the agent runs). *Optional* fallback for fully-detached runs:
    ```
    mkdir -p ~/.config/anthropic
    printf '%s' 'sk-ant-...' > ~/.config/anthropic/key && chmod 600 ~/.config/anthropic/key
