@@ -6,6 +6,10 @@ SOURCES="$VAULT/sources"
 LOG_DIR="$WORKSPACE/System_Config/logs"
 # launchd label namespace - overridable; defaults to the current user.
 LABEL_PREFIX="${AGENT_WS_LABEL_PREFIX:-com.${USER}.vaultbrain}"
+# launchd log redirects MUST live OUTSIDE the (TCC-protected) ~/Documents workspace,
+# or launchd fails to open them at spawn -> EX_CONFIG (78); FDA on /bin/bash does NOT
+# cover that open. ~/Library/Logs is safe. (Script logs still go to LOG_DIR above.)
+LAUNCHD_LOG_DIR="$HOME/Library/Logs/$LABEL_PREFIX"
 # Resolve the agent CLI (prioritizing agy/Gemini, falling back to claude).
 if command -v agy >/dev/null 2>&1; then
   CLAUDE="$(command -v agy)"

@@ -80,7 +80,8 @@ SCHEDULE="skip"
 if [ "$(uname -s)" = "Darwin" ]; then
   echo "Weekly-note + ingest automation — how do you want to run it?"
   echo "  [a] auto   — install launchd agents: daily ingest (07:00), health check,"
-  echo "               Friday close-out (16:30), Monday note init (login + Mon 08:00)"
+  echo "               Friday close-out (16:30), Monday note init (login + Mon 08:00),"
+  echo "               skill sync (on npx install + hourly)"
   echo "  [m] manual — no agents; you run the scripts by hand when you want"
   echo "  [s] skip   — decide later (default)"
   printf "Choose [a/m/s]: "
@@ -105,6 +106,7 @@ case "$SCHEDULE" in
     bash "$SYSCFG/install_healthcheck.sh"
     bash "$SYSCFG/install_friday_process.sh"
     bash "$SYSCFG/install_monday_init.sh"
+    bash "$SYSCFG/install_sync_skills.sh"
     echo "→ Automation installed. Verify with: launchctl list | grep vaultbrain"
     ;;
   manual)
@@ -117,11 +119,12 @@ case "$SCHEDULE" in
     ;;
   *)
     echo
-    echo "→ Skipping scheduling for now. Install later — auto (all four agents):"
+    echo "→ Skipping scheduling for now. Install later — auto (all five agents):"
     echo "      bash System_Config/install_daily_ingest.sh"
     echo "      bash System_Config/install_healthcheck.sh"
     echo "      bash System_Config/install_friday_process.sh"
     echo "      bash System_Config/install_monday_init.sh"
+    echo "      bash System_Config/install_sync_skills.sh"
     echo "    …or just run them by hand (manual): bash System_Config/monday_init.sh, etc."
     ;;
 esac
