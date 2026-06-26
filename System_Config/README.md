@@ -17,7 +17,7 @@ hardcoded**. Clone this workspace anywhere and the scripts just work.
 | `WORKSPACE` | the parent of `System_Config/` (resolved at runtime) | — |
 | `VAULT` / `SOURCES` / `LOG_DIR` | `$WORKSPACE` | — |
 | `LABEL_PREFIX` | `$AGENT_WS_LABEL_PREFIX`, else `com.$USER.vaultbrain` | `com.<username>.vaultbrain` |
-| `CLAUDE` | `command -v agy`, then `command -v claude`, else fallback | — |
+| `CLAUDE` | `command -v agy`, then `gemini`, then `claude`, else fallback | — |
 
 Override the launchd namespace before installing if you want a custom label:
 
