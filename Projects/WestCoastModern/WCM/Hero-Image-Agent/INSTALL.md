@@ -119,6 +119,28 @@ Please read all images in that folder and run the hero selection.
 
 Claude Cowork will read the images directly from that path without you uploading anything.
 
+#### How to get your exact folder path (don't type it by hand)
+
+You don't need to know what a "path" is or type it from memory — let the Mac give it to you:
+
+**Easiest — drag the folder into the message:**
+1. Open a **new line** in the Cowork message box (right after "Photos are in this folder on my Mac:").
+2. Open **Finder** and find the folder with your photos.
+3. **Drag the folder itself** (not the photos) from Finder into the Cowork message box and let go.
+4. The full path drops in as text automatically. It will look like `/Users/yourname/Dropbox/WCM/Maple-House/photography/raw`.
+
+**Alternative — copy the path from Finder:**
+1. In **Finder**, click once on the folder to select it (don't open it).
+2. Press **⌥ Option + ⌘ Command + C** (hold all three, press C).
+3. Paste with **⌘ Command + V** into the message. The exact path appears.
+
+**Sanity check before you send:**
+- The path starts with `/Users/` and ends at the folder that holds the photos (usually `.../raw`).
+- No `[yourname]` or `[PropertyName]` brackets left over — those are just placeholders; your real path has actual names.
+- If the path has spaces in it (e.g. `Maple House` instead of `Maple-House`), that's fine — Cowork still reads it.
+
+> Tip: The photos must be **directly inside** the folder you point to, not in a sub-folder. If your `raw` folder has more folders inside it, point Claude at the one that actually contains the `.jpg` / `.png` files.
+
 ### Step 5: Review and confirm
 Claude outputs the Hero Report in the Cowork session. You can ask follow-up questions, request score breakdowns, or ask Claude to compare two specific candidates. When you're done, copy the report and save it to Google Drive.
 
