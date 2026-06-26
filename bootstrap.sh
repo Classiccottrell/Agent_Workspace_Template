@@ -55,11 +55,18 @@ echo
 # 4. Prerequisite check (informational — does not block).
 # ---------------------------------------------------------------------------
 echo "→ Checking prerequisites…"
-if command -v claude >/dev/null 2>&1; then
+# Agent CLI — this workspace is provider-agnostic. Prefer agy (Gemini/Antigravity),
+# fall back to claude (Claude Code). Mirrors the resolution order in config.sh.
+if command -v agy >/dev/null 2>&1; then
+  echo "    [ok]   Gemini CLI (agy / Antigravity) found: $(command -v agy)"
+elif command -v gemini >/dev/null 2>&1; then
+  echo "    [ok]   Gemini CLI found: $(command -v gemini)"
+elif command -v claude >/dev/null 2>&1; then
   echo "    [ok]   Claude Code CLI found: $(command -v claude)"
 else
-  echo "    [warn] Claude Code CLI not found on PATH."
-  echo "           Install it and log in: https://docs.claude.com/en/docs/claude-code"
+  echo "    [warn] No agent CLI found on PATH (need 'agy', 'gemini', or 'claude')."
+  echo "           Gemini CLI:  https://github.com/google-gemini/gemini-cli"
+  echo "           Claude Code: https://docs.claude.com/en/docs/claude-code"
 fi
 
 case "$(uname -s)" in
@@ -142,7 +149,7 @@ echo " 2. Drop a clip or note into Vault_Brain/sources/ to feed the wiki."
 echo " 3. Run the health check and open the dashboard:"
 echo "      bash System_Config/healthcheck.sh"
 echo "      open System_Config/status_page.html"
-echo " 4. Start working: run 'claude' from this folder."
+echo " 4. Start working from this folder: run 'agy'/'gemini' (Gemini/Antigravity) or 'claude' (Claude Code)."
 echo
 echo " Reference: README.md, .AGENT.MD, System_Config/README.md, Vault_Brain/README.md"
 echo
