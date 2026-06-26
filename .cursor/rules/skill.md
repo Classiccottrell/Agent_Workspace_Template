@@ -81,18 +81,17 @@
 
 ---
 
-## COLOR — OKLCH (oklch-skill)
+## COLOR — HSL (Vega)
 
-- Use OKLCH for all color definitions: `oklch(L C H / alpha)`.
-- OKLCH is perceptually uniform — lightness L=0.5 looks equally bright across hues.
-- Derive palette: pick hue (H), fix chroma (C 0.12–0.18 for UI), sweep lightness.
-- Dark mode: rotate lightness scale — do not just invert hex values.
+- Use HSL for all color definitions: `hsl(H, S%, L%)`.
+- Define light and dark mode tokens in `:root` and `@media (prefers-color-scheme: dark)`.
+- Dark mode: adjust lightness and saturation — do not just invert hex values.
 - CSS custom properties for all color tokens:
   ```css
-  --color-primary: oklch(0.55 0.18 264);
-  --color-primary-hover: oklch(0.50 0.18 264);
+  --color-primary: hsl(221, 83%, 53%);
+  --color-primary-hover: hsl(221, 83%, 45%);
   ```
-- Test color pairs with APCA contrast (preferred over WCAG for perceptual accuracy).
+- Test color pairs with WCAG AA contrast (4.5:1 for body text, 3:1 for large text).
 
 ---
 
@@ -138,7 +137,7 @@
 
 ## SUB-AGENT INSTRUCTION BLOCK
 When this skill profile is passed to a programming sub-agent, enforce:
-1. All color tokens in OKLCH.
+1. All color tokens in HSL.
 2. All animations respect `prefers-reduced-motion`.
 3. All interactive elements have 3 visual states.
 4. No `outline: none` without replacement focus ring.

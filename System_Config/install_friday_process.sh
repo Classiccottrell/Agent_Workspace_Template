@@ -15,11 +15,12 @@ DEST_PLIST="$HOME/Library/LaunchAgents/$PLIST_NAME"
 UID_NUM="$(id -u)"
 
 echo "→ Creating log dir (must exist before launchd opens its redirect targets)…"
-mkdir -p "$SYSCFG/logs" "$HOME/Library/LaunchAgents"
+mkdir -p "$SYSCFG/logs" "$LAUNCHD_LOG_DIR" "$HOME/Library/LaunchAgents"
 
 echo "→ Rendering $TMPL → $DEST_PLIST (label: $LABEL)"
 sed -e "s|__LABEL__|$LABEL|g" \
     -e "s|__WORKSPACE_ROOT__|$WORKSPACE|g" \
+    -e "s|__LOG_DIR__|$LAUNCHD_LOG_DIR|g" \
     "$TMPL" > "$DEST_PLIST"
 
 echo "→ (Re)bootstrapping the LaunchAgent…"

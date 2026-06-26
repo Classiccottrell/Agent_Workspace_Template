@@ -5,21 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Agent Workspace Template</title>
 <meta name="description" content="A one-person, multi-agent operating environment for Claude Code: a root orchestrator, five scoped subagents, an Obsidian LLM-wiki fed from web clips, and macOS launchd jobs that keep it running.">
-<meta name="theme-color" content="#FBFAF8" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#15151A" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="hsl(222,84%,5%)" media="(prefers-color-scheme: dark)">
 <style>
+/* shadcn/ui Vega theme — 2026-06-25 */
 :root{
-  --bg:#FBFAF8; --surface:#FFFFFF; --ink:#1A1A18; --ink-2:#44443F; --muted:#6B6B64;
-  --rule:#E7E4DE; --accent:#1C6657; --accent-ink:#FFFFFF; --accent-soft:#ECF2F0;
-  --ok:#1E7A46; --warn:#8A5A00; --shadow:0 1px 2px rgba(0,0,0,.05);
-  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --bg:#ffffff;--surface:#ffffff;
+  --ink:hsl(222,47%,11%);--ink-2:hsl(215,16%,35%);--muted:hsl(215,16%,47%);--rule:hsl(214,32%,91%);
+  --accent:hsl(221,83%,53%);--accent-hover:hsl(221,83%,45%);--accent-ink:#ffffff;
+  --accent-soft:hsl(214,96%,97%);--accent-soft-ink:hsl(221,60%,30%);
+  --ok:hsl(142,71%,45%);--warn:hsl(38,92%,50%);
+  --radius:0.5rem;--shadow:0 1px 3px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.06);
+  --sans:"Inter",ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme:dark){
   :root{
-    --bg:#15151A; --surface:#1C1C20; --ink:#F2F1EC; --ink-2:#C8C7C1; --muted:#989790;
-    --rule:#2E2E31; --accent:#5FC9B6; --accent-ink:#14140E; --accent-soft:#1E2A27;
-    --ok:#4ADE80; --warn:#F5B454; --shadow:0 1px 2px rgba(0,0,0,.4);
+    --bg:hsl(222,84%,5%);--surface:hsl(222,47%,11%);
+    --ink:hsl(210,40%,98%);--ink-2:hsl(215,20%,82%);--muted:hsl(215,20%,60%);--rule:hsl(217,33%,18%);
+    --accent:hsl(217,91%,60%);--accent-hover:hsl(217,91%,70%);--accent-ink:#ffffff;
+    --accent-soft:hsl(217,33%,15%);--accent-soft-ink:hsl(214,85%,75%);
+    --ok:hsl(142,71%,55%);--warn:hsl(38,92%,60%);--shadow:none;
   }
 }
 *{box-sizing:border-box}
@@ -76,7 +82,7 @@ p{max-width:66ch;font-size:1.0625rem;margin:0 0 1rem}
 @media(min-width:880px){.hero-grid{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);align-items:center}}
 .cta-row{display:flex;flex-wrap:wrap;gap:.85rem;margin-top:1.5rem}
 .btn{display:inline-flex;align-items:center;gap:.4rem;font-size:.95rem;font-weight:500;
-  padding:.7rem 1.15rem;border-radius:8px;text-decoration:none;min-height:44px;border:1px solid transparent;
+  padding:.7rem 1.15rem;border-radius:var(--radius);text-decoration:none;min-height:44px;border:1px solid transparent;
   transition:transform 120ms ease,background-color 120ms ease,border-color 120ms ease}
 .btn-primary{background:var(--accent);color:var(--accent-ink)}
 .btn-primary:hover{transform:translateY(-1px);background:color-mix(in srgb,var(--accent) 88%,#000)}
@@ -84,14 +90,14 @@ p{max-width:66ch;font-size:1.0625rem;margin:0 0 1rem}
 .btn-secondary:hover{transform:translateY(-1px);border-color:var(--accent)}
 
 /* terminal / code cards */
-.term{background:var(--surface);border:1px solid var(--rule);border-radius:8px;box-shadow:var(--shadow);
+.term{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);box-shadow:var(--shadow);
   overflow:hidden}
 .term-bar{display:flex;align-items:center;gap:.5rem;padding:.55rem .9rem;border-bottom:1px solid var(--rule);
   font-family:var(--mono);font-size:.72rem;color:var(--muted)}
 .dot{width:.6rem;height:.6rem;border-radius:50%;background:var(--rule);display:inline-block}
 .term pre,pre.code{margin:0;font-family:var(--mono);font-size:.875rem;line-height:1.6;
   color:var(--ink-2);padding:clamp(1rem,2vw,1.25rem);overflow-x:auto;white-space:pre;tab-size:2}
-pre.code{background:var(--surface);border:1px solid var(--rule);border-radius:8px;box-shadow:var(--shadow)}
+pre.code{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);box-shadow:var(--shadow)}
 .term code,pre.code code{font-family:inherit}
 .prm{color:var(--accent)}
 .cmt{color:var(--muted)}
@@ -104,7 +110,7 @@ pre.code{background:var(--surface);border:1px solid var(--rule);border-radius:8p
 /* layers definition grid */
 .grid-3{display:grid;grid-template-columns:1fr;gap:1rem}
 @media(min-width:720px){.grid-3{grid-template-columns:repeat(3,1fr);gap:1.5rem}}
-.layer{border:1px solid var(--rule);border-radius:8px;padding:clamp(1rem,2vw,1.25rem);background:var(--surface);
+.layer{border:1px solid var(--rule);border-radius:var(--radius);padding:clamp(1rem,2vw,1.25rem);background:var(--surface);
   transition:border-color 120ms ease,transform 120ms ease}
 .layer:hover{border-color:var(--accent);transform:translateY(-2px)}
 .ord{font-family:var(--mono);color:var(--accent);font-size:1.5rem;line-height:1;display:block;margin-bottom:.5rem}
@@ -137,7 +143,7 @@ ol.steps li::before{content:counter(step);position:absolute;left:0;top:0;font-fa
 /* automation cards */
 .jobs{display:grid;grid-template-columns:1fr;gap:1rem;margin-bottom:1.5rem}
 @media(min-width:720px){.jobs{grid-template-columns:repeat(3,1fr)}}
-.job{border:1px solid var(--rule);border-radius:8px;padding:clamp(1rem,2vw,1.25rem);background:var(--surface);
+.job{border:1px solid var(--rule);border-radius:var(--radius);padding:clamp(1rem,2vw,1.25rem);background:var(--surface);
   transition:border-color 120ms ease,transform 120ms ease}
 .job:hover{border-color:var(--accent);transform:translateY(-2px)}
 .pip-row{display:flex;align-items:center;gap:.5rem;font-family:var(--mono);font-size:.74rem;color:var(--muted);
@@ -151,7 +157,7 @@ ol.steps li::before{content:counter(step);position:absolute;left:0;top:0;font-fa
 .job .inst{font-family:var(--mono);font-size:.78rem;color:var(--muted);margin-top:.65rem;word-break:break-all}
 
 /* figure tree */
-figure.tree{margin:0;border:1px solid var(--rule);border-radius:8px;background:var(--surface);box-shadow:var(--shadow);overflow:hidden}
+figure.tree{margin:0;border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow);overflow:hidden}
 figure.tree pre{margin:0;font-family:var(--mono);font-size:.82rem;line-height:1.55;color:var(--ink-2);
   padding:clamp(1rem,2vw,1.25rem);overflow-x:auto;white-space:pre}
 figure.tree figcaption{font-size:.85rem;color:var(--muted);padding:.65rem .9rem;border-top:1px solid var(--rule)}
@@ -329,7 +335,7 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
       <div class="rule-top">
         <p class="eyebrow">// automation &amp; health</p>
         <h2>launchd jobs that keep it running</h2>
-        <p><code>bootstrap.sh</code> can install three <code>launchd</code> agents — it asks first, default No. You can also run each installer directly later.</p>
+        <p><code>bootstrap.sh</code> can install <strong>four</strong> <code>launchd</code> agents — it asks first, default No. You can also run each installer directly later.</p>
         <div class="jobs">
           <div class="job">
             <div class="pip-row"><span class="pip" aria-hidden="true"></span><span>healthy</span></div>
@@ -351,6 +357,13 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
             <p class="sched tabnum">Fridays 19:00</p>
             <p>Writes a 1–2 sentence weekly summary into the Master Note and builds wiki cross-references.</p>
             <p class="inst">install_friday_process.sh</p>
+          </div>
+          <div class="job">
+            <div class="pip-row"><span class="pip" aria-hidden="true"></span><span>healthy</span></div>
+            <h3>Skill sync</h3>
+            <p class="sched tabnum">on install + hourly</p>
+            <p>Watches <code>~/.agents/skills/</code> for <code>npx</code>-installed skills and syncs them to <code>~/.claude/skills/</code>, then flags new arrivals in the <code>master-orchestrator</code> index.</p>
+            <p class="inst">install_sync_skills.sh</p>
           </div>
         </div>
         <p>Run the health check on demand and open the dashboard:</p>
