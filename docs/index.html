@@ -118,6 +118,19 @@ pre.code{background:var(--surface);border:1px solid var(--rule);border-radius:va
 .layer .path{font-family:var(--mono);font-size:.8rem;color:var(--muted);margin:0 0 .65rem;word-break:break-word}
 .layer p{font-size:.95rem;margin:0;max-width:none;color:var(--ink-2)}
 
+/* documentation map grid */
+.doc-grid{display:grid;grid-template-columns:1fr;gap:1rem}
+@media(min-width:680px){.doc-grid{grid-template-columns:repeat(2,1fr)}}
+.doc{display:flex;flex-direction:column;border:1px solid var(--rule);border-radius:var(--radius);
+  padding:clamp(1rem,2vw,1.25rem);background:var(--surface);transition:border-color 120ms ease,transform 120ms ease}
+.doc:hover{border-color:var(--accent);transform:translateY(-2px)}
+.doc h3{margin:0 0 .15rem;font-size:1.02rem}
+.doc .path{font-family:var(--mono);font-size:.78rem;color:var(--accent);margin:0 0 .55rem;word-break:break-word}
+.doc p{font-size:.92rem;margin:0 0 .9rem;max-width:none;color:var(--ink-2)}
+.doc .read{margin-top:auto;font-family:var(--mono);font-size:.8rem;font-weight:600;text-decoration:none;
+  align-self:flex-start}
+.doc .read:hover{text-decoration:underline;text-underline-offset:2px}
+
 /* tables */
 .tbl-scroll{overflow-x:auto}
 table{border-collapse:collapse;width:100%;min-width:540px}
@@ -211,6 +224,8 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
         <li><a href="#agents">Agents</a></li>
         <li><a href="#quick-start">Quick start</a></li>
         <li><a href="#automation">Automation</a></li>
+        <li><a href="#docs">Docs</a></li>
+        <li><a href="health.html">Health</a></li>
         <li><a class="repo" href="https://github.com/Classiccottrell/Agent_Workspace_Template" rel="noopener">Repo ↗</a></li>
       </ul>
     </nav>
@@ -250,9 +265,9 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
       <div class="rule-top">
         <p class="eyebrow">// what it is</p>
         <h2>Three sentences, one loop</h2>
-        <p>The orchestrator dispatches each unit of work to a scoped subagent — architect designs, coder builds, eng-manager runs projects, archivist files shipped artifacts, curator tends the knowledge wiki.</p>
+        <p>The orchestrator dispatches each unit of work to a scoped subagent: architect designs, coder builds, eng-manager runs projects, archivist files shipped artifacts, curator tends the knowledge wiki.</p>
         <p>A clip lands in <code>Vault_Brain/sources/</code>, a scheduled headless Claude distills it into a wiki page, and you review the result in Obsidian.</p>
-        <p>A self-check probes every layer — delivery, automation, knowledge, and documentation currency — and writes a status page that confirms the whole system is healthy.</p>
+        <p>A self-check probes every layer (delivery, automation, knowledge, and documentation currency) and writes a status page that confirms the whole system is healthy.</p>
       </div>
     </div>
   </section>
@@ -292,7 +307,7 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
       <div class="rule-top">
         <p class="eyebrow">// agent roster</p>
         <h2>Five scoped subagents</h2>
-        <p>Subagents live in <code>.claude/agents/</code> and are invoked by name via the Task tool — never paste their role text into a prompt.</p>
+        <p>Subagents live in <code>.claude/agents/</code> and are invoked by name via the Task tool; never paste their role text into a prompt.</p>
         <div class="tbl-scroll">
           <table>
             <caption class="vh">Agent roster: scope, entry file, and hand-off target for each of the five subagents.</caption>
@@ -335,20 +350,20 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
       <div class="rule-top">
         <p class="eyebrow">// automation &amp; health</p>
         <h2>launchd jobs that keep it running</h2>
-        <p><code>bootstrap.sh</code> can install <strong>four</strong> <code>launchd</code> agents — it asks first, default No. You can also run each installer directly later.</p>
+        <p><code>bootstrap.sh</code> can install <strong>four</strong> <code>launchd</code> agents; it asks first (default No). You can also run each installer directly later.</p>
         <div class="jobs">
           <div class="job">
             <div class="pip-row"><span class="pip" aria-hidden="true"></span><span>healthy</span></div>
             <h3>Daily ingest</h3>
             <p class="sched tabnum">daily 07:00 + at login</p>
-            <p>Reads new <code>Vault_Brain/sources/*.md</code> clips and files them into the wiki — one headless <code>claude -p</code> call per clip, content-hash dedup.</p>
+            <p>Reads new <code>Vault_Brain/sources/*.md</code> clips and files them into the wiki: one headless <code>claude -p</code> call per clip, content-hash dedup.</p>
             <p class="inst">install_daily_ingest.sh</p>
           </div>
           <div class="job">
             <div class="pip-row"><span class="pip" aria-hidden="true"></span><span>healthy</span></div>
             <h3>Health check</h3>
             <p class="sched tabnum">at login + every 4h</p>
-            <p>Probes all layers plus documentation currency and writes the status dashboard to <code>status_page.html</code>.</p>
+            <p>Probes all layers plus documentation currency, writes <code>status_page.html</code>, and publishes the snapshot to the <a class="body-link" href="health.html">microsite dashboard</a>.</p>
             <p class="inst">install_healthcheck.sh</p>
           </div>
           <div class="job">
@@ -366,10 +381,11 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
             <p class="inst">install_sync_skills.sh</p>
           </div>
         </div>
-        <p>Run the health check on demand and open the dashboard:</p>
+        <p>Run the health check on demand, then open either the standalone page or the <a class="body-link" href="health.html">microsite dashboard</a>:</p>
 <pre class="code"><code><span class="prm">$</span> bash System_Config/healthcheck.sh
-<span class="prm">$</span> open System_Config/status_page.html</code></pre>
-        <p class="note"><code>status_page.html</code> and its <code>status.json</code> data are generated at runtime into <code>System_Config/</code> — they are not part of the template and are git-ignored. Green = healthy; amber/red lists exactly what needs attention.</p>
+<span class="prm">$</span> open System_Config/status_page.html   <span class="cmt"># standalone</span>
+<span class="prm">$</span> open docs/health.html                 <span class="cmt"># microsite (live dashboard)</span></code></pre>
+        <p class="note">The <code>System_Config/</code> copies (<code>status_page.html</code> + <code>status.json</code>) are git-ignored runtime artifacts. The same run also publishes <code>docs/status.js</code> + <code>docs/status.json</code>, which <code>health.html</code> reads. These <strong>are</strong> committed, so the published Pages site shows the last-known state. Green = healthy; amber/red lists exactly what needs attention.</p>
       </div>
     </div>
   </section>
@@ -426,19 +442,73 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
     </div>
   </section>
 
+  <section id="docs">
+    <div class="wrap reveal">
+      <div class="rule-top">
+        <p class="eyebrow">// documentation map</p>
+        <h2>Read the system, doc by doc</h2>
+        <p>Every layer ships its own governing doc, kept current by the health check. Start at the root <code>README.md</code>, then drill into the layer you're working in.</p>
+        <div class="doc-grid">
+          <div class="doc">
+            <h3>README</h3>
+            <p class="path">README.md</p>
+            <p>Human entry point: what the system is, the spin-up guide, and the full directory tour. Read this first.</p>
+            <a class="read" href="https://github.com/Classiccottrell/Agent_Workspace_Template/blob/main/README.md" rel="noopener">Read README →</a>
+          </div>
+          <div class="doc">
+            <h3>.AGENT.MD</h3>
+            <p class="path">.AGENT.MD</p>
+            <p>Root orchestrator config: identity, the annotated workspace map, and the agent-coordination matrix that routes work between subagents.</p>
+            <a class="read" href="https://github.com/Classiccottrell/Agent_Workspace_Template/blob/main/.AGENT.MD" rel="noopener">Read .AGENT.MD →</a>
+          </div>
+          <div class="doc">
+            <h3>CLAUDE.md</h3>
+            <p class="path">CLAUDE.md</p>
+            <p>Orchestrator rules for Claude Code: the Caveman Protocol, dispatch routing, documentation-integrity rule, and the HTML / Vega template policy.</p>
+            <a class="read" href="https://github.com/Classiccottrell/Agent_Workspace_Template/blob/main/CLAUDE.md" rel="noopener">Read CLAUDE.md →</a>
+          </div>
+          <div class="doc">
+            <h3>System_Config</h3>
+            <p class="path">System_Config/README.md</p>
+            <p>The automation hub: every script and <code>launchd</code> installer, the health check, log layout, and the one-time Full Disk Access setup.</p>
+            <a class="read" href="https://github.com/Classiccottrell/Agent_Workspace_Template/blob/main/System_Config/README.md" rel="noopener">Read automation docs →</a>
+          </div>
+          <div class="doc">
+            <h3>Vault_Brain</h3>
+            <p class="path">Vault_Brain/README.md</p>
+            <p>The knowledge vault: the Web-Clipper pipeline, the weekly rhythm, and how sources become wiki pages in Obsidian.</p>
+            <a class="read" href="https://github.com/Classiccottrell/Agent_Workspace_Template/blob/main/Vault_Brain/README.md" rel="noopener">Read vault docs →</a>
+          </div>
+          <div class="doc">
+            <h3>Wiki schema</h3>
+            <p class="path">Vault_Brain/CLAUDE.md</p>
+            <p>The Karpathy LLM-wiki schema the curator follows: page anatomy, cross-linking, and the create-or-append knowledge rule.</p>
+            <a class="read" href="https://github.com/Classiccottrell/Agent_Workspace_Template/blob/main/Vault_Brain/CLAUDE.md" rel="noopener">Read wiki schema →</a>
+          </div>
+          <div class="doc">
+            <h3>Project template</h3>
+            <p class="path">Projects/_TEMPLATE/</p>
+            <p>The per-project scaffold (a <code>BRIEF.md</code> for scope, a <code>README.md</code> for status) that the eng-manager clones for each new project.</p>
+            <a class="read" href="https://github.com/Classiccottrell/Agent_Workspace_Template/tree/main/Projects/_TEMPLATE" rel="noopener">Read project template →</a>
+          </div>
+          <div class="doc">
+            <h3>System health</h3>
+            <p class="path">docs/health.html</p>
+            <p>The live dashboard: every layer plus documentation currency, probed by the health check and refreshed on each run.</p>
+            <a class="read" href="health.html">Open health dashboard →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section id="prerequisites">
     <div class="wrap reveal">
       <div class="rule-top">
-        <p class="eyebrow">// prerequisites &amp; pointers</p>
+        <p class="eyebrow">// prerequisites</p>
         <h2>Before you bootstrap</h2>
         <p class="prereq"><strong>Requires:</strong> macOS with <code>launchd</code> (the install step is mac-only); the Claude Code CLI installed and logged in; stock <code>/bin/bash</code> (3.2) — no extra shell needed; Obsidian optional (the vault is plain Markdown); and a one-time grant of Full Disk Access to <code>/bin/bash</code> if you install the background automation, so the scheduled jobs can read your workspace.</p>
-        <h3 style="margin-top:1.5rem;margin-bottom:.75rem">Further reading</h3>
-        <ul class="points">
-          <li><a href="https://github.com/Classiccottrell/Agent_Workspace_Template/blob/main/.AGENT.MD" rel="noopener">.AGENT.MD</a><span>Full workspace map + agent coordination matrix</span></li>
-          <li><a href="https://github.com/Classiccottrell/Agent_Workspace_Template/blob/main/CLAUDE.md" rel="noopener">CLAUDE.md</a><span>Orchestrator rules and dispatch routing</span></li>
-          <li><a href="https://github.com/Classiccottrell/Agent_Workspace_Template/blob/main/System_Config/README.md" rel="noopener">System_Config/README.md</a><span>Automation hub, installers, Full Disk Access setup</span></li>
-          <li><a href="https://github.com/Classiccottrell/Agent_Workspace_Template/blob/main/Vault_Brain/README.md" rel="noopener">Vault_Brain/README.md</a><span>How the knowledge vault works — weekly rhythm, clipper pipeline</span></li>
-        </ul>
+        <p class="note">New here? The <a class="body-link" href="#docs">documentation map</a> links every governing doc (root <code>README</code>, <code>.AGENT.MD</code>, <code>CLAUDE.md</code>, and the per-layer READMEs), and the live <a class="body-link" href="health.html">health dashboard</a> shows the system's current state.</p>
       </div>
     </div>
   </section>
@@ -448,7 +518,7 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
 <footer class="site">
   <div class="wrap">
     <p>Open-source template for <a href="https://docs.claude.com/en/docs/claude-code" rel="noopener">Claude Code</a>. Clone it, run <code>./bootstrap.sh</code>, and you have a relocatable knowledge-and-delivery system that runs itself.</p>
-    <p><a href="https://github.com/Classiccottrell/Agent_Workspace_Template" rel="noopener">github.com/Classiccottrell/Agent_Workspace_Template</a> · <a href="#top">Back to top ↑</a></p>
+    <p><a href="https://github.com/Classiccottrell/Agent_Workspace_Template" rel="noopener">github.com/Classiccottrell/Agent_Workspace_Template</a> · <a href="#docs">Documentation</a> · <a href="health.html">System health</a> · <a href="#top">Back to top ↑</a></p>
     <p class="colophon">Built for Claude Code.</p>
   </div>
 </footer>
