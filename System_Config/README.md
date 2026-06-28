@@ -53,7 +53,7 @@ and **no output**, before the script runs. The scripts' own logs still live in
 | `friday_process.sh` | Friday 16:30 weekly close-out: Claude writes a 1–2 sentence summary + append-only wiki cross-refs, deterministic bash edits the Master Note row (backup + validate + rollback), and a `.<week>.fridayclose.snapshot.md` baseline is saved (used Monday to detect weekend edits). |
 | `fridayprocess.plist.tmpl` | launchd agent template: runs the close-out Fridays at 16:30. |
 | `install_friday_process.sh` | Render + install/reload the Friday agent (idempotent). |
-| `healthcheck.sh` | Probe all 5 architecture layers + doc currency → `status_page.html` + `status.json`. Always exits 0; never reports green on a broken system. |
+| `healthcheck.sh` | Probe all 5 architecture layers + doc currency → `status_page.html` + `status.json` (here) **and** publishes the snapshot to the microsite: `docs/status.js` + `docs/status.json`, which `docs/health.html` renders. Always exits 0; never reports green on a broken system. |
 | `healthcheck.plist.tmpl` | launchd agent template: runs the health check at login + every 4 hours. |
 | `install_healthcheck.sh` | Render + install/reload the health-check agent (idempotent). |
 | `monday_init.sh` | Create the current ISO-week note from the template. Carries open tasks forward **grouped under their `#### Project` header** (with sub-bullets), and **merges weekend edits** to last week's note into the new one. Runs at login + Mon 08:00 via launchd, or by hand. |
@@ -69,6 +69,13 @@ and **no output**, before the script runs. The scripts' own logs still live in
 > **Generated at runtime, not shipped:** `healthcheck.sh` writes
 > `status_page.html` and `status.json` into this directory each time it runs.
 > They are not part of the template — run the health check to create them.
+>
+> **Published to the microsite (committed):** the same run also writes
+> `docs/status.js` (a `window.__STATUS__` assignment) and `docs/status.json`.
+> `docs/health.html` reads `status.js` via a `<script>` tag — not `fetch` — so the
+> dashboard renders from `file://` and on the published GitHub Pages site alike.
+> Unlike the `System_Config/` copies, the `docs/` snapshot **is** committed so the
+> Pages site shows the last-known state; re-run the health check to refresh it.
 
 ## Installed plist names
 
