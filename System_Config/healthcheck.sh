@@ -3,10 +3,14 @@
 # Probes every layer (orchestration, automation, knowledge base, persistence,
 # projects) and renders a self-contained HTML status page + status.json.
 #
+# It also publishes the snapshot to the microsite: docs/status.js (a
+# window.__STATUS__ assignment) + docs/status.json, which docs/health.html reads
+# client-side. status.js is used (not fetch) so the page works from file:// too.
+#
 # Scheduled via launchd — see healthcheck.plist.tmpl (label com.<username>.vaultbrain.healthcheck)
 #   Activate:   bash System_Config/install_healthcheck.sh
 #   Manual:     bash System_Config/healthcheck.sh
-#   View:       open System_Config/status_page.html
+#   View:       open System_Config/status_page.html  ·  or the microsite docs/health.html
 #
 # Deliberately NOT `set -e`: a failing probe is a result to REPORT, not a reason
 # to abort. bash 3.2 compatible (no associative arrays). Always exits 0.
@@ -23,6 +27,7 @@ WS_SLUG="$(printf '%s' "$WORKSPACE" | sed 's|/|-|g')"
 MEMDIR="$HOME/.claude/projects/${WS_SLUG}/memory"
 OUT_HTML="$SYSCFG/status_page.html"
 OUT_JSON="$SYSCFG/status.json"
+DOCS="$WORKSPACE/docs"
 INGEST_LABEL="$LABEL_PREFIX.dailyingest"
 HEALTH_LABEL="$LABEL_PREFIX.healthcheck"
 
@@ -339,6 +344,17 @@ TMPJ="$(mktemp 2>/dev/null || echo "${OUT_JSON}.tmp")"
 printf '{"generated":"%s","overall":"%s","pass":%d,"warn":%d,"fail":%d,"checks":[%s]}\n' \
   "$NOW_HUMAN" "$OVERALL" "$PASS_N" "$WARN_N" "$FAIL_N" "$JSON_ITEMS" > "$TMPJ"
 mv "$TMPJ" "$OUT_JSON"
+
+# Publish the snapshot to the microsite so docs/health.html can render it (and the
+# published GitHub Pages site shows the last-known state). status.js wraps the same
+# JSON in a window.__STATUS__ assignment so the page loads from file:// without fetch.
+if [ -d "$DOCS" ]; then
+  cp "$OUT_JSON" "$DOCS/status.json" 2>/dev/null || true
+  TMPS="$(mktemp 2>/dev/null || echo "$DOCS/status.js.tmp")"
+  { printf 'window.__STATUS__='; cat "$OUT_JSON"; printf ';\n'; } > "$TMPS"
+  mv "$TMPS" "$DOCS/status.js"
+  chmod 644 "$DOCS/status.js" "$DOCS/status.json" 2>/dev/null || true
+fi
 
 mkdir -p "$SYSCFG/logs"
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] healthcheck: ${OVERALL} (pass=${PASS_N} warn=${WARN_N} fail=${FAIL_N})" >> "$SYSCFG/logs/healthcheck.log"

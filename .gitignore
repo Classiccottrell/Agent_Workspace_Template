@@ -29,7 +29,9 @@ out/
 # Keep the logs/ directory (via .gitkeep) but ship none of its contents.
 System_Config/logs/*
 !System_Config/logs/.gitkeep
-# Health-check output is generated at runtime, never committed.
+# System_Config/ health-check output is generated at runtime, never committed.
+# (The microsite copy under docs/ — status.js + health.html — IS committed so the
+#  published GitHub Pages site can show the last-known health snapshot. See healthcheck.sh.)
 System_Config/status.json
 System_Config/status_page.html
 # Rendered launchd plists live in ~/Library/LaunchAgents, but ignore any
