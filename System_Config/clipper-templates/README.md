@@ -19,7 +19,6 @@ Each clip is a plain markdown file written to `Vault_Brain/sources/`:
 |------|---------|--------|
 | `obsidian-webclipper.json` | Obsidian Web Clipper (first-party, MIT) | Clipper Settings → Template → Import. Point `path` at `Vault_Brain/sources/`. |
 | `marksnip-frontmatter.md` | MarkSnip (MarkDownload MV3 fork) | Options → Markdown Options → paste into the front/template field; set download folder to `Vault_Brain/sources/`. |
-| `karakeep-template.md` | Karakeep (self-hosted bookmarks) | **Tier B** — no direct `.md`-to-folder; run a poller against the bookmarks API. See the file for the field map. |
 
 ## Notes
 
