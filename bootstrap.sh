@@ -211,6 +211,40 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# Hook wiring — doc currency check (idempotent).
+# ---------------------------------------------------------------------------
+echo "→ Wiring doc-currency hook into .claude/settings.json…"
+HOOK_PY="$ROOT/.claude/hooks/readme-currency-check.py"
+SETTINGS="$ROOT/.claude/settings.json"
+if [ -f "$HOOK_PY" ] && [ -f "$SETTINGS" ] && command -v python3 >/dev/null 2>&1; then
+  python3 - "$SETTINGS" "$HOOK_PY" << 'PYEOF2'
+import json, sys
+settings_path, hook_path = sys.argv[1], sys.argv[2]
+with open(settings_path) as f:
+    s = json.load(f)
+hooks = s.setdefault("hooks", {})
+pt = hooks.setdefault("PostToolUse", [])
+pt[:] = [h for h in pt if "readme-currency-check" not in str(h)]
+pt.append({
+    "matcher": "Write|Edit|MultiEdit",
+    "hooks": [{
+        "type": "command",
+        "command": f'python3 "{hook_path}" 2>/dev/null || true',
+        "timeout": 15,
+        "statusMessage": "README currency check"
+    }]
+})
+with open(settings_path, "w") as f:
+    json.dump(s, f, indent=2)
+    f.write("\n")
+PYEOF2
+  echo "    [ok]   Doc-currency hook wired at: $HOOK_PY"
+else
+  echo "    [skip] python3 not found or files missing — wire manually:"
+  echo "           Add to .claude/settings.json > hooks > PostToolUse (see docs/)"
+fi
+
+# ---------------------------------------------------------------------------
 # 7. Next steps.
 # ---------------------------------------------------------------------------
 echo
