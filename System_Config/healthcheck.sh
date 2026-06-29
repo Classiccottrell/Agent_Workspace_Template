@@ -330,7 +330,7 @@ tr.fail .d{color:#ffb4ad}tr.warn .d{color:#e8c877}
 <div class="sub">Multi-agent workspace health check &middot; auto-refreshes every 5 min</div>
 <div class="banner ${BCLASS}"><span>${BANNER}</span><span class="counts"><b>${PASS_N}</b> pass &middot; <b>${WARN_N}</b> warn &middot; <b>${FAIL_N}</b> fail</span></div>
 ${SECTIONS}
-<div class="ft">Generated ${NOW_HUMAN} &middot; ${HOST} &middot; regenerate with <code>bash System_Config/healthcheck.sh</code></div>
+<div class="ft">Generated ${NOW_HUMAN} &middot; ${HOST} &middot; <a href="run_healthcheck.command" style="font-size:12px;border:1px solid var(--bd);background:var(--card);color:var(--mut);padding:2px 10px;border-radius:5px;text-decoration:none;margin-left:6px">&#8635; run now</a> &middot; <button onclick="location.reload()" style="font-size:12px;cursor:pointer;border:1px solid var(--bd);background:var(--card);color:var(--mut);padding:2px 10px;border-radius:5px">&#8635; reload</button></div>
 </div></body></html>
 HTML
 mv "$TMP" "$OUT_HTML"
