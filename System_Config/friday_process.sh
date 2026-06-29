@@ -183,3 +183,7 @@ else
 fi
 
 log "friday_process done — $WEEK_TAG closed out OK"
+# Regenerate microsite from live source files
+if command -v python3 >/dev/null 2>&1 && [ -f "$SYSCFG/gen_site.py" ]; then
+  python3 "$SYSCFG/gen_site.py" && echo "[friday_process] docs/index.html regenerated."
+fi
