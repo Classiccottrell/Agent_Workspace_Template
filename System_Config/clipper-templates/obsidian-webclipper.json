@@ -1,0 +1,51 @@
+{
+	"schemaVersion": "0.1.1",
+	"name": "secondbrain Source",
+	"behavior": "create",
+	"noteNameFormat": "{{date|date:\"YYYY-MM-DD\"}}_{{title|safe_name}}",
+	"path": "sources",
+	"noteContentFormat": "{{content}}",
+	"properties": [
+		{
+			"name": "title",
+			"value": "{{title}}",
+			"type": "text"
+		},
+		{
+			"name": "source",
+			"value": "{{url}}",
+			"type": "text"
+		},
+		{
+			"name": "author",
+			"value": "{{author}}",
+			"type": "multitext"
+		},
+		{
+			"name": "published",
+			"value": "{{published|date:\"YYYY-MM-DD\"}}",
+			"type": "date"
+		},
+		{
+			"name": "clipped",
+			"value": "{{date|date:\"YYYY-MM-DD\"}}",
+			"type": "date"
+		},
+		{
+			"name": "description",
+			"value": "{{description}}",
+			"type": "text"
+		},
+		{
+			"name": "domain",
+			"value": "{{domain}}",
+			"type": "text"
+		},
+		{
+			"name": "tags",
+			"value": "source, clipping",
+			"type": "multitext"
+		}
+	],
+	"triggers": []
+}

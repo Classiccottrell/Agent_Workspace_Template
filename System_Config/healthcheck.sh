@@ -282,6 +282,56 @@ doc_check "Vault_Brain/README" "$VAULT/README.md" "$VAULT/CLAUDE.md" "$SYSCFG/da
 doc_check ".AGENT.MD workspace map" "$WORKSPACE/.AGENT.MD" "$AGENTS"/*.md
 end_section
 
+
+# ════════════════════════════════════════════════════════════════════════════
+# LAYER G — Repo Hygiene (no harness worktrees leaked into the tracked tree)
+# ════════════════════════════════════════════════════════════════════════════
+begin_section "Repo Hygiene" "&#129529;"
+# committed gitlinks (mode 160000) under .claude/ in HEAD, plus any staged in the index
+gl_head=$(git -C "$WORKSPACE" ls-tree -r HEAD -- .claude 2>/dev/null | awk '$2=="commit"{print $4}')
+gl_idx=$(git -C "$WORKSPACE" ls-files -s -- .claude 2>/dev/null | awk '$1=="160000"{print $4}')
+gl_all=$(printf '%s\n%s\n' "$gl_head" "$gl_idx" | grep -v '^$' | sort -u | tr '\n' ' ')
+if [ -n "$gl_all" ]; then
+  check FAIL "No worktree gitlinks tracked" "committed/staged gitlink(s) under .claude/: ${gl_all}"
+else
+  check PASS "No worktree gitlinks tracked" "no 160000 gitlinks under .claude/"
+fi
+if grep -q '^\.claude/worktrees/' "$WORKSPACE/.gitignore" 2>/dev/null; then
+  check PASS ".claude/worktrees ignored" ".gitignore rule present"
+else
+  check WARN ".claude/worktrees ignored" ".gitignore missing .claude/worktrees/ rule"
+fi
+end_section
+# ════════════════════════════════════════════════════════════════════════════
+# LAYER H — Decision Hygiene
+# ════════════════════════════════════════════════════════════════════════════
+begin_section "Decision Hygiene" "&#128196;"
+dec_count=0; dec_newest=0; dec_newest_name=""
+if [ -d "$MEMDIR" ]; then
+  while IFS= read -r mf; do
+    [ -s "$mf" ] || continue
+    if awk '/^---$/{n++; next} n==1 && /^[[:space:]]+type:[[:space:]]*decisions/{hit=1} n>=2{exit} END{exit !hit}' "$mf" 2>/dev/null; then
+      dec_count=$((dec_count + 1))
+      mt=$(stat -f %m "$mf" 2>/dev/null || echo 0)
+      if [ "$mt" -gt "$dec_newest" ]; then dec_newest="$mt"; dec_newest_name="$(basename "$mf")"; fi
+    fi
+  done < <(find "$MEMDIR" -maxdepth 1 -name 'decision_*.md' 2>/dev/null)
+fi
+if [ "$dec_count" -eq 0 ]; then
+  check WARN "Decision log" "no decision memories found — capture architectural decisions as type: decisions in memory/"
+else
+  check PASS "Decision log" "${dec_count} decision(s) recorded (latest: ${dec_newest_name})"
+  if [ "$dec_newest" -gt 0 ]; then
+    age_days=$(( (NOW_EPOCH - dec_newest) / 86400 ))
+    if [ "$age_days" -le 7 ]; then
+      check PASS "Decision recency" "most recent decision ${age_days}d ago"
+    else
+      check WARN "Decision recency" "most recent decision ${age_days}d ago — log recent architectural choices"
+    fi
+  fi
+fi
+end_section
+
 # ════════════════════════════════════════════════════════════════════════════
 # RENDER
 # ════════════════════════════════════════════════════════════════════════════
