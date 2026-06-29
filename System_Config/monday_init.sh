@@ -87,10 +87,10 @@ if [[ -f "$PREV_NOTE" ]]; then
   # Group each open task under its '#### Project' header. A header is emitted
   # only if it has >=1 open '- [ ]' item; indented sub-bullets/context lines
   # under an open item are carried with it. Safeguards: stop at the cheat-sheet
-  # (matches '## 📋 Markdown Snippets' too), ignore prior 'Carried From' /
+  # stop at Decisions (permanent record, not carried forward); ignore 'Carried From' /
   # 'Weekend Edits' blocks (so items don't re-carry), drop 'Action item one'.
   CARRIED=$(awk '
-    /^##.*Markdown Snippets/                   { exit }
+    /^## Decisions/                            { exit }
     /^## Carried From/ || /^## Weekend Edits/  { skip=1; hdr=""; printed=0; cap=0; next }
     /^## /                  { skip=0; hdr=""; cap=0; next }
     skip                    { next }
