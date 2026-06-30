@@ -66,8 +66,13 @@ if [[ "${DRY_RUN:-0}" == "1" ]]; then
   echo "  Sprint $SPRINT | Q$QUARTER | $WEEK_LABEL"
   echo "Master Note row: $INDEX_ROW"
   [[ -f "$NOTE_FILE" ]] && echo "(note already exists — real run would skip)"
+  echo "Would create Raw_Notes folder: $VAULT/Raw_Notes/${YEAR}/W${WEEK_NUM} ${WEEK_LABEL}"
   exit 0
 fi
+
+# ── CREATE Raw_Notes WEEK FOLDER (always, idempotent) ───────────────────────
+mkdir -p "$VAULT/Raw_Notes/${YEAR}/W${WEEK_NUM} ${WEEK_LABEL}"
+echo "[monday_init] Raw_Notes folder ready: Raw_Notes/${YEAR}/W${WEEK_NUM} ${WEEK_LABEL}"
 
 # ── GUARD: skip if note already exists ───────────────────────────────────────
 if [[ -f "$NOTE_FILE" ]]; then
@@ -179,5 +184,4 @@ else
     echo "[monday_init] WARNING: index update failed — row NOT added." >&2
   fi
 fi
-
 echo "[monday_init] Done — $(date)"
