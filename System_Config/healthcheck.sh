@@ -287,6 +287,56 @@ doc_check "Vault_Brain/README" "$VAULT/README.md" "$VAULT/CLAUDE.md" "$SYSCFG/da
 doc_check ".AGENT.MD workspace map" "$WORKSPACE/.AGENT.MD" "$AGENTS"/*.md
 end_section
 
+
+# ════════════════════════════════════════════════════════════════════════════
+# LAYER G — Repo Hygiene (no harness worktrees leaked into the tracked tree)
+# ════════════════════════════════════════════════════════════════════════════
+begin_section "Repo Hygiene" "&#129529;"
+# committed gitlinks (mode 160000) under .claude/ in HEAD, plus any staged in the index
+gl_head=$(git -C "$WORKSPACE" ls-tree -r HEAD -- .claude 2>/dev/null | awk '$2=="commit"{print $4}')
+gl_idx=$(git -C "$WORKSPACE" ls-files -s -- .claude 2>/dev/null | awk '$1=="160000"{print $4}')
+gl_all=$(printf '%s\n%s\n' "$gl_head" "$gl_idx" | grep -v '^$' | sort -u | tr '\n' ' ')
+if [ -n "$gl_all" ]; then
+  check FAIL "No worktree gitlinks tracked" "committed/staged gitlink(s) under .claude/: ${gl_all}"
+else
+  check PASS "No worktree gitlinks tracked" "no 160000 gitlinks under .claude/"
+fi
+if grep -q '^\.claude/worktrees/' "$WORKSPACE/.gitignore" 2>/dev/null; then
+  check PASS ".claude/worktrees ignored" ".gitignore rule present"
+else
+  check WARN ".claude/worktrees ignored" ".gitignore missing .claude/worktrees/ rule"
+fi
+end_section
+# ════════════════════════════════════════════════════════════════════════════
+# LAYER H — Decision Hygiene
+# ════════════════════════════════════════════════════════════════════════════
+begin_section "Decision Hygiene" "&#128196;"
+dec_count=0; dec_newest=0; dec_newest_name=""
+if [ -d "$MEMDIR" ]; then
+  while IFS= read -r mf; do
+    [ -s "$mf" ] || continue
+    if awk '/^---$/{n++; next} n==1 && /^[[:space:]]+type:[[:space:]]*decisions/{hit=1} n>=2{exit} END{exit !hit}' "$mf" 2>/dev/null; then
+      dec_count=$((dec_count + 1))
+      mt=$(stat -f %m "$mf" 2>/dev/null || echo 0)
+      if [ "$mt" -gt "$dec_newest" ]; then dec_newest="$mt"; dec_newest_name="$(basename "$mf")"; fi
+    fi
+  done < <(find "$MEMDIR" -maxdepth 1 -name 'decision_*.md' 2>/dev/null)
+fi
+if [ "$dec_count" -eq 0 ]; then
+  check WARN "Decision log" "no decision memories found — capture architectural decisions as type: decisions in memory/"
+else
+  check PASS "Decision log" "${dec_count} decision(s) recorded (latest: ${dec_newest_name})"
+  if [ "$dec_newest" -gt 0 ]; then
+    age_days=$(( (NOW_EPOCH - dec_newest) / 86400 ))
+    if [ "$age_days" -le 7 ]; then
+      check PASS "Decision recency" "most recent decision ${age_days}d ago"
+    else
+      check WARN "Decision recency" "most recent decision ${age_days}d ago — log recent architectural choices"
+    fi
+  fi
+fi
+end_section
+
 # ════════════════════════════════════════════════════════════════════════════
 # RENDER
 # ════════════════════════════════════════════════════════════════════════════
@@ -335,7 +385,7 @@ tr.fail .d{color:#ffb4ad}tr.warn .d{color:#e8c877}
 <div class="sub">Multi-agent workspace health check &middot; auto-refreshes every 5 min</div>
 <div class="banner ${BCLASS}"><span>${BANNER}</span><span class="counts"><b>${PASS_N}</b> pass &middot; <b>${WARN_N}</b> warn &middot; <b>${FAIL_N}</b> fail</span></div>
 ${SECTIONS}
-<div class="ft">Generated ${NOW_HUMAN} &middot; ${HOST} &middot; regenerate with <code>bash System_Config/healthcheck.sh</code></div>
+<div class="ft">Generated ${NOW_HUMAN} &middot; ${HOST} &middot; <a href="run_healthcheck.command" style="font-size:12px;border:1px solid var(--bd);background:var(--card);color:var(--mut);padding:2px 10px;border-radius:5px;text-decoration:none;margin-left:6px">&#8635; run now</a> &middot; <button onclick="location.reload()" style="font-size:12px;cursor:pointer;border:1px solid var(--bd);background:var(--card);color:var(--mut);padding:2px 10px;border-radius:5px">&#8635; reload</button></div>
 </div></body></html>
 HTML
 mv "$TMP" "$OUT_HTML"
@@ -357,6 +407,45 @@ if [ -d "$DOCS" ]; then
 fi
 
 mkdir -p "$SYSCFG/logs"
+hlog() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] publish: $1" >> "$SYSCFG/logs/healthcheck.log"; }
+
+# Publish the snapshot to GitHub Pages (which serves docs/ from origin/main) so the
+# live health.html auto-updates. The job normally runs with a FEATURE branch checked
+# out, so committing in-place would land status.* on the wrong branch and collide with
+# in-flight work. Instead push through a dedicated worktree pinned to origin/main —
+# detached so it never hijacks the local `main` ref or touches the user's checkout.
+# ponytail: best-effort; any git/auth failure just logs and we still exit 0.
+PUBLISH_WT="$HOME/Library/Caches/agent-workspace-health-publish"
+if command -v git >/dev/null 2>&1 && git -C "$WORKSPACE" rev-parse --git-dir >/dev/null 2>&1; then
+  if [ ! -e "$PUBLISH_WT/.git" ]; then
+    git -C "$WORKSPACE" worktree prune 2>/dev/null || true
+    git -C "$WORKSPACE" worktree add -q --detach "$PUBLISH_WT" origin/main 2>/dev/null \
+      || hlog "worktree add failed (no origin/main yet?) — skipping"
+  fi
+  if [ -e "$PUBLISH_WT/.git" ] \
+     && git -C "$PUBLISH_WT" fetch -q origin main 2>/dev/null \
+     && git -C "$PUBLISH_WT" reset -q --hard origin/main 2>/dev/null; then
+    if [ -d "$PUBLISH_WT/docs" ]; then
+      cp "$OUT_JSON" "$PUBLISH_WT/docs/status.json" 2>/dev/null || true
+      { printf 'window.__STATUS__='; cat "$OUT_JSON"; printf ';\n'; } > "$PUBLISH_WT/docs/status.js"
+      git -C "$PUBLISH_WT" add docs/status.json docs/status.js 2>/dev/null || true
+      if git -C "$PUBLISH_WT" diff --cached --quiet 2>/dev/null; then
+        hlog "no status change — nothing to publish"
+      elif git -C "$PUBLISH_WT" -c user.name=healthcheck -c user.email=healthcheck@local \
+             commit -q -m "chore(health): publish status snapshot [skip ci]" 2>/dev/null \
+           && git -C "$PUBLISH_WT" push -q origin HEAD:main 2>/dev/null; then
+        hlog "pushed status snapshot to origin/main"
+      else
+        hlog "commit/push failed (auth or non-fast-forward) — will retry next run"
+      fi
+    else
+      hlog "origin/main has no docs/ dir yet — merge the dashboard branch first"
+    fi
+  else
+    hlog "fetch/reset origin/main failed — skipping publish this run"
+  fi
+fi
+
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] healthcheck: ${OVERALL} (pass=${PASS_N} warn=${WARN_N} fail=${FAIL_N})" >> "$SYSCFG/logs/healthcheck.log"
 echo "Status: ${OVERALL} — ${PASS_N} pass / ${WARN_N} warn / ${FAIL_N} fail"
 echo "Wrote ${OUT_HTML}"

@@ -10,6 +10,10 @@ LABEL_PREFIX="${AGENT_WS_LABEL_PREFIX:-com.${USER}.vaultbrain}"
 # or launchd fails to open them at spawn -> EX_CONFIG (78); FDA on /bin/bash does NOT
 # cover that open. ~/Library/Logs is safe. (Script logs still go to LOG_DIR above.)
 LAUNCHD_LOG_DIR="$HOME/Library/Logs/$LABEL_PREFIX"
+# KB_STRATEGY — set by bootstrap.sh. Both are Tier A (files ARE the store).
+#   obsidian  - Obsidian app + Obsidian Web Clipper (default)
+#   vscode    - VS Code + Foam + MarkSnip web clipper
+KB_STRATEGY="${KB_STRATEGY:-obsidian}"
 # Resolve the agent CLI (prioritizing Gemini/Antigravity, falling back to claude).
 # The Gemini CLI ships as either `agy` (Antigravity) or `gemini`; accept both.
 if command -v agy >/dev/null 2>&1; then
