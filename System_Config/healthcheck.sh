@@ -7,6 +7,12 @@
 # window.__STATUS__ assignment) + docs/status.json, which docs/health.html reads
 # client-side. status.js is used (not fetch) so the page works from file:// too.
 #
+# To make the LIVE GitHub Pages dashboard auto-update, the run then pushes the
+# snapshot to origin/main (Pages' source). The job normally has a feature branch
+# checked out, so it publishes through a detached worktree pinned to origin/main
+# (~/Library/Caches/agent-workspace-health-publish) — never touching your checkout.
+# Best-effort: any git/auth failure just logs and we still exit 0.
+#
 # Scheduled via launchd — see healthcheck.plist.tmpl (label com.<username>.vaultbrain.healthcheck)
 #   Activate:   bash System_Config/install_healthcheck.sh
 #   Manual:     bash System_Config/healthcheck.sh
