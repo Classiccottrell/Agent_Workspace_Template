@@ -70,18 +70,15 @@ and **no output**, before the script runs. The scripts' own logs still live in
 > `status_page.html` and `status.json` into this directory each time it runs.
 > They are not part of the template — run the health check to create them.
 >
-> **Published to the microsite:** the same run also writes `docs/status.js` (a
-> `window.__STATUS__` assignment) and `docs/status.json`. `docs/health.html` reads
-> `status.js` via a `<script>` tag — not `fetch` — so the dashboard renders from
-> `file://` and on the published GitHub Pages site alike.
->
-> **Auto-updates the live Pages site:** to keep the *published* dashboard fresh
-> without manual commits, each run pushes the snapshot to `origin/main` (Pages'
-> source). Because the job usually has a feature branch checked out, it publishes
-> through a detached worktree pinned to `origin/main`
-> (`~/Library/Caches/agent-workspace-health-publish`) — it never commits on or
-> disturbs your working checkout. Best-effort: a git/auth failure is logged to
-> `logs/healthcheck.log` and the run still exits 0.
+> **Auto-updates the live Pages site (no working-tree churn):** the dashboard is
+> published as `docs/status.js` (a `window.__STATUS__` assignment) + `docs/status.json`,
+> which `docs/health.html` reads via a `<script>` tag (not `fetch`). To keep the
+> *published* dashboard fresh without manual commits, each run writes + commits those
+> two files **only inside a detached worktree pinned to `origin/main`** (Pages' source)
+> at `~/Library/Caches/agent-workspace-health-publish`, then pushes. The job's own
+> checkout is never written to — so it no longer leaves `docs/status.*` perpetually
+> dirty. Best-effort: a git/auth failure is logged to `logs/healthcheck.log` and the
+> run still exits 0. For a fresh **local** view, open `status_page.html` here.
 
 ## Installed plist names
 
