@@ -137,14 +137,135 @@ case "$SCHEDULE" in
 esac
 
 # ---------------------------------------------------------------------------
-# 6. Next steps.
+# 5b. Knowledge Base strategy selection.
+# ---------------------------------------------------------------------------
+echo
+KB_STRATEGY="obsidian"
+echo "→ Knowledge Base strategy — how will you view and clip notes?"
+echo "  [1] Obsidian + Obsidian Web Clipper  (default)"
+echo "        Native wikilinks, graph view, and backlinks."
+echo "        Obsidian Web Clipper saves web pages to Vault_Brain/sources/."
+echo "        Guide: docs/kb-obsidian.md"
+echo "  [2] VS Code + MarkSnip"
+echo "        Foam extension for graph, backlinks, and wikilinks in VS Code."
+echo "        MarkSnip browser extension clips web pages to Vault_Brain/sources/."
+echo "        Guide: docs/kb-vscode.md"
+printf "Choose [1/2, default 1]: "
+if [ -t 0 ]; then
+  read -r KB_REPLY || KB_REPLY=""
+else
+  KB_REPLY=""
+  echo "(non-interactive: defaulting to Obsidian + Obsidian Web Clipper)"
+fi
+case "$KB_REPLY" in
+  2) KB_STRATEGY="vscode" ;;
+  *) KB_STRATEGY="obsidian" ;;
+esac
+
+# Write KB_STRATEGY into config.sh (sed -i requires a backup extension on macOS bash 3.2)
+sed -i.bak "s/^KB_STRATEGY=.*/KB_STRATEGY=\"${KB_STRATEGY}\"/" "$SYSCFG/config.sh" && rm -f "$SYSCFG/config.sh.bak"
+
+echo "    [ok]   KB_STRATEGY set to: $KB_STRATEGY"
+
+if [ "$KB_STRATEGY" = "vscode" ]; then
+  echo "    [ok]   Writing Vault_Brain/.vscode/extensions.json with recommended extensions…"
+  mkdir -p "$ROOT/Vault_Brain/.vscode"
+  cat > "$ROOT/Vault_Brain/.vscode/extensions.json" << 'VSCJSON'
+{
+  "recommendations": [
+    "foam.foam-vscode",
+    "bierner.github-markdown-preview",
+    "CodeSmith.markdown-inline-editor-vscode",
+    "foam.foam-vscode-paste-image",
+    "Gruntfuggly.todo-tree"
+  ]
+}
+VSCJSON
+  echo "    [ok]   Open Vault_Brain/ in VS Code and install recommended extensions."
+fi
+
+# ---------------------------------------------------------------------------
+# 6. Remote Git repository (optional).
+# ---------------------------------------------------------------------------
+echo
+echo "→ Remote Git repository (optional)"
+echo "  Link this workspace to a remote repo to push/pull from another machine."
+
+GIT_REMOTE=""
+if [ -t 0 ]; then
+  printf "  Enter remote URL (leave blank to skip): "
+  read -r GIT_REMOTE || GIT_REMOTE=""
+else
+  echo "  (non-interactive: skipping — add manually: git remote add origin <url>)"
+fi
+
+if [ -n "$GIT_REMOTE" ]; then
+  git remote add origin "$GIT_REMOTE" 2>/dev/null || git remote set-url origin "$GIT_REMOTE"
+  git branch -M main
+  git push -u origin main
+  echo "    [ok]   Remote set: $GIT_REMOTE"
+else
+  echo "    [skip] No remote configured. Add later:"
+  echo "           git remote add origin <url>"
+  echo "           git branch -M main && git push -u origin main"
+fi
+
+# ---------------------------------------------------------------------------
+# Hook wiring — doc currency check (idempotent).
+# ---------------------------------------------------------------------------
+echo "→ Wiring doc-currency hook into .claude/settings.json…"
+HOOK_PY="$ROOT/.claude/hooks/readme-currency-check.py"
+SETTINGS="$ROOT/.claude/settings.json"
+if [ -f "$HOOK_PY" ] && [ -f "$SETTINGS" ] && command -v python3 >/dev/null 2>&1; then
+  python3 - "$SETTINGS" "$HOOK_PY" << 'PYEOF2'
+import json, sys
+settings_path, hook_path = sys.argv[1], sys.argv[2]
+with open(settings_path) as f:
+    s = json.load(f)
+hooks = s.setdefault("hooks", {})
+pt = hooks.setdefault("PostToolUse", [])
+pt[:] = [h for h in pt if "readme-currency-check" not in str(h)]
+pt.append({
+    "matcher": "Write|Edit|MultiEdit",
+    "hooks": [{
+        "type": "command",
+        "command": f'python3 "{hook_path}" 2>/dev/null || true',
+        "timeout": 15,
+        "statusMessage": "README currency check"
+    }]
+})
+with open(settings_path, "w") as f:
+    json.dump(s, f, indent=2)
+    f.write("\n")
+PYEOF2
+  echo "    [ok]   Doc-currency hook wired at: $HOOK_PY"
+else
+  echo "    [skip] python3 not found or files missing — wire manually:"
+  echo "           Add to .claude/settings.json > hooks > PostToolUse (see docs/)"
+fi
+
+# ---------------------------------------------------------------------------
+# 7. Next steps.
 # ---------------------------------------------------------------------------
 echo
 echo "=================================================="
 echo " Done. Next steps:"
 echo "=================================================="
-echo " 1. Open the knowledge vault in Obsidian:"
-echo "      open the Vault_Brain/ folder (not the workspace root) as a vault."
+
+if [ "$KB_STRATEGY" = "vscode" ]; then
+  echo " 1. Open Vault_Brain/ in VS Code:"
+  echo "      code Vault_Brain/"
+  echo "    Install recommended extensions when prompted, then open the Foam graph:"
+  echo "      ⌘⇧P → Foam: Show Graph"
+  echo "    Full guide: docs/kb-vscode.md"
+else
+  echo " 1. Open the knowledge vault in Obsidian:"
+  echo "      Open Vault_Brain/ (not the workspace root) as an Obsidian vault."
+  echo "    Install the Obsidian Web Clipper browser extension."
+  echo "    Import the bundled template: System_Config/obsidian-webclipper-template.json"
+  echo "    Full guide: docs/kb-obsidian.md"
+fi
+
 echo " 2. Drop a clip or note into Vault_Brain/sources/ to feed the wiki."
 echo " 3. Run the health check and open the dashboard:"
 echo "      bash System_Config/healthcheck.sh"

@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Story — Agent Workspace Template</title>
+<meta name="description" content="How a one-person, multi-agent operating environment stops you from rebuilding your AI setup every time Claude Code evolves.">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="hsl(222,84%,5%)" media="(prefers-color-scheme: dark)">
+<style>
+/* shadcn/ui Vega theme — 2026-06-25 */
+:root{
+  --bg:#ffffff;--surface:#ffffff;
+  --ink:hsl(222,47%,11%);--ink-2:hsl(215,16%,35%);--muted:hsl(215,16%,47%);--rule:hsl(214,32%,91%);
+  --accent:hsl(221,83%,53%);--accent-hover:hsl(221,83%,45%);--accent-ink:#ffffff;
+  --accent-soft:hsl(214,96%,97%);--accent-soft-ink:hsl(221,60%,30%);
+  --ok:hsl(142,71%,45%);--warn:hsl(38,92%,50%);
+  --radius:0.5rem;--shadow:0 1px 3px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.06);
+  --sans:"Inter",ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:hsl(222,84%,5%);--surface:hsl(222,47%,11%);
+    --ink:hsl(210,40%,98%);--ink-2:hsl(215,20%,82%);--muted:hsl(215,20%,60%);--rule:hsl(217,33%,18%);
+    --accent:hsl(217,91%,60%);--accent-hover:hsl(217,91%,70%);--accent-ink:#ffffff;
+    --accent-soft:hsl(217,33%,15%);--accent-soft-ink:hsl(214,85%,75%);
+    --ok:hsl(142,71%,55%);--warn:hsl(38,92%,60%);--shadow:none;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{
+  margin:0;background:var(--bg);color:var(--ink-2);font-family:var(--sans);
+  font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+.wrap{max-width:72rem;margin:0 auto;padding:0 clamp(1.25rem,5vw,3rem)}
+a{color:var(--accent)}
+h1,h2,h3{color:var(--ink);font-weight:600;text-wrap:balance}
+
+/* skip link */
+.skip{position:absolute;left:-9999px;top:0;background:var(--surface);color:var(--accent);
+  padding:.6rem 1rem;border:1px solid var(--rule);border-radius:6px;z-index:100}
+.skip:focus{left:1rem;top:1rem}
+
+/* header / nav */
+header.site{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 92%,transparent);
+  backdrop-filter:saturate(140%) blur(8px);border-bottom:1px solid var(--rule)}
+header.site .wrap{display:flex;align-items:center;justify-content:space-between;gap:1rem;
+  min-height:56px;flex-wrap:wrap;padding-top:.4rem;padding-bottom:.4rem}
+.wordmark{font-family:var(--mono);font-size:.9rem;color:var(--ink);text-decoration:none;white-space:nowrap}
+.wordmark .pr{color:var(--accent)}
+header nav ul{list-style:none;display:flex;gap:.25rem;margin:0;padding:0;flex-wrap:wrap;align-items:center}
+header nav a{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);text-decoration:none;
+  padding:.45rem .6rem;border-radius:999px;line-height:1.1;display:inline-block}
+header nav a:hover{color:var(--accent)}
+header nav a.active{background:var(--accent-soft);color:var(--accent)}
+header nav a.back{border:1px solid var(--rule);color:var(--ink)}
+header nav a.back:hover{border-color:var(--accent);color:var(--accent)}
+
+/* sections */
+main section{padding:clamp(4rem,8vw,7rem) 0 0}
+main section:last-of-type{padding-bottom:clamp(4rem,8vw,7rem)}
+section>.wrap{scroll-margin-top:5rem}
+[id]{scroll-margin-top:5rem}
+.eyebrow{font-family:var(--mono);text-transform:uppercase;font-size:.72rem;letter-spacing:.12em;
+  color:var(--muted);margin:0 0 .5rem}
+.rule-top{border-top:1px solid var(--rule);padding-top:1.5rem}
+h2{font-size:clamp(1.45rem,1.2rem + 1vw,1.95rem);letter-spacing:-.01em;margin:0 0 1rem;line-height:1.2}
+h3{font-size:1.125rem;margin:0 0 .35rem}
+p{max-width:66ch;font-size:1.0625rem;margin:0 0 1rem}
+.lede{font-size:clamp(1.125rem,1.05rem + .4vw,1.3rem);line-height:1.55;color:var(--ink-2);
+  max-width:54ch;text-wrap:pretty}
+.body-link{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+
+/* hero */
+.hero{padding-top:clamp(3rem,6vw,5rem)}
+.hero h1{font-size:clamp(2.3rem,1.55rem + 3.4vw,3.75rem);letter-spacing:-.02em;line-height:1.05;
+  margin:.5rem 0 1.25rem}
+.cta-row{display:flex;flex-wrap:wrap;gap:.85rem;margin-top:1.5rem}
+.btn{display:inline-flex;align-items:center;gap:.4rem;font-size:.95rem;font-weight:500;
+  padding:.7rem 1.15rem;border-radius:var(--radius);text-decoration:none;min-height:44px;border:1px solid transparent;
+  transition:transform 120ms ease,background-color 120ms ease,border-color 120ms ease}
+.btn-primary{background:var(--accent);color:var(--accent-ink)}
+.btn-primary:hover{transform:translateY(-1px);background:color-mix(in srgb,var(--accent) 88%,#000)}
+.btn-secondary{color:var(--accent);border-color:var(--rule)}
+.btn-secondary:hover{transform:translateY(-1px);border-color:var(--accent)}
+
+/* terminal */
+.term{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);box-shadow:var(--shadow);
+  overflow:hidden;margin-top:2rem}
+.term-bar{display:flex;align-items:center;gap:.5rem;padding:.55rem .9rem;border-bottom:1px solid var(--rule);
+  font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+.dot{width:.6rem;height:.6rem;border-radius:50%;background:var(--rule);display:inline-block}
+.term pre,pre.code{margin:0;font-family:var(--mono);font-size:.875rem;line-height:1.6;
+  color:var(--ink-2);padding:clamp(1rem,2vw,1.25rem);overflow-x:auto;white-space:pre;tab-size:2}
+pre.code{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);box-shadow:var(--shadow)}
+.prm{color:var(--accent)}
+.cmt{color:var(--muted)}
+
+/* outcome cards */
+.grid-3{display:grid;grid-template-columns:1fr;gap:1rem}
+@media(min-width:720px){.grid-3{grid-template-columns:repeat(3,1fr);gap:1.5rem}}
+.outcome-card{border:1px solid var(--rule);border-radius:var(--radius);
+  padding:clamp(1.25rem,2.5vw,1.75rem);background:var(--surface);
+  transition:border-color 120ms ease,transform 120ms ease}
+.outcome-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.outcome-card .icon{font-size:2rem;line-height:1;display:block;margin-bottom:.75rem}
+.outcome-card h3{margin-bottom:.5rem;font-size:1.05rem}
+.outcome-card p{font-size:.93rem;margin:0;max-width:none;color:var(--ink-2)}
+
+/* chip tags */
+.chip{display:inline-block;font-family:var(--mono);font-size:.72rem;
+  background:var(--accent-soft);color:var(--accent-soft-ink);
+  border-radius:999px;padding:.2rem .65rem;margin:.2rem .2rem 0 0;line-height:1.4}
+
+/* timeline */
+.tl{list-style:none;padding:0;margin:0;position:relative}
+.tl::before{content:"";position:absolute;left:1.1rem;top:.5rem;bottom:.5rem;
+  width:2px;background:var(--rule)}
+.tl li{position:relative;padding-left:3rem;margin-bottom:2rem}
+.tl li:last-child{margin-bottom:0}
+.tl-dot{position:absolute;left:.55rem;top:.35rem;width:1.1rem;height:1.1rem;
+  border-radius:50%;background:var(--accent);border:2px solid var(--bg)}
+.tl-time{font-family:var(--mono);font-size:.78rem;color:var(--accent);
+  text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:.2rem}
+.tl li h3{font-size:1rem;margin-bottom:.3rem}
+.tl li p{font-size:.93rem;margin:0;color:var(--ink-2)}
+
+/* before/after */
+.ba-grid{display:grid;grid-template-columns:1fr;gap:1rem;margin-bottom:2.5rem}
+@media(min-width:720px){.ba-grid{grid-template-columns:1fr 1fr;gap:1.5rem}}
+.ba-row{border:1px solid var(--rule);border-radius:var(--radius);overflow:hidden;background:var(--surface)}
+.ba-row .ba-head{display:grid;grid-template-columns:1fr 1fr;background:var(--accent-soft)}
+.ba-row .ba-col-head{font-family:var(--mono);font-size:.72rem;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--muted);padding:.5rem .9rem;border-bottom:1px solid var(--rule)}
+.ba-row .ba-col-head:first-child{border-right:1px solid var(--rule);color:var(--warn)}
+.ba-row .ba-col-head:last-child{color:var(--ok)}
+.ba-row .ba-body{display:grid;grid-template-columns:1fr 1fr}
+.ba-cell{padding:.75rem .9rem;font-size:.93rem;color:var(--ink-2);vertical-align:top}
+.ba-cell:first-child{border-right:1px solid var(--rule)}
+.ba-cell .chips{margin-top:.5rem}
+.ba-label{font-family:var(--mono);font-size:.74rem;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.06em;margin-bottom:.5rem;display:block}
+
+/* note */
+.note{font-size:.95rem;color:var(--muted);max-width:66ch;border-left:2px solid var(--rule);padding-left:1rem;margin:1.25rem 0 0}
+
+/* pointers */
+ul.points{list-style:none;padding:0;margin:0;max-width:66ch}
+ul.points li{padding:.6rem 0;border-bottom:1px solid var(--rule)}
+ul.points li:first-child{border-top:1px solid var(--rule)}
+ul.points a{font-family:var(--mono);font-size:.9rem;text-decoration:underline;text-underline-offset:2px}
+ul.points span{color:var(--muted);font-size:.92rem;display:block;font-family:var(--sans)}
+
+/* footer */
+footer.site{border-top:1px solid var(--rule);margin-top:clamp(3rem,6vw,5rem)}
+footer.site .wrap{padding-top:2.5rem;padding-bottom:2.5rem;display:flex;flex-direction:column;gap:.5rem}
+footer.site p{font-size:.9rem;color:var(--muted);margin:0;max-width:none}
+footer.site a{text-decoration:underline;text-underline-offset:2px}
+footer .colophon{font-family:var(--mono);font-size:.8rem}
+
+/* reveal */
+.reveal{opacity:1}
+@media (prefers-reduced-motion:no-preference){
+  .js .reveal{opacity:0;transform:translateY(8px);transition:opacity .4s ease,transform .4s ease}
+  .js .reveal.in{opacity:1;transform:none}
+}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;
+    transition-duration:.001ms!important;scroll-behavior:auto!important}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site">
+  <div class="wrap">
+    <a class="wordmark" href="index.html">agent-workspace <span class="pr">~ %</span></a>
+    <nav aria-label="Primary">
+      <ul>
+        <li><a href="#outcomes">What you get</a></li>
+        <li><a href="#day">A day in the life</a></li>
+        <li><a href="#workflow">Before &amp; after</a></li>
+        <li><a href="#start">Get started</a></li>
+        <li><a class="back" href="index.html">&#8592; Docs</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="hero" id="top">
+    <div class="wrap reveal">
+      <p class="eyebrow">// agent workspace template &middot; the story</p>
+      <h1>Stop rebuilding your AI setup.</h1>
+      <p class="lede">Every time Claude Code evolves, most developers rebuild from scratch: new agent files, new automation, new knowledge store, new conventions. This template ends that loop. Clone it once. The agents, the automation, the knowledge pipeline, the health monitoring &#8212; all wired, all running, all self-checking.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="https://github.com/Classiccottrell/Agent_Workspace_Template" rel="noopener">Clone on GitHub &#8599;</a>
+        <a class="btn btn-secondary" href="#outcomes">See what you get &#8595;</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="outcomes">
+    <div class="wrap reveal">
+      <div class="rule-top">
+        <p class="eyebrow">// what you get</p>
+        <h2>Six outcomes, zero setup debt</h2>
+        <p>Everything below is in the repo on day one. Not a starter &#8212; a complete operating environment.</p>
+        <div class="grid-3">
+
+          <div class="outcome-card">
+            <span class="icon" aria-hidden="true">&#129302;</span>
+            <h3>A pre-wired agent team</h3>
+            <p>Five scoped subagents &#8212; architect, coder, eng-manager, archivist, curator &#8212; each confined to their domain, each with a hand-off matrix. The orchestrator dispatches; agents execute. No prompt-pasting, no context bleed.</p>
+            <div class="chips">
+              <span class="chip">.claude/agents/</span>
+              <span class="chip">5 agents</span>
+            </div>
+          </div>
+
+          <div class="outcome-card">
+            <span class="icon" aria-hidden="true">&#129504;</span>
+            <h3>Skill orchestration</h3>
+            <p>The <code>master-orchestrator</code> skill routes 40+ installed skills to the right agent automatically. A launchd sync job watches <code>~/.agents/skills/</code> and pushes new skills to <code>~/.claude/skills/</code> hourly, flagging any unindexed arrivals.</p>
+            <div class="chips">
+              <span class="chip">master-orchestrator</span>
+              <span class="chip">40+ skills</span>
+              <span class="chip">hourly sync</span>
+            </div>
+          </div>
+
+          <div class="outcome-card">
+            <span class="icon" aria-hidden="true">&#128218;</span>
+            <h3>A Second Brain that indexes itself</h3>
+            <p>Web clips land in <code>Vault_Brain/sources/</code>. A headless Claude distills each one into a structured wiki page. Content-hash dedup means byte-identical clips are skipped. Your Obsidian vault &#8212; or VS&#160;Code&#43;Foam &#8212; is the viewing layer; the store is plain Markdown.</p>
+            <div class="chips">
+              <span class="chip">Vault_Brain/</span>
+              <span class="chip">daily 07:00</span>
+              <span class="chip">Obsidian or Foam</span>
+            </div>
+          </div>
+
+          <div class="outcome-card">
+            <span class="icon" aria-hidden="true">&#127973;</span>
+            <h3>A system that checks itself</h3>
+            <p>An 8-layer health check probes delivery, automation, knowledge base, persistence, active projects, documentation currency, repo hygiene, and decision hygiene. It runs at login and every four hours, writing a status page you can open in the browser.</p>
+            <div class="chips">
+              <span class="chip">8 layers</span>
+              <span class="chip">every 4h</span>
+              <span class="chip">status_page.html</span>
+            </div>
+          </div>
+
+          <div class="outcome-card">
+            <span class="icon" aria-hidden="true">&#128268;</span>
+            <h3>A pluggable KB layer</h3>
+            <p>The knowledge backend is a first-class configuration choice, not an assumption. Obsidian is the default. VS&#160;Code&#43;Foam is the lightweight alternative. The choice is written to <code>System_Config/config.sh</code> during <code>bootstrap.sh</code> and honored by every script that touches the vault.</p>
+            <div class="chips">
+              <span class="chip">Obsidian default</span>
+              <span class="chip">Foam alternative</span>
+              <span class="chip">config.sh</span>
+            </div>
+          </div>
+
+          <div class="outcome-card">
+            <span class="icon" aria-hidden="true">&#128208;</span>
+            <h3>Git discipline built in</h3>
+            <p>A <code>readme-currency-check</code> hook fires on every Write or Edit, warning when a README is older than the files it documents. The health check&#8217;s Layer F flags stale docs at the system level. Convention and automation combine so documentation lag can&#8217;t hide.</p>
+            <div class="chips">
+              <span class="chip">PostToolUse hook</span>
+              <span class="chip">Layer F</span>
+              <span class="chip">auto-warning</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="day">
+    <div class="wrap reveal">
+      <div class="rule-top">
+        <p class="eyebrow">// a day in the life</p>
+        <h2>What it actually looks like to use this</h2>
+        <p>This is a representative day. The automation runs whether you&#8217;re at your desk or not.</p>
+        <ul class="tl">
+
+          <li>
+            <span class="tl-dot" aria-hidden="true"></span>
+            <span class="tl-time">07:00 &mdash; automated</span>
+            <h3>Daily ingest fires</h3>
+            <p>The launchd job wakes, scans <code>Vault_Brain/sources/</code> for new clips, and runs a headless <code>claude -p</code> call per clip. By the time you open your laptop, last night&#8217;s reading is already indexed as structured wiki pages.</p>
+          </li>
+
+          <li>
+            <span class="tl-dot" aria-hidden="true"></span>
+            <span class="tl-time">Morning &mdash; you</span>
+            <h3>Open a project, pick up where you left off</h3>
+            <p>Open the workspace in Claude Code. The orchestrator reads <code>.AGENT.MD</code> for the workspace map and routes your first task &#8212; architect for design, coder for implementation, eng-manager if it&#8217;s a project milestone. No context-setting, no re-explaining the stack.</p>
+          </li>
+
+          <li>
+            <span class="tl-dot" aria-hidden="true"></span>
+            <span class="tl-time">Afternoon &mdash; you</span>
+            <h3>Clip an article, ship a feature</h3>
+            <p>Save a web clip to <code>sources/</code> via the browser extension. The clipper template writes structured frontmatter automatically. Meanwhile the coder agent builds against the architect&#8217;s spec; the archivist files the shipped artifact to <code>Final_Products/</code> with the right naming convention.</p>
+          </li>
+
+          <li>
+            <span class="tl-dot" aria-hidden="true"></span>
+            <span class="tl-time">End of day &mdash; automated</span>
+            <h3>Health check runs</h3>
+            <p>Every four hours the health check probes all eight layers and rewrites <code>status_page.html</code>. If a README went stale when you edited a script this afternoon, Layer F catches it. You see the amber flag next time you open the status page.</p>
+          </li>
+
+          <li>
+            <span class="tl-dot" aria-hidden="true"></span>
+            <span class="tl-time">Friday 19:00 &mdash; automated</span>
+            <h3>Friday close-out runs</h3>
+            <p>The Friday process writes a 1&#8211;2 sentence summary to your Master Note, builds wiki cross-references across the week&#8217;s new pages, and regenerates the microsite&#8217;s agent table and job cards from the live source files. You review on Monday.</p>
+          </li>
+
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="workflow">
+    <div class="wrap reveal">
+      <div class="rule-top">
+        <p class="eyebrow">// before &amp; after</p>
+        <h2>What actually changes when you use this</h2>
+        <p>Six workflow comparisons. The left column is the default state of the art; the right is what this template delivers.</p>
+        <div class="ba-grid">
+
+          <div class="ba-row">
+            <div class="ba-head">
+              <div class="ba-col-head">Without</div>
+              <div class="ba-col-head">With this template</div>
+            </div>
+            <div class="ba-body">
+              <div class="ba-cell">
+                <span class="ba-label">Agent setup</span>
+                You paste agent descriptions into every conversation. Each session starts cold; nothing carries.
+              </div>
+              <div class="ba-cell">
+                <span class="ba-label">Agent setup</span>
+                Five scoped agents live in <code>.claude/agents/</code>. Invoke by name. Context, constraints, and hand-off matrix are persistent.
+                <div class="chips"><span class="chip">persistent</span><span class="chip">scoped</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ba-row">
+            <div class="ba-head">
+              <div class="ba-col-head">Without</div>
+              <div class="ba-col-head">With this template</div>
+            </div>
+            <div class="ba-body">
+              <div class="ba-cell">
+                <span class="ba-label">Knowledge capture</span>
+                Interesting articles stay in browser tabs or a read-later list. They never make it into your workflow.
+              </div>
+              <div class="ba-cell">
+                <span class="ba-label">Knowledge capture</span>
+                Clips go to <code>sources/</code> via a one-click extension. Claude distills them into wiki pages every morning at 07:00.
+                <div class="chips"><span class="chip">automated</span><span class="chip">daily</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ba-row">
+            <div class="ba-head">
+              <div class="ba-col-head">Without</div>
+              <div class="ba-col-head">With this template</div>
+            </div>
+            <div class="ba-body">
+              <div class="ba-cell">
+                <span class="ba-label">System health</span>
+                You discover that a script broke when something downstream fails. Debugging takes longer than the original task.
+              </div>
+              <div class="ba-cell">
+                <span class="ba-label">System health</span>
+                An 8-layer health check runs every four hours. Status is always visible at <code>status_page.html</code>. Failures surface fast.
+                <div class="chips"><span class="chip">8 layers</span><span class="chip">every 4h</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ba-row">
+            <div class="ba-head">
+              <div class="ba-col-head">Without</div>
+              <div class="ba-col-head">With this template</div>
+            </div>
+            <div class="ba-body">
+              <div class="ba-cell">
+                <span class="ba-label">Documentation</span>
+                READMEs drift from the code within weeks. You can&#8217;t trust them; you read the source instead.
+              </div>
+              <div class="ba-cell">
+                <span class="ba-label">Documentation</span>
+                A PostToolUse hook warns on every Write/Edit when a README is older than the files it documents. Layer F flags it at the system level.
+                <div class="chips"><span class="chip">hook-enforced</span><span class="chip">Layer F</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ba-row">
+            <div class="ba-head">
+              <div class="ba-col-head">Without</div>
+              <div class="ba-col-head">With this template</div>
+            </div>
+            <div class="ba-body">
+              <div class="ba-cell">
+                <span class="ba-label">MCP configuration</span>
+                MCP servers are configured once globally. When you have multiple workspaces, they share credentials and can interfere.
+              </div>
+              <div class="ba-cell">
+                <span class="ba-label">MCP configuration</span>
+                <code>.mcp.json</code> is workspace-scoped. Credentials never cross projects. <code>.mcp.json.example</code> is tracked; the real file is git-ignored.
+                <div class="chips"><span class="chip">workspace-scoped</span><span class="chip">git-ignored</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ba-row">
+            <div class="ba-head">
+              <div class="ba-col-head">Without</div>
+              <div class="ba-col-head">With this template</div>
+            </div>
+            <div class="ba-body">
+              <div class="ba-cell">
+                <span class="ba-label">Skill management</span>
+                Skills accumulate in <code>~/.claude/skills/</code> manually. New installs don&#8217;t reach the orchestrator without manual index updates.
+              </div>
+              <div class="ba-cell">
+                <span class="ba-label">Skill management</span>
+                The sync-skills launchd job watches <code>~/.agents/skills/</code> and syncs to <code>~/.claude/skills/</code> hourly, flagging unindexed arrivals automatically.
+                <div class="chips"><span class="chip">hourly sync</span><span class="chip">auto-index</span></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="start">
+    <div class="wrap reveal">
+      <div class="rule-top">
+        <p class="eyebrow">// get started</p>
+        <h2>Clone, bootstrap, operate</h2>
+        <p>Three commands. The health check at the end tells you everything is working.</p>
+        <div class="term">
+          <div class="term-bar"><span class="dot" aria-hidden="true"></span><span class="dot" aria-hidden="true"></span><span class="dot" aria-hidden="true"></span><span style="margin-left:.5rem">bash &#8212; agent-workspace</span></div>
+<pre><code><span class="prm">$</span> git clone https://github.com/Classiccottrell/Agent_Workspace_Template.git agent-workspace
+<span class="prm">$</span> cd agent-workspace
+<span class="prm">$</span> ./bootstrap.sh
+<span class="cmt">&#8594; scripts made executable, logs/ created</span>
+<span class="cmt">&#8594; .mcp.json seeded from example</span>
+<span class="cmt">Install background automation? [y/N]</span> y
+<span class="cmt">&#8594; daily ingest installed &#10003;</span>
+<span class="cmt">&#8594; healthcheck installed &#10003;</span>
+<span class="cmt">&#8594; friday process installed &#10003;</span>
+<span class="cmt">&#8594; skill sync installed &#10003;</span>
+<span class="prm">$</span> bash System_Config/healthcheck.sh
+<span class="cmt">Layer A (Orchestration) &#8230; PASS</span>
+<span class="cmt">Layer B (Automation) &#8230;&#8230; PASS</span>
+<span class="cmt">Layer C (Knowledge) &#8230;&#8230; PASS</span>
+<span class="cmt">Layer D (Persistence) &#8230;&#8230; PASS</span>
+<span class="cmt">Layer E (Projects) &#8230;&#8230;&#8230; PASS</span>
+<span class="cmt">Layer F (Doc Currency) &#8230; PASS</span>
+<span class="cmt">Layer G (Repo Hygiene) &#8230; PASS</span>
+<span class="cmt">Layer H (Decisions) &#8230;&#8230; PASS</span>
+<span class="cmt">&#8594; All layers healthy. Open status_page.html to review.</span></code></pre>
+        </div>
+        <p class="note" style="margin-top:1.5rem">One-time prerequisite: grant Full Disk Access to <code>/bin/bash</code> in System Preferences &#8594; Privacy &amp; Security. The background automation needs it to read your workspace under <code>~/Documents</code>.</p>
+        <h3 style="margin-top:2rem;margin-bottom:.75rem">Further reading</h3>
+        <ul class="points">
+          <li><a href="index.html">Technical docs</a><span>Architecture, agents, conventions, and the full directory tree</span></li>
+          <li><a href="https://github.com/Classiccottrell/Agent_Workspace_Template/blob/main/.AGENT.MD" rel="noopener">.AGENT.MD</a><span>Full workspace map and agent coordination matrix</span></li>
+          <li><a href="https://github.com/Classiccottrell/Agent_Workspace_Template/blob/main/System_Config/README.md" rel="noopener">System_Config/README.md</a><span>Automation hub, installers, and Full Disk Access setup</span></li>
+          <li><a href="https://github.com/Classiccottrell/Agent_Workspace_Template/blob/main/Vault_Brain/README.md" rel="noopener">Vault_Brain/README.md</a><span>How the knowledge vault works &#8212; weekly rhythm and clipper pipeline</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <p>Open-source template for <a href="https://docs.claude.com/en/docs/claude-code" rel="noopener">Claude Code</a>. Clone it, run <code>./bootstrap.sh</code>, and you have a relocatable knowledge-and-delivery system that runs itself.</p>
+    <p><a href="https://github.com/Classiccottrell/Agent_Workspace_Template" rel="noopener">github.com/Classiccottrell/Agent_Workspace_Template</a> &middot; <a href="index.html">Docs</a> &middot; <a href="#top">Back to top &#8593;</a></p>
+    <p class="colophon">Built for Claude Code.</p>
+  </div>
+</footer>
+
+<script>
+document.documentElement.classList.add('js');
+(function(){
+  if(!('IntersectionObserver' in window)){
+    document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('in')});
+    return;
+  }
+  var reveals=document.querySelectorAll('.reveal');
+  var ro=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){ if(en.isIntersecting){en.target.classList.add('in');ro.unobserve(en.target);} });
+  },{rootMargin:'0px 0px -10% 0px'});
+  reveals.forEach(function(e){ro.observe(e)});
+  var links=[].slice.call(document.querySelectorAll('header nav a[href^="#"]'));
+  var map={};
+  links.forEach(function(l){var id=l.getAttribute('href').slice(1);var s=document.getElementById(id);if(s)map[id]=l;});
+  var sections=Object.keys(map).map(function(id){return document.getElementById(id);});
+  var so=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(en.isIntersecting){
+        links.forEach(function(l){l.classList.remove('active');l.removeAttribute('aria-current');});
+        var a=map[en.target.id];
+        if(a){a.classList.add('active');a.setAttribute('aria-current','true');}
+      }
+    });
+  },{rootMargin:'-40% 0px -55% 0px'});
+  sections.forEach(function(s){so.observe(s)});
+})();
+</script>
+</body>
+</html>
