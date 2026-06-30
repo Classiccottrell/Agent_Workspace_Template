@@ -3,15 +3,14 @@
 # Probes every layer (orchestration, automation, knowledge base, persistence,
 # projects) and renders a self-contained HTML status page + status.json.
 #
-# It also publishes the snapshot to the microsite: docs/status.js (a
-# window.__STATUS__ assignment) + docs/status.json, which docs/health.html reads
-# client-side. status.js is used (not fetch) so the page works from file:// too.
+# It publishes the snapshot as docs/status.js (a window.__STATUS__ assignment) +
+# docs/status.json, which docs/health.html reads via a <script> tag (not fetch).
 #
-# To make the LIVE GitHub Pages dashboard auto-update, the run then pushes the
-# snapshot to origin/main (Pages' source). The job normally has a feature branch
-# checked out, so it publishes through a detached worktree pinned to origin/main
-# (~/Library/Caches/agent-workspace-health-publish) — never touching your checkout.
-# Best-effort: any git/auth failure just logs and we still exit 0.
+# To make the LIVE GitHub Pages dashboard auto-update WITHOUT churning your working
+# tree, the snapshot is written + committed ONLY inside a detached worktree pinned to
+# origin/main (Pages' source) at ~/Library/Caches/agent-workspace-health-publish, then
+# pushed — the job's own checkout is never touched. Best-effort: any git/auth failure
+# just logs and we still exit 0. (For a fresh LOCAL view, open status_page.html.)
 #
 # Scheduled via launchd — see healthcheck.plist.tmpl (label com.<username>.vaultbrain.healthcheck)
 #   Activate:   bash System_Config/install_healthcheck.sh
@@ -33,7 +32,6 @@ WS_SLUG="$(printf '%s' "$WORKSPACE" | sed 's|/|-|g')"
 MEMDIR="$HOME/.claude/projects/${WS_SLUG}/memory"
 OUT_HTML="$SYSCFG/status_page.html"
 OUT_JSON="$SYSCFG/status.json"
-DOCS="$WORKSPACE/docs"
 INGEST_LABEL="$LABEL_PREFIX.dailyingest"
 HEALTH_LABEL="$LABEL_PREFIX.healthcheck"
 
@@ -401,16 +399,10 @@ printf '{"generated":"%s","overall":"%s","pass":%d,"warn":%d,"fail":%d,"checks":
   "$NOW_HUMAN" "$OVERALL" "$PASS_N" "$WARN_N" "$FAIL_N" "$JSON_ITEMS" > "$TMPJ"
 mv "$TMPJ" "$OUT_JSON"
 
-# Publish the snapshot to the microsite so docs/health.html can render it (and the
-# published GitHub Pages site shows the last-known state). status.js wraps the same
-# JSON in a window.__STATUS__ assignment so the page loads from file:// without fetch.
-if [ -d "$DOCS" ]; then
-  cp "$OUT_JSON" "$DOCS/status.json" 2>/dev/null || true
-  TMPS="$(mktemp 2>/dev/null || echo "$DOCS/status.js.tmp")"
-  { printf 'window.__STATUS__='; cat "$OUT_JSON"; printf ';\n'; } > "$TMPS"
-  mv "$TMPS" "$DOCS/status.js"
-  chmod 644 "$DOCS/status.js" "$DOCS/status.json" 2>/dev/null || true
-fi
+# NOTE: the snapshot is NOT written into the local working tree's docs/. Doing so
+# rewrote tracked docs/status.{js,json} on every run, leaving the checkout perpetually
+# dirty. The Pages publish below writes + commits status.* inside the dedicated
+# origin/main worktree instead, so the live site updates without churning your tree.
 
 mkdir -p "$SYSCFG/logs"
 hlog() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] publish: $1" >> "$SYSCFG/logs/healthcheck.log"; }
