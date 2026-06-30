@@ -37,6 +37,7 @@
 * After ANY change to system files (scripts, agents, config, schema, structure), check the governing doc and update it IN THE SAME TASK if now out of date.
 * Governing docs: `System_Config/README.md` (automation), `Vault_Brain/README.md` (vault + ingest), root `.AGENT.MD` (workspace map + agent roster). Per-project: that project's `README.md` / `BRIEF.md`.
 * Treat a stale README (a documented file changed after its README) as work to close in the same task.
+* **After creating, archiving, or renaming any project folder**, run `bash System_Config/update_active_projects.sh` to sync the `## Active Projects` table in `Projects/.AGENT.MD`. Healthcheck Layer E warns when the table is stale.
 * Update docs in place. Never spawn a separate summary.md.
 
 ## HTML Page Template (Vega Design System)
