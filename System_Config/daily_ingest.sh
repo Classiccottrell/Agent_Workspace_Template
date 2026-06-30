@@ -178,10 +178,18 @@ Constraints: create-or-append only; never overwrite a page wholesale; never dele
 
   log "ingesting: $clip"
   if run_claude "$PROMPT"; then
-    h="$(shasum -a 256 "$SOURCES/$clip" | awk '{print $1}')"
-    printf '%s\t%s\n' "$h" "$clip" >> "$MANIFEST"
-    ingested=$((ingested + 1))
-    log "OK: $clip"
+    # Verify the agent actually wikified this clip before recording it. A no-op
+    # (timeout, declined, empty result) also exits 0; without this check the clip
+    # would be marked done forever and never retried. A real ingest always links
+    # [[sources/<slug>]] from a wiki page or _index.md.
+    if grep -rqF "[[sources/${src_link}]]" "$VAULT/wiki/" 2>/dev/null; then
+      h="$(shasum -a 256 "$SOURCES/$clip" | awk '{print $1}')"
+      printf '%s\t%s\n' "$h" "$clip" >> "$MANIFEST"
+      ingested=$((ingested + 1))
+      log "OK: $clip"
+    else
+      log "NO-OP (exit 0 but no wiki link to sources/${src_link}): $clip — NOT recorded, will retry next run"
+    fi
   else
     rc=$?
     log "FAILED (rc=${rc}; may have timed out after ${MAX_SECONDS}s): $clip — NOT recorded, will retry next run"

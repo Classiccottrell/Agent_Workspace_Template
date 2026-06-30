@@ -93,7 +93,7 @@ Defines structure and conventions. The LLM reads this file first on every sessio
 - It finds `.md` clips in `sources/` not already in `sources/.ingested.log` and processes **one clip per `claude -p` call**, so a partial failure only retries that clip.
 - Dedup is by **content hash**: `.ingested.log` lines are `<sha256>\t<filename>` (legacy bare-filename lines still honored). A byte-identical clip saved under a different name is skipped, not re-ingested.
 - Each call runs with file tools only, **Bash denied**, cwd confined to the vault, `sources/*.md` locked read-only during the run, and per-clip budget + wall-clock caps.
-- The agent runs **create-or-append only**: never overwrite a wiki page wholesale, never delete (the vault has no version control). It records a clip in `.ingested.log` only after that clip's call succeeds.
+- The agent runs **create-or-append only**: never overwrite a wiki page wholesale, never delete (the vault has no version control). It records a clip in `.ingested.log` only after that clip's call succeeds **and a wiki page now links `[[sources/<slug>]]`** — a no-op run (timeout, declined, empty result) exits 0 but writes nothing, so it is left unrecorded and retried on the next run rather than silently dropped.
 - On macOS, the launchd job needs Full Disk Access granted to `/bin/bash` so it can read the vault under `~/Documents`; headless auth works via the login keychain (an optional `~/.config/anthropic/key` file is a fallback).
 - Web clips arrive via the Obsidian Web Clipper template (`System_Config/obsidian-webclipper-template.json`), which writes to `sources/` with `clipped` / `source` / `author` frontmatter.
 
