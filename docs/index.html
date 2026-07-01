@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="hsl(222,84%,5%)" media="(prefers-color-scheme: dark)">
 <style>
-/* shadcn/ui Vega theme — 2026-06-25 */
+/* shadcn/ui Vega theme — 2026-06-30 */
 :root{
   --bg:#ffffff;--surface:#ffffff;
   --ink:hsl(222,47%,11%);--ink-2:hsl(215,16%,35%);--muted:hsl(215,16%,47%);--rule:hsl(214,32%,91%);
@@ -196,6 +196,20 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
   *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;
     transition-duration:.001ms!important;scroll-behavior:auto!important}
 }
+.page-layout{display:flex;flex-direction:column;gap:1.5rem}
+.side-nav ul{list-style:none;margin:0;padding:0;display:flex;gap:.25rem;overflow-x:auto;border-bottom:1px solid var(--rule)}
+.side-nav a{font-family:var(--mono);font-size:.82rem;color:var(--muted);text-decoration:none;padding:.5rem .75rem;white-space:nowrap;display:inline-block;border-bottom:2px solid transparent}
+.side-nav a:hover{color:var(--accent)}
+.side-nav a.active{color:var(--accent);border-color:var(--accent)}
+.side-section{padding:clamp(2.5rem,5vw,3.5rem) 0 0}
+@media(min-width:880px){
+  .page-layout{flex-direction:row;align-items:flex-start;gap:clamp(1.5rem,4vw,3rem)}
+  .side-nav{position:sticky;top:5rem;flex:0 0 11rem}
+  .side-nav ul{flex-direction:column;border-bottom:none;border-left:1px solid var(--rule);overflow-x:visible;gap:0}
+  .side-nav a{border-left:2px solid transparent;border-bottom:none;padding:.45rem .9rem;margin-left:-1px}
+  .side-nav a.active{border-left-color:var(--accent);border-bottom-color:transparent;background:var(--accent-soft)}
+  .page-content{flex:1;min-width:0}
+}
 </style>
 </head>
 <body>
@@ -206,12 +220,6 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
     <a class="wordmark" href="#top">agent-workspace <span class="pr">~ %</span></a>
     <nav aria-label="Primary">
       <ul>
-        <li><a href="#what">What it is</a></li>
-        <li><a href="#layers">Layers</a></li>
-        <li><a href="#agents">Agents</a></li>
-        <li><a href="#kb">KB</a></li>
-        <li><a href="#quick-start">Quick start</a></li>
-        <li><a href="#automation">Automation</a></li>
         <li><a href="story.html">Story</a></li>
         <li><a href="health.html">Health</a></li>
         <li><a class="repo" href="https://github.com/Classiccottrell/Agent_Workspace_Template" rel="noopener">Repo ↗</a></li>
@@ -248,21 +256,31 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
     </div>
   </section>
 
-  <section id="what">
-    <div class="wrap reveal">
-      <div class="rule-top">
+  <section aria-label="Overview">
+    <div class="wrap">
+      <div class="page-layout">
+        <nav class="side-nav" aria-label="On this page">
+          <ul>
+          <li><a href="#what">What it is</a></li>
+          <li><a href="#layers">Layers</a></li>
+          <li><a href="#agents">Agents</a></li>
+          <li><a href="#kb">KB</a></li>
+          <li><a href="#quick-start">Quick start</a></li>
+          <li><a href="#automation">Automation</a></li>
+          </ul>
+        </nav>
+        <div class="page-content">
+          <div id="what" class="side-section reveal">
+            <div class="rule-top">
         <p class="eyebrow">// what it is</p>
         <h2>Three sentences, one loop</h2>
         <p>The orchestrator dispatches each unit of work to a scoped subagent — architect designs, coder builds, eng-manager runs projects, archivist files shipped artifacts, curator tends the knowledge wiki.</p>
         <p>A clip lands in <code>Vault_Brain/sources/</code>, a scheduled headless Claude distills it into a wiki page, and you review the result in your chosen knowledge app — Obsidian or VS Code + Foam.</p>
         <p>A self-check probes every layer — delivery, automation, knowledge, and documentation currency — and writes a status page that confirms the whole system is healthy.</p>
-      </div>
-    </div>
-  </section>
-
-  <section id="layers">
-    <div class="wrap reveal">
-      <div class="rule-top">
+            </div>
+          </div>
+          <div id="layers" class="side-section reveal">
+            <div class="rule-top">
         <p class="eyebrow">// the three layers</p>
         <h2>One owner, one job per layer</h2>
         <p>An Integrated Context Management folder pattern layered over the Karpathy LLM-wiki idea: a structured workspace where each layer has a single owner.</p>
@@ -286,13 +304,10 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
             <p>Pluggable knowledge layer — plain <code>.md</code> files. Open in Obsidian or VS Code + Foam. sources → wiki → schema. Owned by the curator.</p>
           </div>
         </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="agents">
-    <div class="wrap reveal">
-      <div class="rule-top">
+            </div>
+          </div>
+          <div id="agents" class="side-section reveal">
+            <div class="rule-top">
         <p class="eyebrow">// agent roster</p>
         <h2><!-- gen:agent-count -->6<!-- /gen:agent-count --> scoped subagents</h2>
         <p>Subagents live in <code>.claude/agents/</code> and are invoked by name via the Task tool — never paste their role text into a prompt.</p>
@@ -314,13 +329,10 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
             </tbody>
           </table>
         </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="kb">
-    <div class="wrap reveal">
-      <div class="rule-top">
+            </div>
+          </div>
+          <div id="kb" class="side-section reveal">
+            <div class="rule-top">
         <p class="eyebrow">// knowledge base</p>
         <h2>Two ways to view your notes</h2>
         <p><code>bootstrap.sh</code> asks which viewer you want. Either way the store is local <code>.md</code> files &mdash; the daily ingest pipeline works identically regardless of your choice.</p>
@@ -337,13 +349,10 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
           </div>
         </div>
         <p class="note"><code>bootstrap.sh</code> writes your choice to <code>System_Config/config.sh</code> as <code>KB_STRATEGY</code>. Switch anytime by re-running bootstrap or editing <code>config.sh</code> directly. Full guides: <a href="kb-obsidian.md">kb-obsidian.md</a> &middot; <a href="kb-vscode.md">kb-vscode.md</a></p>
-      </div>
-    </div>
-  </section>
-
-  <section id="quick-start">
-    <div class="wrap reveal">
-      <div class="rule-top">
+            </div>
+          </div>
+          <div id="quick-start" class="side-section reveal">
+            <div class="rule-top">
         <p class="eyebrow">$ quick start</p>
         <h2>Clone, cd, bootstrap</h2>
         <ol class="steps">
@@ -355,13 +364,10 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
 <span class="prm">$</span> cd agent-workspace
 <span class="prm">$</span> ./bootstrap.sh</code></pre>
         <p class="note"><code>bootstrap.sh</code> is idempotent and never deletes or overwrites your data. It makes scripts executable, creates the log directory, seeds <code>.mcp.json</code> from the example if you don't have one, prints a prerequisite check, prompts for KB strategy (Obsidian + Web Clipper or VS Code + Foam), an optional Git remote URL, and asks before installing any background automation. All steps are idempotent — re-run it any time. Then open the folder in Claude Code (<code>claude</code> from the workspace root) and you're operating.</p>
-      </div>
-    </div>
-  </section>
-
-  <section id="automation">
-    <div class="wrap reveal">
-      <div class="rule-top">
+            </div>
+          </div>
+          <div id="automation" class="side-section reveal">
+            <div class="rule-top">
         <p class="eyebrow">// automation &amp; health</p>
         <h2>launchd jobs that keep it running</h2>
         <p><code>bootstrap.sh</code> can install <strong><!-- gen:jobs-count -->5<!-- /gen:jobs-count --></strong> <code>launchd</code> agents — it asks first, default No. You can also run each installer directly later.</p>
@@ -408,6 +414,9 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
 <pre class="code"><code><span class="prm">$</span> bash System_Config/healthcheck.sh
 <span class="prm">$</span> open System_Config/status_page.html</code></pre>
         <p class="note"><code>status_page.html</code> and its <code>status.json</code> data are generated at runtime into <code>System_Config/</code> — they are not part of the template and are git-ignored. Green = healthy; amber/red lists exactly what needs attention.</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -506,7 +515,7 @@ document.documentElement.classList.add('js');
   },{rootMargin:'0px 0px -10% 0px'});
   reveals.forEach(function(e){ro.observe(e)});
 
-  var links=[].slice.call(document.querySelectorAll('header nav a[href^="#"]'));
+  var links=[].slice.call(document.querySelectorAll('.side-nav a[href^="#"]'));
   var map={};
   links.forEach(function(l){var id=l.getAttribute('href').slice(1);var s=document.getElementById(id);if(s)map[id]=l;});
   var sections=Object.keys(map).map(function(id){return document.getElementById(id);});
