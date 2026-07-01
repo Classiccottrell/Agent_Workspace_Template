@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="hsl(222,84%,5%)" media="(prefers-color-scheme: dark)">
 <style>
-/* shadcn/ui Vega theme — 2026-06-25 */
+/* shadcn/ui Vega theme — 2026-06-30 */
 :root{
   --bg:#ffffff;--surface:#ffffff;
   --ink:hsl(222,47%,11%);--ink-2:hsl(215,16%,35%);--muted:hsl(215,16%,47%);--rule:hsl(214,32%,91%);
@@ -172,6 +172,8 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
   *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;
     transition-duration:.001ms!important;scroll-behavior:auto!important}
 }
+.subnav{border-bottom:1px solid var(--rule)}
+.subnav .wrap{padding:.55rem clamp(1.25rem,5vw,3rem)}
 </style>
 </head>
 <body>
@@ -186,11 +188,13 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
         <li><a href="#day">A day in the life</a></li>
         <li><a href="#workflow">Before &amp; after</a></li>
         <li><a href="#start">Get started</a></li>
-        <li><a class="back" href="index.html">&#8592; Docs</a></li>
       </ul>
     </nav>
   </div>
 </header>
+<div class="subnav">
+  <div class="wrap"><a class="back" href="index.html">&#8592; Docs</a></div>
+</div>
 
 <main id="main">
 
