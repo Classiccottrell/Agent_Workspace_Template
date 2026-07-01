@@ -103,19 +103,31 @@ done
 if [ -d "$AGENTS" ]; then
   acount=$(find "$AGENTS" -maxdepth 1 -type f -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
   if [ "$acount" -ge 1 ]; then check PASS "Subagents directory" ".claude/agents/ present (${acount} files)"; else check FAIL "Subagents directory" ".claude/agents/ exists but is EMPTY"; fi
-  for ag in architect coder eng-manager archivist curator; do
+  roster_total=0; roster_ok=0; roster_names=""
+  for ag in architect coder eng-manager archivist curator creative-director; do
     f="$AGENTS/$ag.md"
+    roster_total=$((roster_total + 1))
     if [ -s "$f" ]; then
       # count DISTINCT required keys in the first frontmatter block (dup lines don't inflate it)
       d=0
       for k in name description tools model; do
         awk -v key="$k" '/^---$/{n++; next} n==1 && $0 ~ ("^" key ":"){hit=1} END{exit !hit}' "$f" && d=$((d + 1))
       done
-      if [ "$d" -ge 4 ]; then check PASS "Agent: $ag" "frontmatter complete (name/description/tools/model)"; else check WARN "Agent: $ag" "frontmatter incomplete (${d}/4 required keys)"; fi
+      if [ "$d" -ge 4 ]; then
+        roster_ok=$((roster_ok + 1))
+        roster_names="${roster_names}${roster_names:+, }${ag}"
+      else
+        check WARN "Agent: $ag" "frontmatter incomplete (${d}/4 required keys)"
+      fi
     else
       check FAIL "Agent: $ag" "missing or empty ${ag}.md"
     fi
   done
+  if [ "$roster_ok" -eq "$roster_total" ]; then
+    check PASS "Agent roster" "${roster_ok}/${roster_total} agents complete (${roster_names})"
+  else
+    check WARN "Agent roster" "${roster_ok}/${roster_total} complete — see below"
+  fi
 else
   check FAIL "Subagents directory" ".claude/agents/ MISSING — roles are prose only"
 fi

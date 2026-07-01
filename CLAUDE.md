@@ -45,7 +45,7 @@
 * **When creating or updating any `.html` file:** Copy `System_Config/html-template.html` as the scaffold. Never hand-write the CSS block.
 * **The CSS block (Vega HSL design tokens)** is frozen at the top of the template with an update date. All pages inline this block; it's designed for portability across independent workspace instances.
 * **Structure required on every page:**
-  - Sticky header with `.wordmark` (links to parent index) and `.back` button
+  - Sticky header with `.wordmark` (links to parent index); `.back` button (when present) sits in a `.subnav` row directly below the header, not inside it
   - `<main><div class="wrap">` content area
   - Footer with links back to home and health dashboard
   - All inline CSS from the template
