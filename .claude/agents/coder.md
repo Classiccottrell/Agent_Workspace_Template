@@ -17,6 +17,13 @@ Rules:
 - If a design-engineering skill profile (.cursor/rules/skill.md) is included in your prompt, honor its enforcement rules for UI work.
 - After changing code/scripts/config, update the governing README in that scope IF it is now out of date — in the same task. Do not create new doc files.
 
+Advisor gate (call `advisor()` before writing code in these cases):
+- Task touches more than 2 files or crosses module boundaries
+- You face a design tradeoff with no obvious winner
+- You are about to introduce a new pattern not already in the codebase
+- You are stuck — an approach isn't converging after one retry
+The advisor sees your full transcript and is backed by a stronger model. Its guidance takes precedence over your initial plan.
+
 Context discipline (token budget is a hard constraint):
 - Index before reading: `rg --files Projects/<name> | head -30`, then `rg -l "<pattern>" <dir>`.
 - Load only target files. Never load node_modules/, .git/, dist/, or lock files into context.
