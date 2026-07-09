@@ -32,7 +32,11 @@ cd agent-workspace
 ./bootstrap.sh
 ```
 
-`bootstrap.sh` is idempotent and never deletes or overwrites your data. It makes the scripts executable, creates the log directory, seeds `.mcp.json` from the example if you don't have one, prints a prerequisite check, and **asks before** installing any background automation (default is No). You can re-run it any time.
+`bootstrap.sh` is idempotent and never deletes or overwrites your data. It makes the scripts executable, creates the log directory, seeds `.mcp.json` from the example if you don't have one, prints a prerequisite check (including optional `gh`, `node`, `python3`), **asks before** installing any background automation (default is No), and walks you through the note-ingestion settings — source folders, provider (auto/claude/gemini), daily run hour, per-clip budget — writing them into `System_Config/config.sh`. If `gh` is installed and authenticated it can also create and push the workspace repo for you. You can re-run it any time.
+
+**Optional tooling** (detected, never required):
+- **GitHub CLI (`gh`)** — `brew install gh && gh auth login`. Agents use it for commit/push/PR work as plain shell commands instead of burning model tokens on git plumbing.
+- **node/npx** — needed by the skill sync (`npx skills`) and Playwright. Projects with a web UI can use `npx playwright test` or the Playwright agent CLI (`npm i -g @playwright/cli`) to generate and run browser checks; Playwright stays per-project, never at the workspace root.
 
 Open this workspace in your AI CLI and you're operating:
 - **Claude Code** — `claude` from the workspace root. Orchestrator rules load from `CLAUDE.md`; agent roster in `.claude/agents/`.
@@ -114,7 +118,7 @@ your-workspace/
 
 | Job | Installer | Schedule | What it does |
 |-----|-----------|----------|--------------|
-| **Daily ingest** | `System_Config/install_daily_ingest.sh` | daily 07:00 + at login | Reads new `Vault_Brain/sources/*.md` clips and files them into the wiki (one headless `claude -p` call per clip, content-hash dedup). |
+| **Daily ingest** | `System_Config/install_daily_ingest.sh` | daily at `INGEST_HOUR` (default 07:00) + at login | Reads new `.md` notes from each dir in `INGEST_SOURCES` (default `sources:Raw_Notes`) and files them into the wiki (one headless `claude -p` call per note, content-hash dedup). Configure in `System_Config/config.sh`. |
 | **Health check** | `System_Config/install_healthcheck.sh` | at login + every 4h | Probes all layers + doc currency, writes the status dashboard. |
 | **Weekly notes** | `System_Config/install_friday_process.sh` | Fridays 19:00 | Writes a 1–2 sentence weekly summary into the Master Note and builds wiki cross-references. |
 | **Skill sync** | `System_Config/install_sync_skills.sh` | on install + hourly | Watches `~/.agents/skills/` for `npx`-installed skills and syncs them to `~/.claude/skills/`, keeping the master-orchestrator index current. |
@@ -138,7 +142,7 @@ Start a fresh weekly note any time with `bash System_Config/monday_init.sh`. Ful
 - **Relocatable** — nothing is hardcoded. Every script sources `System_Config/config.sh`, which derives `$WORKSPACE`, the vault paths, and the `launchd` label namespace from its own location and your environment. Clone the workspace anywhere and it just works. Override the label namespace with `export AGENT_WS_LABEL_PREFIX=com.acme.vaultbrain` before installing.
 - **Docs stay current** — after any change to a script, agent, config, or the structure, update the governing doc in the same task. The health check flags a README that is older than the files it documents.
 - **Append-only knowledge** — the wiki and weekly logs are create-or-append; agents never overwrite or delete vault content.
-- **One `.mcp.json` per machine** — `.mcp.json.example` is tracked; your real `.mcp.json` (with any server URLs or credentials) is git-ignored. Never commit it.
+- **One `.mcp.json` per machine** — `.mcp.json.example` is tracked; your real `.mcp.json` (with any server URLs or credentials) is git-ignored. Never commit it. **MCP servers travel with the workspace:** after cloning, edit `.mcp.json` (bootstrap seeds it from the example) and allow-list the servers in `.claude/settings.json` (`enabledMcpjsonServers`) — no per-project re-adding, no global config to copy around.
 
 ---
 

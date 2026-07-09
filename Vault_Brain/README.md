@@ -112,6 +112,7 @@ Browser (Web Clipper)  →  Vault_Brain/sources/YYYY-MM-DD_Title.md
    `daily_ingest.sh` uses this automatically if present.
 
 **Useful commands:**
+- Ingest scans every dir in `INGEST_SOURCES` (`System_Config/config.sh`, default `sources:Raw_Notes`, vault-relative) — raw/structured notes in `Raw_Notes/` are wikified the same way as web clips. Schedule, provider, and budget are configurable there too.
 - Preview what would be ingested, no Claude call: `DRY_RUN=1 bash System_Config/daily_ingest.sh`
 - Run ingestion now: `bash System_Config/daily_ingest.sh`
 - Watch the log: `tail -f System_Config/logs/daily_ingest.log`

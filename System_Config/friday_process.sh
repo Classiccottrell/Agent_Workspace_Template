@@ -18,8 +18,9 @@ MASTER="$VAULT/Master Note.md"
 LOG="$LOG_DIR/friday_process.log"
 LOCK_DIR="$LOG_DIR/friday_process.lock"
 SENTINEL="<!-- WEEKLY-INDEX-INSERT -->"
-MAX_SECONDS="${MAX_SECONDS:-900}"
-MAX_BUDGET="${MAX_BUDGET:-2.00}"
+MAX_SECONDS="${MAX_SECONDS:-900}"   # wall-clock watchdog — both providers
+MAX_BUDGET="${MAX_BUDGET:-2.00}"    # USD ceiling — claude only (ponytail: gemini
+                                    # has no cost flag; MAX_SECONDS is its ceiling)
 
 if [[ -r "$HOME/.config/anthropic/key" ]]; then
   export ANTHROPIC_API_KEY="$(cat "$HOME/.config/anthropic/key")"

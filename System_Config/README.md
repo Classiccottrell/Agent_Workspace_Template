@@ -46,9 +46,9 @@ and **no output**, before the script runs. The scripts' own logs still live in
 
 | File | Purpose |
 |------|---------|
-| `config.sh` | Shared, relocatable configuration. Sourced first by every other script. |
-| `daily_ingest.sh` | Ingest new `Vault_Brain/sources/*.md` clips into the wiki, one headless `agy -p` or `claude -p` call per clip. Content-hash dedup via `sources/.ingested.log` (`<sha256>\t<filename>`). |
-| `dailyingest.plist.tmpl` | launchd agent template: runs ingest daily at 07:00 + at login. Rendered into `~/Library/LaunchAgents/` by the installer. |
+| `config.sh` | Shared, relocatable configuration. Sourced first by every other script. Holds the `INGEST_*` ingestion settings (see table below). |
+| `daily_ingest.sh` | Ingest new `.md` notes from each dir in `INGEST_SOURCES` (default `sources:Raw_Notes`, vault-relative) into the wiki, one headless `agy -p` or `claude -p` call per note. Content-hash dedup via a per-dir `<dir>/.ingested.log` manifest (`<sha256>\t<filename>`). Warns when unscanned `.md` files sit in subfolders. |
+| `dailyingest.plist.tmpl` | launchd agent template: runs ingest daily at `INGEST_HOUR:INGEST_MINUTE` (default 07:00) + at login. Rendered into `~/Library/LaunchAgents/` by the installer. |
 | `install_daily_ingest.sh` | Render + install/reload the ingest agent (idempotent). |
 | `friday_process.sh` | Friday 16:30 weekly close-out: Claude writes a 1–2 sentence summary + append-only wiki cross-refs, deterministic bash edits the Master Note row (backup + validate + rollback), and a `.<week>.fridayclose.snapshot.md` baseline is saved (used Monday to detect weekend edits). |
 | `fridayprocess.plist.tmpl` | launchd agent template: runs the close-out Fridays at 16:30. |
@@ -65,6 +65,20 @@ and **no output**, before the script runs. The scripts' own logs still live in
 | `friday_archive.sh` | Archive the week's note (manual / `cron 0 18 * * 5`). |
 | `obsidian-webclipper-template.json` | Obsidian Web Clipper template → writes clips to the vault's `sources/` folder with frontmatter (filename via `{{title\|safe_name}}`). |
 | `logs/` | Per-job **script** logs (`daily_ingest.log`, `healthcheck.log`, …) in the workspace. The launchd `.out`/`.err` redirects live in `~/Library/Logs/$LABEL_PREFIX/` (see Prerequisites). |
+
+### Ingestion configuration (`config.sh`)
+
+Set by `bootstrap.sh` during setup; edit `config.sh` anytime (re-run
+`install_daily_ingest.sh` after changing the schedule so the plist re-renders).
+All are env-overridable per run.
+
+| Var | Default | Meaning |
+|-----|---------|---------|
+| `INGEST_SOURCES` | `sources:Raw_Notes` | Colon-separated dirs (relative to `Vault_Brain/`) scanned for new `.md` notes. Each keeps its own `.ingested.log`. |
+| `INGEST_PROVIDER` | `auto` | `auto` (PATH detection: agy → gemini → claude), or force `claude` / `gemini`. |
+| `INGEST_HOUR` / `INGEST_MINUTE` | `7` / `0` | Daily launchd schedule, rendered into the plist on install. |
+| `INGEST_MAX_BUDGET` | `1.00` | Per-clip USD ceiling — claude only (gemini has no cost flag). |
+| `INGEST_MAX_SECONDS` | `900` | Per-clip wall-clock watchdog — both providers. |
 
 > **Generated at runtime, not shipped:** `healthcheck.sh` writes
 > `status_page.html` and `status.json` into this directory each time it runs.
