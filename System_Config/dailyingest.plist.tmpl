@@ -11,17 +11,18 @@
         <string>__WORKSPACE_ROOT__/System_Config/daily_ingest.sh</string>
     </array>
 
-    <!-- Run daily at 07:00. If the Mac is ASLEEP at 07:00, launchd runs the
-         missed job once at next wake. A run missed while the Mac is fully
-         POWERED OFF is NOT replayed at boot — RunAtLoad below covers that by
-         also running at login. The script no-ops when there are no new clips,
-         so the extra login run is harmless. -->
+    <!-- Runs daily at INGEST_HOUR:INGEST_MINUTE from config.sh (default 07:00).
+         If the Mac is ASLEEP at that time, launchd runs the missed job once at
+         next wake. A run missed while the Mac is fully POWERED OFF is NOT
+         replayed at boot — RunAtLoad below covers that by also running at
+         login. The script no-ops when there are no new clips, so the extra
+         login run is harmless. -->
     <key>StartCalendarInterval</key>
     <dict>
         <key>Hour</key>
-        <integer>7</integer>
+        <integer>__INGEST_HOUR__</integer>
         <key>Minute</key>
-        <integer>0</integer>
+        <integer>__INGEST_MINUTE__</integer>
     </dict>
 
     <key>RunAtLoad</key>

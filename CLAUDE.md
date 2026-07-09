@@ -33,6 +33,12 @@
 * Routing: architecture/schema → `architect`; implementation → `coder`; `Projects/` lifecycle → `eng-manager`; `Final_Products/` archival → `archivist`; `Vault_Brain/` knowledge → `curator`; brand/visual/copy/design-feedback → `creative-director`.
 * For UI work, use `/master-orchestrator` to select the right skill(s) from `~/.claude/skills/` and inject them into `coder` prompts. The `.cursor/rules/skill.md` design profile is available as a fallback for Cursor IDE users.
 
+## Git & GitHub (token discipline)
+* All git operations run as shell commands — `git` for local ops, `gh` for GitHub (PRs, issues, repos). Never hand-reason through diffs or reconstruct history in context.
+* Prefer: `gh pr create`, `gh pr view`, `gh issue list`, `gh repo create`.
+* Branch before committing on the default branch.
+* If `gh` is missing: `brew install gh && gh auth login`. Fall back to plain `git` + remote URL.
+
 ## Documentation Integrity
 * After ANY change to system files (scripts, agents, config, schema, structure), check the governing doc and update it IN THE SAME TASK if now out of date.
 * Governing docs: `System_Config/README.md` (automation), `Vault_Brain/README.md` (vault + ingest), root `.AGENT.MD` (workspace map + agent roster). Per-project: that project's `README.md` / `BRIEF.md`.

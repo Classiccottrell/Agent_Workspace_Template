@@ -14,9 +14,27 @@ LAUNCHD_LOG_DIR="$HOME/Library/Logs/$LABEL_PREFIX"
 #   obsidian  - Obsidian app + Obsidian Web Clipper (default)
 #   vscode    - VS Code + Foam + MarkSnip web clipper
 KB_STRATEGY="${KB_STRATEGY:-obsidian}"
+# ── Ingest configuration — set by bootstrap.sh, editable here anytime ─────────
+# INGEST_SOURCES  - colon-separated dirs (relative to Vault_Brain/) scanned by
+#                   daily_ingest.sh. Each dir keeps its own .ingested.log manifest.
+# INGEST_PROVIDER - auto|claude|gemini. "auto" uses PATH detection below.
+# INGEST_HOUR/MINUTE - daily launchd schedule (rendered into the plist on install).
+# INGEST_MAX_BUDGET  - per-clip USD ceiling (claude only; gemini has no cost flag).
+# INGEST_MAX_SECONDS - per-clip wall-clock watchdog (both providers).
+INGEST_SOURCES="${INGEST_SOURCES:-sources:Raw_Notes}"
+INGEST_PROVIDER="${INGEST_PROVIDER:-auto}"
+INGEST_HOUR="${INGEST_HOUR:-7}"
+INGEST_MINUTE="${INGEST_MINUTE:-0}"
+INGEST_MAX_BUDGET="${INGEST_MAX_BUDGET:-1.00}"
+INGEST_MAX_SECONDS="${INGEST_MAX_SECONDS:-900}"
 # Resolve the agent CLI (prioritizing Gemini/Antigravity, falling back to claude).
 # The Gemini CLI ships as either `agy` (Antigravity) or `gemini`; accept both.
-if command -v agy >/dev/null 2>&1; then
+# NOTE: $CLAUDE holds whichever binary won — it is the GEMINI binary when
+# AGENT_TYPE=gemini. Historical name; scripts branch on AGENT_TYPE, not the path.
+if [[ "$INGEST_PROVIDER" == "claude" ]]; then
+  CLAUDE="$(command -v claude || echo "$HOME/.local/bin/claude")"
+  AGENT_TYPE="claude"
+elif command -v agy >/dev/null 2>&1; then
   CLAUDE="$(command -v agy)"
   AGENT_TYPE="gemini"
 elif [[ -x "$HOME/.local/bin/agy" ]]; then
