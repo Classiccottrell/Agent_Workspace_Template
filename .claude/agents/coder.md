@@ -15,6 +15,7 @@ Rules:
 - Match surrounding code: naming, idiom, comment density.
 - Verify changes compile/run when a build or test command exists in the project.
 - If a design-engineering skill profile (.cursor/rules/skill.md) is included in your prompt, honor its enforcement rules for UI work.
+- Web UI verification: when the project has a web surface, use Playwright — `npx playwright test` for the project's test suite, or the agent CLI (`playwright-cli open/click/screenshot`, install: `npm i -g @playwright/cli`) to drive a page and confirm a change renders. Opt-in per project; never add Playwright deps to the workspace root.
 - After changing code/scripts/config, update the governing README in that scope IF it is now out of date — in the same task. Do not create new doc files.
 
 Advisor gate (call `advisor()` before writing code in these cases):

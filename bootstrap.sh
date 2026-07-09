@@ -75,6 +75,29 @@ case "$(uname -s)" in
           echo "           the agents and the Vault_Brain wiki still work." ;;
 esac
 
+# Optional tooling — nothing below blocks the install.
+if command -v gh >/dev/null 2>&1; then
+  echo "    [ok]   GitHub CLI (gh) found: $(command -v gh)"
+  if ! gh auth status >/dev/null 2>&1; then
+    echo "           Not authenticated yet — run: gh auth login"
+  fi
+else
+  echo "    [opt]  GitHub CLI (gh) not found — agents use it for commit/push/PR"
+  echo "           without burning model tokens. Install: brew install gh"
+fi
+if command -v node >/dev/null 2>&1 && command -v npx >/dev/null 2>&1; then
+  echo "    [ok]   node/npx found: $(node --version)"
+else
+  echo "    [opt]  node/npx not found — needed by skill sync (npx skills) and"
+  echo "           Playwright. Install: brew install node"
+fi
+if command -v python3 >/dev/null 2>&1; then
+  echo "    [ok]   python3 found: $(command -v python3)"
+else
+  echo "    [opt]  python3 not found — needed by the doc-currency hook and the"
+  echo "           weekly site generator. Install: brew install python3"
+fi
+
 echo "    [note] To run the background automation, grant Full Disk Access to /bin/bash"
 echo "           (System Settings → Privacy & Security → Full Disk Access; drag in"
 echo "           /bin/bash via Finder ⌘⇧G → /bin). See System_Config/README.md."
@@ -185,6 +208,40 @@ VSCJSON
 fi
 
 # ---------------------------------------------------------------------------
+# 5c. Note ingestion configuration (all defaults are safe — Enter to accept).
+# ---------------------------------------------------------------------------
+echo
+echo "→ Note ingestion — the daily job that wikifies clips and notes into Vault_Brain."
+if [ -t 0 ]; then
+  printf "  Source folders inside Vault_Brain/, colon-separated [sources]: "
+  read -r ING_SOURCES || ING_SOURCES=""
+  printf "  Provider — auto / claude / gemini [auto]: "
+  read -r ING_PROVIDER || ING_PROVIDER=""
+  printf "  Daily run hour, 0-23 [7]: "
+  read -r ING_HOUR || ING_HOUR=""
+  printf "  Per-clip budget in USD, claude only [1.00]: "
+  read -r ING_BUDGET || ING_BUDGET=""
+else
+  ING_SOURCES=""; ING_PROVIDER=""; ING_HOUR=""; ING_BUDGET=""
+  echo "  (non-interactive: keeping defaults — sources, auto, 07:00, \$1.00)"
+fi
+# Validate; anything odd falls back to the default already in config.sh.
+case "$ING_PROVIDER" in claude|gemini|auto) ;; *) ING_PROVIDER="" ;; esac
+case "$ING_HOUR" in [0-9]|1[0-9]|2[0-3]) ;; *) ING_HOUR="" ;; esac
+case "$ING_BUDGET" in *[!0-9.]*|"") ING_BUDGET="" ;; esac
+[ -n "$ING_SOURCES" ]  && sed -i.bak "s|^INGEST_SOURCES=.*|INGEST_SOURCES=\"\${INGEST_SOURCES:-${ING_SOURCES}}\"|"   "$SYSCFG/config.sh"
+[ -n "$ING_PROVIDER" ] && sed -i.bak "s|^INGEST_PROVIDER=.*|INGEST_PROVIDER=\"\${INGEST_PROVIDER:-${ING_PROVIDER}}\"|" "$SYSCFG/config.sh"
+[ -n "$ING_HOUR" ]     && sed -i.bak "s|^INGEST_HOUR=.*|INGEST_HOUR=\"\${INGEST_HOUR:-${ING_HOUR}}\"|"                "$SYSCFG/config.sh"
+[ -n "$ING_BUDGET" ]   && sed -i.bak "s|^INGEST_MAX_BUDGET=.*|INGEST_MAX_BUDGET=\"\${INGEST_MAX_BUDGET:-${ING_BUDGET}}\"|" "$SYSCFG/config.sh"
+rm -f "$SYSCFG/config.sh.bak"
+echo "    [ok]   Ingestion config: sources=${ING_SOURCES:-sources} provider=${ING_PROVIDER:-auto} hour=${ING_HOUR:-7} budget=\$${ING_BUDGET:-1.00}"
+if [ "$SCHEDULE" = "auto" ] && [ -n "$ING_HOUR" ]; then
+  echo "    [note] Re-rendering the ingest schedule with your hour…"
+  bash "$SYSCFG/install_daily_ingest.sh" >/dev/null
+  echo "    [ok]   Daily ingest rescheduled to ${ING_HOUR}:00."
+fi
+
+# ---------------------------------------------------------------------------
 # 6. Remote Git repository (optional).
 # ---------------------------------------------------------------------------
 echo
@@ -192,9 +249,28 @@ echo "→ Remote Git repository (optional)"
 echo "  Link this workspace to a remote repo to push/pull from another machine."
 
 GIT_REMOTE=""
-if [ -t 0 ]; then
-  printf "  Enter remote URL (leave blank to skip): "
-  read -r GIT_REMOTE || GIT_REMOTE=""
+if git remote get-url origin >/dev/null 2>&1; then
+  echo "    [ok]   Remote already configured: $(git remote get-url origin)"
+elif [ -t 0 ]; then
+  # gh path: create the repo for the user instead of asking for a URL.
+  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+    printf "  Create a private GitHub repo for this workspace with gh? [y/N]: "
+    read -r GH_REPLY || GH_REPLY=""
+    case "$GH_REPLY" in
+      [yY]*)
+        git branch -M main
+        if gh repo create "$(basename "$ROOT")" --private --source . --remote origin --push; then
+          echo "    [ok]   Repo created and pushed via gh."
+        else
+          echo "    [warn] gh repo create failed — add a remote manually later."
+        fi
+        ;;
+      *) echo "    [skip] No remote configured. Later: gh repo create --private --source . --push" ;;
+    esac
+  else
+    printf "  Enter remote URL (leave blank to skip): "
+    read -r GIT_REMOTE || GIT_REMOTE=""
+  fi
 else
   echo "  (non-interactive: skipping — add manually: git remote add origin <url>)"
 fi
@@ -204,9 +280,9 @@ if [ -n "$GIT_REMOTE" ]; then
   git branch -M main
   git push -u origin main
   echo "    [ok]   Remote set: $GIT_REMOTE"
-else
+elif ! git remote get-url origin >/dev/null 2>&1; then
   echo "    [skip] No remote configured. Add later:"
-  echo "           git remote add origin <url>"
+  echo "           git remote add origin <url>   (or: gh repo create --private --source . --push)"
   echo "           git branch -M main && git push -u origin main"
 fi
 

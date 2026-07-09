@@ -17,10 +17,12 @@ UID_NUM="$(id -u)"
 echo "→ Creating log dir (must exist before launchd opens its redirect targets)…"
 mkdir -p "$SYSCFG/logs" "$LAUNCHD_LOG_DIR" "$HOME/Library/LaunchAgents"
 
-echo "→ Rendering $TMPL → $DEST_PLIST (label: $LABEL)"
+echo "→ Rendering $TMPL → $DEST_PLIST (label: $LABEL, schedule: ${INGEST_HOUR}:$(printf '%02d' "$INGEST_MINUTE"))"
 sed -e "s|__LABEL__|$LABEL|g" \
     -e "s|__WORKSPACE_ROOT__|$WORKSPACE|g" \
     -e "s|__LOG_DIR__|$LAUNCHD_LOG_DIR|g" \
+    -e "s|__INGEST_HOUR__|$INGEST_HOUR|g" \
+    -e "s|__INGEST_MINUTE__|$INGEST_MINUTE|g" \
     "$TMPL" > "$DEST_PLIST"
 
 echo "→ (Re)bootstrapping the LaunchAgent into your GUI session…"
