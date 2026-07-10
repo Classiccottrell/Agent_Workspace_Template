@@ -110,24 +110,26 @@ process_dir() {
   # a different name (e.g. the Web Clipper's unsanitized {{title}}) must not trigger
   # a second paid ingest. Manifest format: "<sha256>\t<basename>". Older manifests
   # stored bare "<basename>"; back-fill a hash for any legacy line whose source file
-  # still exists (lines for vanished files are kept name-only — can't rehash them).
-  local MIG migrated=0 line mh
+  # still exists. Name-only lines for vanished files are dropped (can't rehash them;
+  # they dedup nothing). Hash-bearing lines are kept always (still dedup re-clipped content).
+  local MIG migrated=0 pruned=0 line mh
   MIG="$(mktemp)"
   while IFS= read -r line || [[ -n "$line" ]]; do
     [[ -z "$line" ]] && continue
     case "$line" in
-      *"$(printf '\t')"*) printf '%s\n' "$line" ;;            # already hashed
+      *"$(printf '\t')"*) printf '%s\n' "$line" ;;            # already hashed — keep always
       *)
         if [[ -f "$src_dir/$line" ]]; then
           mh="$(shasum -a 256 "$src_dir/$line" | awk '{print $1}')"
           printf '%s\t%s\n' "$mh" "$line"; migrated=$((migrated + 1))
         else
-          printf '%s\n' "$line"                               # source gone — keep name-only
+          pruned=$((pruned + 1))                              # source gone — drop name-only
         fi ;;
     esac
   done < "$manifest" > "$MIG"
   mv "$MIG" "$manifest"
   [[ $migrated -gt 0 ]] && log "manifest($rel_dir): back-filled $migrated legacy entr(ies) with content hash"
+  [[ $pruned -gt 0 ]] && log "manifest($rel_dir): pruned $pruned entr(ies) for deleted sources"
 
   # Lookups against the manifest ($NF = basename for both formats; $1 = hash when present).
   name_seen() { awk -F'\t' -v n="$1" '$NF==n{f=1} END{exit !f}' "$manifest"; }

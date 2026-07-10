@@ -5,7 +5,7 @@
 # rollback) and stamps the close-out. The note STAYS in weekly-logs/.
 #
 #   Activate:    bash System_Config/install_friday_process.sh
-#   Manual run:  bash System_Config/friday_process.sh
+#   Manual run:  bash System_Config/friday_process.sh [YYYY-Www]
 #   Preview:     DRY_RUN=1 bash System_Config/friday_process.sh
 
 set -euo pipefail
@@ -32,9 +32,20 @@ log() { echo "[$(ts)] $*" >> "$LOG"; }
 
 log "friday_process start"
 
-# ── LOCATE THIS WEEK'S NOTE ───────────────────────────────────────────────────
-YEAR=$(date +%G); WEEK=$(date +%V); TODAY=$(date +%Y-%m-%d)
-WEEK_TAG="${YEAR}-W${WEEK}"
+# ── LOCATE THE TARGET WEEK'S NOTE ─────────────────────────────────────────────
+# Optional arg 1: explicit week tag (YYYY-Www) to close out, e.g. for catch-up
+# runs from monday_init.sh. Defaults to today's ISO week.
+TODAY=$(date +%Y-%m-%d)
+if [[ -n "${1:-}" ]]; then
+  WEEK_TAG="$1"
+  if [[ ! "$WEEK_TAG" =~ ^[0-9][0-9][0-9][0-9]-W[0-9][0-9]$ ]]; then
+    log "FATAL: invalid week arg '$WEEK_TAG' — expected YYYY-Www"; exit 1
+  fi
+  YEAR="${WEEK_TAG%%-W*}"; WEEK="${WEEK_TAG##*-W}"
+else
+  YEAR=$(date +%G); WEEK=$(date +%V)
+  WEEK_TAG="${YEAR}-W${WEEK}"
+fi
 NOTE_REL="weekly-logs/${WEEK_TAG}.md"
 NOTE_ABS="$WEEKLY_LOGS/${WEEK_TAG}.md"
 SUMMARY_REL="weekly-logs/.${WEEK_TAG}.summary.txt"
