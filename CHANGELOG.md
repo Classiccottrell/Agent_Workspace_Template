@@ -7,6 +7,7 @@ All notable changes to this template are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- CI self-tests: `System_Config/test.sh` + GitHub Actions workflow
 - Vault schema versioning (`.vault-schema` + `migrate_vault.sh`)
 - Agent scaffolder `new_agent.sh` (both harness formats, dry-run default)
 - Skill Index in `.AGENT.MD` + sync-skills drift warning
