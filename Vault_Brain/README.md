@@ -124,6 +124,19 @@ Browser (Web Clipper)  →  Vault_Brain/sources/YYYY-MM-DD_Title.md
 
 ---
 
+## Schema Version
+
+The vault's structure and ingest behavior are versioned. The schema marker lives at `Vault_Brain/.vault-schema` — currently version `1`. When the vault schema changes (e.g., new frontmatter fields, renamed folders, or new ingest rules defined in `Vault_Brain/CLAUDE.md`), increment the version number in the marker file and add a migration step to `System_Config/migrate_vault.sh`.
+
+To check or upgrade:
+```
+bash System_Config/migrate_vault.sh
+```
+
+It reads the current version from `.vault-schema`, compares to the target (defined in the script as `TARGET_SCHEMA`), and applies any intermediate migrations. If the vault is **newer** than the script expects, the check fails — update the template first.
+
+---
+
 ## System Health — Status Page
 
 A scheduled health check probes the whole workspace (agents, automation, vault, docs) and writes a dashboard:

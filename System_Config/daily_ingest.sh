@@ -68,6 +68,12 @@ source "$(dirname "${BASH_SOURCE[0]}")/run_agent.sh"
 # sources/ manifest keeps working and basenames can't collide across dirs.
 total_ingested=0
 total_new=0
+# Quota/budget wall detection: 2 consecutive FAILED/NO-OP clips in a run (across
+# dirs — global, not per-dir) means a throttled provider, not bad luck. Stop
+# burning watchdog time; the NEXT SCHEDULED RUN is the retry — no in-run retries.
+consecutive_bad=0
+attempted=0
+wall_hit=0
 
 process_dir() {
   local rel_dir="$1"
@@ -162,6 +168,8 @@ process_dir() {
   # ── INGEST EACH CLIP INDEPENDENTLY ───────────────────────────────────────────
   local clip src_link PROMPT rc
   for clip in "${NEW[@]}"; do
+    if [[ "$wall_hit" == "1" ]]; then break; fi
+    attempted=$((attempted + 1))
     src_link="${rel_dir}/${clip%.md}"
     PROMPT="You are running headlessly to ingest ONE note into the Vault_Brain knowledge wiki.
 First read CLAUDE.md for the wiki schema and conventions.
@@ -192,12 +200,21 @@ Constraints: create-or-append only; never overwrite a page wholesale; never dele
         printf '%s\t%s\n' "$h" "$clip" >> "$manifest"
         total_ingested=$((total_ingested + 1))
         log "OK: $rel_dir/$clip"
+        consecutive_bad=0
       else
         log "NO-OP (exit 0 but no wiki link to ${src_link}): $rel_dir/$clip — NOT recorded, will retry next run"
+        consecutive_bad=$((consecutive_bad + 1))
       fi
     else
       rc=$?
       log "FAILED (rc=${rc}; may have timed out after ${MAX_SECONDS}s): $rel_dir/$clip — NOT recorded, will retry next run"
+      consecutive_bad=$((consecutive_bad + 1))
+    fi
+
+    if [[ "$consecutive_bad" -ge 2 ]]; then
+      log "QUOTA/BUDGET WALL suspected after ${attempted} clips — stopping this run; remaining clips retry next scheduled run"
+      wall_hit=1
+      break
     fi
   done
 }
@@ -207,8 +224,13 @@ OLD_IFS="$IFS"; IFS=':'
 DIRS=($INGEST_SOURCES)
 IFS="$OLD_IFS"
 for d in "${DIRS[@]}"; do
+  [[ "$wall_hit" == "1" ]] && break
   [[ -n "$d" ]] && process_dir "$d"
 done
 
 restore_sources
-log "daily_ingest done — ingested ${total_ingested}/${total_new} clip(s)"
+# pending = new clips seen minus ingested, among dirs actually SCANNED this run.
+# If the quota wall broke the loop early, dirs not yet reached aren't counted
+# here — the WALL log line above already flags that remaining clips retry next run.
+pending=$((total_new - total_ingested))
+log "daily_ingest done — ingested ${total_ingested}/${total_new} clip(s); ${pending} still pending across sources"

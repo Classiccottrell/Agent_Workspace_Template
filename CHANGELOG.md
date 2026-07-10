@@ -7,6 +7,13 @@ All notable changes to this template are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- Vault schema versioning (`.vault-schema` + `migrate_vault.sh`)
+- Agent scaffolder `new_agent.sh` (both harness formats, dry-run default)
+- Skill Index in `.AGENT.MD` + sync-skills drift warning
+- CLI version pinning (`deps.sh`) surfaced in `--check`
+- Workspace export/import scripts (anti-lock-in)
+- Ingest quota-wall detection + `metrics.tsv` history in healthcheck
+
 - First-run onboarding: `WELCOME.md` + disposable `Projects/example/` sandbox
 - MCP server presets in `.mcp.json.example` (`_disabled_examples`)
 - `validate_config()` guard in all installers
