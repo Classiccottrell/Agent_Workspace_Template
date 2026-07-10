@@ -467,6 +467,94 @@ if [ "$SCHEDULE" = "auto" ] && [ -n "$ING_HOUR" ]; then
 fi
 
 # ---------------------------------------------------------------------------
+# 5d. Personal writing-voice skill ("how-i-write") — build or import (optional).
+# ---------------------------------------------------------------------------
+echo
+echo "→ Personal writing-voice skill (optional)"
+echo "  Captures your tone/register as a personal skill so agents can write in"
+echo "  your voice. Lives OUTSIDE this repo, at:"
+echo "    ~/.claude/skills/how-i-write/SKILL.md"
+echo "  This template never ships anyone's actual writing-voice content."
+echo "  [b] build  — point the agent CLI at a folder of your own .md/.txt writing"
+echo "               samples and let it fill in the scaffold (one bounded call)"
+echo "  [i] import — copy a SKILL.md you already built in a previous workspace"
+echo "  [s] skip   — decide later (default)"
+
+HIW_MODE="skip"
+if [ -t 0 ]; then
+  printf "Choose [b/i/s]: "
+  read -r HIW_REPLY || HIW_REPLY=""
+else
+  HIW_REPLY=""
+  echo "(non-interactive: skipping — build or import later with:"
+  echo "   bash System_Config/build_how_i_write.sh <samples-folder>)"
+fi
+case "$HIW_REPLY" in
+  [bB]*) HIW_MODE="build" ;;
+  [iI]*) HIW_MODE="import" ;;
+  *)     HIW_MODE="skip" ;;
+esac
+
+HIW_DEST="$HOME/.claude/skills/how-i-write/SKILL.md"
+
+if [ "$HIW_MODE" = "build" ]; then
+  if [ -s "$HIW_DEST" ]; then
+    echo "    [skip] $HIW_DEST already exists — leaving it untouched."
+    echo "           Remove it first (or edit it directly) if you want to rebuild."
+  else
+    printf "  Path to a folder of your own writing samples (.md/.txt; blank to skip): "
+    if [ -t 0 ]; then
+      read -r HIW_SAMPLES || HIW_SAMPLES=""
+    else
+      HIW_SAMPLES=""
+    fi
+    case "$HIW_SAMPLES" in
+      "~"*) HIW_SAMPLES="${HOME}${HIW_SAMPLES#\~}" ;;
+    esac
+    if [ -n "$HIW_SAMPLES" ] && [ -d "$HIW_SAMPLES" ]; then
+      echo "    This calls your agent CLI once — up to ~5 min, up to ~\$1.00 in API usage"
+      echo "    (gemini/agy path: no budget cap available, only the 5 min watchdog)."
+      if MAX_SECONDS=300 MAX_BUDGET=1.00 bash "$SYSCFG/build_how_i_write.sh" "$HIW_SAMPLES"; then
+        echo "    [ok]   how-i-write skill built at $HIW_DEST"
+      else
+        echo "    [warn] Build did not complete — see output above. Retry any time:"
+        echo "           bash System_Config/build_how_i_write.sh <samples-folder>"
+      fi
+    else
+      echo "    [skip] No valid folder given — build later:"
+      echo "           bash System_Config/build_how_i_write.sh <samples-folder>"
+    fi
+  fi
+elif [ "$HIW_MODE" = "import" ]; then
+  if [ -s "$HIW_DEST" ]; then
+    echo "    [skip] $HIW_DEST already exists — leaving it untouched."
+  else
+    printf "  Path to an existing SKILL.md to import (blank to skip): "
+    if [ -t 0 ]; then
+      read -r HIW_IMPORT || HIW_IMPORT=""
+    else
+      HIW_IMPORT=""
+    fi
+    case "$HIW_IMPORT" in
+      "~"*) HIW_IMPORT="${HOME}${HIW_IMPORT#\~}" ;;
+    esac
+    if [ -n "$HIW_IMPORT" ] && [ -f "$HIW_IMPORT" ]; then
+      mkdir -p "$(dirname "$HIW_DEST")"
+      cp "$HIW_IMPORT" "$HIW_DEST"
+      grep -q '^name:' "$HIW_DEST" 2>/dev/null || echo "    [warn] Imported file has no 'name:' frontmatter key — check it's a valid SKILL.md."
+      echo "    [ok]   Imported $HIW_IMPORT -> $HIW_DEST"
+    else
+      echo "    [skip] No valid file given — import later:"
+      echo "           cp /path/to/SKILL.md ~/.claude/skills/how-i-write/SKILL.md"
+    fi
+  fi
+else
+  echo "    [skip] Skipping for now. Set up later:"
+  echo "           bash System_Config/build_how_i_write.sh <samples-folder>   # build"
+  echo "           cp <old-SKILL.md> ~/.claude/skills/how-i-write/SKILL.md    # import"
+fi
+
+# ---------------------------------------------------------------------------
 # 6. Remote Git repository (optional).
 # ---------------------------------------------------------------------------
 echo
