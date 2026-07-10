@@ -7,6 +7,7 @@ All notable changes to this template are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- `./bootstrap.sh --update [--apply]`: pull template improvements, system files only, user data and config.sh never touched
 - CI self-tests: `System_Config/test.sh` + GitHub Actions workflow
 - Vault schema versioning (`.vault-schema` + `migrate_vault.sh`)
 - Agent scaffolder `new_agent.sh` (both harness formats, dry-run default)

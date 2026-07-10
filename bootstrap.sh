@@ -21,10 +21,11 @@ SUFFIXES="dailyingest healthcheck fridayprocess mondayinit syncskills"
 
 case "${1:-}" in
   --help)
-    echo "Usage: ./bootstrap.sh [--check|--check-deps|--uninstall|--help]"
+    echo "Usage: ./bootstrap.sh [--check|--check-deps|--update [--apply]|--uninstall|--help]"
     echo "  (no args)    run the interactive setup"
     echo "  --check      read-only doctor: report tool + automation status"
     echo "  --check-deps alias for --check"
+    echo "  --update     pull template improvements (system files only; dry-run unless --apply)"
     echo "  --uninstall  remove background automation (launchd/cron); data is never touched"
     exit 0
     ;;
@@ -134,11 +135,104 @@ case "${1:-}" in
     esac
     exit 0
     ;;
+  --update)
+    # Pull template improvements into an installed workspace. SYSTEM FILES ONLY:
+    # user data (Projects/, Vault_Brain/, Final_Products/, .mcp.json) and the
+    # user's own settings (System_Config/config.sh, logs) are never touched.
+    # Dry-run by default; ./bootstrap.sh --update --apply to execute.
+    UPSTREAM="${TEMPLATE_UPSTREAM:-https://github.com/Classiccottrell/Agent_Workspace_Template.git}"
+    UPSTREAM_BRANCH="${TEMPLATE_UPSTREAM_BRANCH:-main}"
+    APPLY=0
+    [ "${2:-}" = "--apply" ] && APPLY=1
+
+    # System paths --update may refresh. config.sh and logs are handled below,
+    # never overwritten. Everything else in the repo is out of scope.
+    UPDATE_PATHS=".AGENT.MD CLAUDE.md bootstrap.sh WELCOME.md VERSION CHANGELOG.md \
+.mcp.json.example .agents .claude/agents .claude/skills docs .github System_Config"
+
+    echo "=================================================="
+    echo " Agent Workspace Template — update"
+    echo " Upstream: $UPSTREAM ($UPSTREAM_BRANCH)"
+    echo "=================================================="
+    echo
+    git rev-parse --is-inside-work-tree >/dev/null 2>&1 || { echo "Not a git repo — cannot update."; exit 1; }
+    echo "→ Fetching upstream…"
+    git fetch --quiet "$UPSTREAM" "$UPSTREAM_BRANCH" || { echo "Fetch failed — check network / upstream URL."; exit 1; }
+
+    # shellcheck disable=SC2086
+    CHANGES="$(git diff --name-status HEAD FETCH_HEAD -- $UPDATE_PATHS | \
+               grep -vE '	System_Config/(config\.sh|logs/)' || true)"
+
+    # config.sh is the user's own settings — never overwritten. If upstream's
+    # version changed, drop it beside as config.sh.upstream for manual review.
+    CONFIG_DELTA=0
+    if ! git diff --quiet HEAD FETCH_HEAD -- System_Config/config.sh 2>/dev/null; then
+      CONFIG_DELTA=1
+    fi
+
+    if [ -z "$CHANGES" ] && [ "$CONFIG_DELTA" = "0" ]; then
+      echo "→ Already up to date with upstream. Nothing to do."
+      exit 0
+    fi
+
+    echo "→ System files that differ from upstream:"
+    echo "$CHANGES" | sed 's/^A	/  [new]      /; s/^M	/  [modified] /; s/^D	/  [removed]  /' | grep -v '^$' || true
+    [ "$CONFIG_DELTA" = "1" ] && echo "  [settings] System_Config/config.sh changed upstream — will be saved as config.sh.upstream (yours is never overwritten)"
+    echo
+
+    if [ "$APPLY" = "0" ]; then
+      echo "Dry run — nothing changed. Apply with:"
+      echo "  ./bootstrap.sh --update --apply"
+      exit 0
+    fi
+
+    # Refuse to overwrite uncommitted local edits in the system paths.
+    # shellcheck disable=SC2086
+    DIRTY="$(git status --porcelain -- $UPDATE_PATHS | grep -v 'System_Config/config.sh' || true)"
+    if [ -n "$DIRTY" ]; then
+      echo "Uncommitted changes in system paths — commit or stash them first:"
+      echo "$DIRTY" | sed 's/^/  /'
+      exit 1
+    fi
+
+    echo "→ Applying…"
+    # bootstrap.sh (this running script) is applied LAST, and we exit right
+    # after: bash has already parsed this whole block, so that is safe.
+    SELF_UPDATE=0
+    echo "$CHANGES" | while IFS="$(printf '\t')" read -r st path; do
+      [ -z "$path" ] && continue
+      [ "$path" = "bootstrap.sh" ] && continue
+      case "$st" in
+        D) git rm -q -- "$path" 2>/dev/null || rm -f "$path"; echo "  removed  $path" ;;
+        *) git checkout FETCH_HEAD -- "$path"; echo "  updated  $path" ;;
+      esac
+    done
+    if echo "$CHANGES" | grep -q '	bootstrap.sh$'; then
+      SELF_UPDATE=1
+    fi
+    if [ "$CONFIG_DELTA" = "1" ]; then
+      git show "FETCH_HEAD:System_Config/config.sh" > System_Config/config.sh.upstream
+      echo "  saved    System_Config/config.sh.upstream  (diff against your config.sh, merge what you want)"
+    fi
+    if [ "$SELF_UPDATE" = "1" ]; then
+      git checkout FETCH_HEAD -- bootstrap.sh
+      echo "  updated  bootstrap.sh (this script — applied last)"
+    fi
+    echo
+    echo "→ Changes are in your working tree, staged where git tracked them. Review and commit:"
+    git status --short -- $UPDATE_PATHS | sed 's/^/  /' || true
+    echo
+    echo "  git diff --cached   # review"
+    echo "  git commit -m 'chore: update template from upstream'"
+    echo "  (re-run ./bootstrap.sh afterwards if installers or schedules changed)"
+    exit 0
+    ;;
   --*)
     echo "Unknown flag: ${1:-}"
-    echo "Usage: ./bootstrap.sh [--check|--uninstall|--help]"
+    echo "Usage: ./bootstrap.sh [--check|--update [--apply]|--uninstall|--help]"
     echo "  (no args)    run the interactive setup"
     echo "  --check      read-only doctor: report tool + automation status"
+    echo "  --update     pull template improvements (system files only; dry-run unless --apply)"
     echo "  --uninstall  remove background automation (launchd/cron); data is never touched"
     exit 1
     ;;

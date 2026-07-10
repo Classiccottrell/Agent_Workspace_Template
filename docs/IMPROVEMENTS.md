@@ -44,8 +44,8 @@ Status lines are appended to cards as they land — keep this file current.
 **Why:** nothing validates the scripts before a user clones.
 > **Prompt:** "Add `shellcheck` over every `*.sh` in the repo root and `System_Config/`, plus `bash -n` syntax checks, wired as a `.github/workflows/ci.yml` GitHub Action and a local `System_Config/test.sh`. Fix any shellcheck errors it surfaces in the existing scripts. Start by listing the errors before fixing."
 
-### 8. Upstream update mechanism — ⏳ OPEN (deliberately last)
-**Note:** touches installed users' working trees — path-scope mistakes here can clobber data. Do this one attended, not via a lesser model, and dry-run first.
+### 8. Upstream update mechanism — ✅ DONE 2026-07-10
+**Landed:** `./bootstrap.sh --update` (dry-run) / `--update --apply`. Fetches `TEMPLATE_UPSTREAM` (env-overridable), diffs system paths only (`System_Config/` minus config.sh+logs, both agent dirs, CLAUDE.md/.AGENT.MD, bootstrap.sh, docs/, VERSION/CHANGELOG, .github/), never touches `Projects/`, `Vault_Brain/`, `Final_Products/`, `.mcp.json`. User's `config.sh` is never overwritten — upstream's lands beside as `config.sh.upstream`. Refuses to apply over uncommitted system-path edits; self-updates bootstrap.sh last; leaves changes staged for the user's own commit. Verified by full downstream simulation (old clone + user data + custom config → update → data and settings intact, test.sh passes).
 **Why:** an installed user can't pull template improvements without clobbering their `Projects/`/`Vault_Brain/` data.
 > **Prompt:** "Design and add `./bootstrap.sh --update`: fetches the template's upstream, updates only system files (`System_Config/`, `.claude/agents/`, `.agents/skills/`, `CLAUDE.md`, `bootstrap.sh`) and never touches `Projects/`, `Final_Products/`, `Vault_Brain/`, `.mcp.json`. Use a git strategy (sparse checkout or path-scoped merge). Dry-run by default; show the file list before applying."
 
