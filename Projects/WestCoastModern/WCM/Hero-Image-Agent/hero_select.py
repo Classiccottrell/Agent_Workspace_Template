@@ -67,21 +67,11 @@ OUTPUT_NAMES = {REPORT_NAME, HTML_REPORT_NAME, CSV_NAME}
 
 SKILL_FILENAME = "SKILL.md"
 
-# ────────────────────────────────────────────────────────────────────────────
-# TTY-aware color helpers
-# Respects NO_COLOR (https://no-color.org) and non-TTY pipes automatically.
-# ────────────────────────────────────────────────────────────────────────────
-def _use_color():
-    return sys.stdout.isatty() and not os.environ.get("NO_COLOR")
-
-def _c(code, text):
-    return (code + text + "\033[0m") if _use_color() else text
-
-_BOLD   = "\033[1m"
-_DIM    = "\033[2m"
-_GREEN  = "\033[32m"
-_YELLOW = "\033[33m"
-_CYAN   = "\033[36m"
+# TTY-aware colour + brand tokens live in brand.py (single white-label seam).
+from brand import (  # noqa: E402
+    _use_color, _c, accent, rule, banner,
+    _BOLD, _DIM, _GREEN, _YELLOW, _RED, _CYAN,
+)
 
 
 def _fmt_score(score):
@@ -769,24 +759,22 @@ def _print_summary(all_results, top_results, report_path, html_path, elapsed):
     """Print a structured completion summary with next-action hint."""
     mins, secs = divmod(int(elapsed), 60)
     elapsed_str = ("%dm %ds" % (mins, secs)) if mins else ("%ds" % secs)
-    sep = _c(_DIM, "─" * 60)
+    sep = rule()
 
-    print("\n" + sep)
-    print(_c(_BOLD, "  Hero Selection Complete"))
-    print(sep)
+    print(banner("Hero selection complete"))
     print("  Images triaged  : " + _c(_BOLD, str(len(all_results))))
     print("  Elapsed         : " + elapsed_str)
     print()
     print("  " + _c(_BOLD, "Top picks:"))
     for i, r in enumerate(top_results[:3], 1):
-        print("  %d. %-38s %s %s" % (
-            i, r["file"][:38],
+        print("  %s %-38s %s %s" % (
+            accent("%d." % i), r["file"][:38],
             _fmt_score(r["score"]),
             _fmt_tag(r["isExterior"]),
         ))
     print()
-    print("  Report (md)     → " + _c(_CYAN, str(report_path)))
-    print("  Report (html)   → " + _c(_CYAN, str(html_path)))
+    print("  Report (md)     → " + accent(str(report_path)))
+    print("  Report (html)   → " + accent(str(html_path)))
     print("  Next            → open '%s'" % html_path)
     print(sep)
 

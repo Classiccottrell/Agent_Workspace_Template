@@ -63,3 +63,17 @@ Vault_Brain/sources/.ingested.log
 # ── WCM project — local-only folders (never commit) ──────────────────────
 Projects/WestCoastModern/WCM_Local_Files/
 Projects/WestCoastModern/WCM-Test/
+
+# ── Nested git repos (independent clones, not submodules) ────────────────
+Projects/impeccable/
+Projects/tweakcn/
+Projects/classiccottrell.github.io/
+Projects/AI-Mineral-system/
+Projects/Agent_Workspace_Template/
+Projects/ClassicCottrell_design-system/
+Projects/UX_Skill_Repo_1.0/
+Projects/ascii-art/
+
+# ── Tool cache / stray worktrees ───────────────────────────────────────
+**/.impeccable/
+Projects/WestCoastModern/WCM/.claude/worktrees/

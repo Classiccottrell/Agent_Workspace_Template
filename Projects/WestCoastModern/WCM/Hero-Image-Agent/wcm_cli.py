@@ -26,24 +26,7 @@ import time
 from pathlib import Path
 
 import hero_select as hs
-
-
-# ---------------------------------------------------------------------------
-# TTY-aware color helpers (mirrors hero_select.py; respects NO_COLOR)
-# ---------------------------------------------------------------------------
-
-def _use_color():
-    return sys.stdout.isatty() and not os.environ.get("NO_COLOR")
-
-def _c(code, text):
-    return (code + text + "\033[0m") if _use_color() else text
-
-_BOLD   = "\033[1m"
-_DIM    = "\033[2m"
-_GREEN  = "\033[32m"
-_YELLOW = "\033[33m"
-_RED    = "\033[31m"
-_CYAN   = "\033[36m"
+from brand import _c, accent, banner, SHORT, _BOLD, _GREEN, _YELLOW, _RED, _CYAN
 
 
 # ---------------------------------------------------------------------------
@@ -69,7 +52,8 @@ def cmd_doctor(args):
             if fix:
                 print("       fix: " + _c(_YELLOW, fix))
 
-    print(_c(_BOLD, "\nwcm doctor — pre-flight checks\n"))
+    print(banner("doctor — pre-flight checks"))
+    print()
 
     # 1. Python version
     v = sys.version_info
@@ -120,11 +104,11 @@ def cmd_doctor(args):
 
     print()
     if all_ok:
-        print(_c(_GREEN, "  All checks passed.") + " Ready to run wcm.")
-        print("  Next: " + _c(_CYAN, "wcm run /path/to/PropertyName"))
+        print(_c(_GREEN, "  All checks passed.") + " Ready to run.")
+        print("  Next: " + accent("%s run /path/to/PropertyName" % SHORT))
     else:
         print(_c(_RED, "  One or more checks failed.") + " Fix the issues above, then re-run:")
-        print("       " + _c(_CYAN, "wcm doctor"))
+        print("       " + accent("%s doctor" % SHORT))
     print()
 
     return 0 if all_ok else 78  # 78 = EX_CONFIG (sysexits.h)
