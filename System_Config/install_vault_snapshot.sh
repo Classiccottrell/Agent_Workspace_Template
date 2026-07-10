@@ -6,6 +6,7 @@
 
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/config.sh"
+validate_config || { echo "aborting: invalid config" >&2; exit 1; }
 
 SYSCFG="$WORKSPACE/System_Config"
 LABEL="$LABEL_PREFIX.vaultsnapshot"

@@ -136,7 +136,7 @@ case "${1:-}" in
 esac
 
 echo "=================================================="
-echo " Agent Workspace Template — bootstrap"
+echo " Agent Workspace Template — bootstrap$([ -f "$ROOT/VERSION" ] && printf ' v%s' "$(cat "$ROOT/VERSION")")"
 echo " Workspace: $ROOT"
 echo "=================================================="
 echo
@@ -167,6 +167,7 @@ if [ ! -f "$ROOT/.mcp.json" ] && [ -f "$ROOT/.mcp.json.example" ]; then
   echo "→ Created .mcp.json from .mcp.json.example."
   echo "    Edit .mcp.json to add your MCP servers, then enable them in"
   echo "    .claude/settings.json under enabledMcpjsonServers."
+  echo "    Disabled presets to copy from live under _disabled_examples in .mcp.json."
 elif [ -f "$ROOT/.mcp.json" ]; then
   echo "→ .mcp.json already present — leaving it untouched."
 fi
@@ -468,6 +469,9 @@ echo " 3. Run the health check and open the dashboard:"
 echo "      bash System_Config/healthcheck.sh"
 echo "      open System_Config/status_page.html"
 echo " 4. Start working from this folder: run 'agy'/'gemini' (Gemini/Antigravity) or 'claude' (Claude Code)."
+echo
+echo " First 15 minutes: open WELCOME.md — a guided walkthrough (first command,"
+echo " first delegation, first clip ingested). Deletable when you're done."
 echo
 echo " Reference: README.md, .AGENT.MD, System_Config/README.md, Vault_Brain/README.md"
 echo
