@@ -91,3 +91,17 @@ log(f"INDEX: master-orchestrator updated — {len(unindexed)} unrouted skill(s) 
 PYEOF
 
 log "=== sync-skills DONE ==="
+
+# ── 3. Warn on repo-local skills missing from .AGENT.MD Skill Index (non-fatal) ──
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+AGENT_MD="$REPO_ROOT/.AGENT.MD"
+REPO_SKILLS="$REPO_ROOT/.agents/skills"
+if [ -f "$AGENT_MD" ] && [ -d "$REPO_SKILLS" ]; then
+  for skill_dir in "$REPO_SKILLS"/*/; do
+    [ -d "$skill_dir" ] || continue
+    skill_name="$(basename "$skill_dir")"
+    if ! grep -q "$skill_name" "$AGENT_MD"; then
+      log "[index] skill '$skill_name' missing from .AGENT.MD Skill Index"
+    fi
+  done
+fi

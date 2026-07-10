@@ -354,6 +354,43 @@ fi
 end_section
 
 # ════════════════════════════════════════════════════════════════════════════
+# LAYER I — Ingest Observability (Card #10 / #20: pending, ingested, trend)
+# ════════════════════════════════════════════════════════════════════════════
+begin_section "Ingest" "&#128229;"
+ing_pending=0; ing_total=0
+ING_OLD_IFS="$IFS"; IFS=':'
+ING_DIRS=($INGEST_SOURCES)
+IFS="$ING_OLD_IFS"
+for isd in "${ING_DIRS[@]}"; do
+  [ -n "$isd" ] || continue
+  isdir="$VAULT/$isd"
+  [ -d "$isdir" ] || continue
+  imf="$isdir/.ingested.log"; touch "$imf" 2>/dev/null || true
+  while IFS= read -r isf; do
+    isb="$(basename "$isf")"
+    case "$isb" in _*|.*) continue ;; esac
+    awk -F'\t' -v n="$isb" '$NF==n{f=1} END{exit !f}' "$imf" || ing_pending=$((ing_pending + 1))
+  done < <(find "$isdir" -maxdepth 1 -type f -name '*.md' 2>/dev/null)
+  ing_total=$((ing_total + $(wc -l < "$imf" | tr -d ' ')))
+done
+if [ "$ing_pending" -eq 0 ]; then check PASS "Clips pending" "0 pending across INGEST_SOURCES"
+else check WARN "Clips pending" "${ing_pending} clip(s) pending across INGEST_SOURCES"; fi
+check PASS "Clips ingested (total)" "${ing_total} clip(s) recorded across manifests"
+
+wiki_page_count=$(find "$VAULT/wiki" -maxdepth 1 -type f -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
+jobs_loaded=$(launchctl list 2>/dev/null | grep -c vaultbrain || true)
+jobs_loaded="${jobs_loaded:-0}"
+
+METRICS="$LOG_DIR/metrics.tsv"
+mkdir -p "$LOG_DIR"
+[ -s "$METRICS" ] || printf 'date\tclips_pending\tclips_ingested_total\tjobs_loaded\twiki_pages\n' > "$METRICS"
+printf '%s\t%d\t%d\t%d\t%d\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$ing_pending" "$ing_total" "$jobs_loaded" "$wiki_page_count" >> "$METRICS"
+
+last_metrics_line="$(tail -1 "$METRICS" | tr '\t' ' ')"
+check PASS "Last metrics snapshot" "${last_metrics_line}"
+end_section
+
+# ════════════════════════════════════════════════════════════════════════════
 # RENDER
 # ════════════════════════════════════════════════════════════════════════════
 case "$OVERALL" in
