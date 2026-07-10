@@ -44,6 +44,7 @@ This skill takes the first pass. Trent reviews 3–5 options, not 300.
 | `WCM_STYLE_PROFILE.md` | Extracted visual taste and brand aesthetic — feeds into skill calibration |
 | `INSTALL.md` | Step-by-step setup for all three modes — written for non-coders |
 | `wcm_cli.py` | The `wcm` command — `run`, `watch`, and `doctor` subcommands |
+| `brand.py` | White-label seam — brand name, tagline, accent colour, and shared terminal-colour helpers |
 | `pyproject.toml` | Makes `wcm` installable with `pip install -e .` |
 | `PIPELINE_README.md` | Technical deep-dive on the two-stage Python pipeline (`hero_select.py` + `watch_folder.py`) — run by hand, via `wcm`, or auto-run on new folders via launchd |
 
@@ -104,6 +105,33 @@ The skill gets better with calibration. Fill out `TASTE_REFERENCE_TEMPLATE.md`:
 - Takes Trent ~45 minutes once; meaningfully improves every run after
 
 Even 3–4 examples help. 10 examples produces output that's very close to Trent's instinct.
+
+---
+
+## White-labelling
+
+`brand.py` is the single seam for re-skinning the CLI. Edit its four tokens, or
+override them per-run without touching code:
+
+```bash
+export HERO_BRAND_NAME="Harbour & Fog Studio"
+export HERO_BRAND_SHORT="hfs"
+export HERO_BRAND_TAGLINE="Light, made permanent."
+export HERO_BRAND_ACCENT="#3a7ca5"   # accent colour, #rrggbb
+```
+
+That covers the **surface** layer (banner, accent, next-step hints). A full
+rebrand also touches, in rough order of effort:
+
+1. **Scoring rubric** — `TRIAGE_SYSTEM` in `hero_select.py` hardcodes the WCM
+   aesthetic ("wood, concrete, glass… exteriors score higher"). Lift it into
+   `brand.py` or a text file the client edits.
+2. **Taste profile** — `SKILL.md` + `WCM_STYLE_PROFILE.md`, calibrated from
+   `TASTE_REFERENCE_TEMPLATE.md` (the seam is already templated).
+3. **HTML report chrome** — wordmark, footer tagline, and `wcm-theme`
+   localStorage keys in `hero_select.py`.
+4. **Service + outputs** — the `com.westcoastmodern.heroselect` launchd id and
+   `hero_report.*` output filenames.
 
 ---
 

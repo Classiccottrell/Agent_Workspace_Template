@@ -17,4 +17,4 @@ dependencies = [
 wcm = "wcm_cli:main"
 
 [tool.setuptools]
-py-modules = ["wcm_cli", "hero_select", "watch_folder"]
+py-modules = ["wcm_cli", "hero_select", "watch_folder", "brand"]
