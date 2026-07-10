@@ -14,7 +14,7 @@ A solo operator drowns in context sprawl: scattered notes, half-remembered decis
 
 ## Prerequisites
 
-- **macOS** — the automation uses `launchd` (the install step is mac-only; the agents and vault work anywhere the CLI runs).
+- **macOS** — the automation uses `launchd`. On Linux the installers fall back to `cron` entries automatically; elsewhere they print manual-run guidance. The agents and vault work anywhere the CLI runs.
 - **AI CLI** — one of:
   - **Claude Code** — `command -v claude && claude --version`
   - **Gemini CLI** — `command -v gemini && gemini --version` (Antigravity)
@@ -31,6 +31,8 @@ git clone <your-fork-or-copy-of-this-template> agent-workspace
 cd agent-workspace
 ./bootstrap.sh
 ```
+
+`bootstrap.sh` also has three utility modes: `--check` (install doctor: tools found/missing + background-job status), `--uninstall` (remove the background jobs, keep all data), and `--help`.
 
 `bootstrap.sh` is idempotent and never deletes or overwrites your data. It makes the scripts executable, creates the log directory, seeds `.mcp.json` from the example if you don't have one, prints a prerequisite check (including optional `gh`, `node`, `python3`), **asks before** installing any background automation (default is No), and walks you through the note-ingestion settings — source folders, provider (auto/claude/gemini), daily run hour, per-clip budget — writing them into `System_Config/config.sh`. If `gh` is installed and authenticated it can also create and push the workspace repo for you. You can re-run it any time.
 

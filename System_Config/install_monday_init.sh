@@ -15,6 +15,18 @@ PLIST_NAME="$LABEL.plist"
 DEST_PLIST="$HOME/Library/LaunchAgents/$PLIST_NAME"
 UID_NUM="$(id -u)"
 
+# ── Non-macOS: launchd is unavailable — fall back per $SCHEDULER (config.sh) ──
+if [[ "${SCHEDULER:-launchd}" != "launchd" ]]; then
+  if [[ "$SCHEDULER" == "cron" ]]; then
+    mkdir -p "$SYSCFG/logs"
+    install_cron_job "mondayinit" "0 8 * * 1" "$SYSCFG/monday_init.sh"
+  else
+    echo "No supported scheduler on this OS (need launchd or cron)."
+    echo "Run manually or schedule yourself: bash System_Config/monday_init.sh"
+  fi
+  exit 0
+fi
+
 echo "→ Creating log dir (must exist before launchd opens its redirect targets)…"
 mkdir -p "$SYSCFG/logs" "$LAUNCHD_LOG_DIR" "$HOME/Library/LaunchAgents"
 
