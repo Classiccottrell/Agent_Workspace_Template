@@ -49,3 +49,34 @@ else
 fi
 export AGENT_TYPE
 export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+# ── Scheduler backend ─────────────────────────────────────────────────────────
+# launchd (macOS) | cron (Linux with crontab) | none (anything else).
+# The install_*.sh scripts branch on this; macOS behavior is unchanged.
+case "$(uname -s)" in
+  Darwin) SCHEDULER="launchd" ;;
+  Linux)  if command -v crontab >/dev/null 2>&1; then SCHEDULER="cron"; else SCHEDULER="none"; fi ;;
+  *)      SCHEDULER="none" ;;
+esac
+
+# install_cron_job <label> <cron-schedule> <script-path> — idempotent: replaces
+# any prior entry carrying the same "# agent-ws:<label>" marker.
+install_cron_job() {
+  local label="$1" sched="$2" script="$3" marker="# agent-ws:${1}" tmp
+  tmp="$(mktemp)"
+  { crontab -l 2>/dev/null | grep -vF "$marker" || true
+    echo "$sched cd $WORKSPACE && /bin/bash $script >> $LOG_DIR/${label}.cron.log 2>&1 $marker"
+  } > "$tmp"
+  crontab "$tmp"
+  rm -f "$tmp"
+  echo "  cron entry installed ($marker): $sched $script"
+}
+
+# remove_cron_job <label> — drop the marked entry, if any.
+remove_cron_job() {
+  local marker="# agent-ws:${1}" tmp
+  tmp="$(mktemp)"
+  crontab -l 2>/dev/null | grep -vF "$marker" > "$tmp" || true
+  crontab "$tmp" 2>/dev/null || true
+  rm -f "$tmp"
+}

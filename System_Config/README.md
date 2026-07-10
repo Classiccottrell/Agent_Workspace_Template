@@ -46,7 +46,12 @@ and **no output**, before the script runs. The scripts' own logs still live in
 
 | File | Purpose |
 |------|---------|
-| `config.sh` | Shared, relocatable configuration. Sourced first by every other script. Holds the `INGEST_*` ingestion settings (see table below). |
+| `config.sh` | Shared, relocatable configuration. Sourced first by every other script. Holds the `INGEST_*` ingestion settings (see table below) and the `SCHEDULER` detect (launchd on macOS, cron on Linux, none elsewhere) with `install_cron_job`/`remove_cron_job` helpers the installers use off-Mac. |
+| `orchestrator-rules.md` | **Single source** for the rule sections shared by `CLAUDE.md` and `.agents/AGENTS.md`. Edit here, then run `sync_rules.sh`. |
+| `sync_rules.sh` | Regenerate the `SHARED:*` marker regions in both orchestrator files from `orchestrator-rules.md`. `--check` exits 1 on drift (wired for CI/healthcheck use). |
+| `vault_snapshot.sh` | Daily git snapshot of `Vault_Brain/` only (skips if the index has staged changes; push failure is non-fatal). |
+| `vaultsnapshot.plist.tmpl` | launchd agent template: snapshot daily one hour after ingest (INGEST_HOUR+1, :15). |
+| `install_vault_snapshot.sh` | Render + install/reload the snapshot agent (idempotent). |
 | `daily_ingest.sh` | Ingest new `.md` notes from each dir in `INGEST_SOURCES` (default `sources:Raw_Notes`, vault-relative) into the wiki, one headless `agy -p` or `claude -p` call per note. Content-hash dedup via a per-dir `<dir>/.ingested.log` manifest (`<sha256>\t<filename>`). Warns when unscanned `.md` files sit in subfolders. |
 | `dailyingest.plist.tmpl` | launchd agent template: runs ingest daily at `INGEST_HOUR:INGEST_MINUTE` (default 07:00) + at login. Rendered into `~/Library/LaunchAgents/` by the installer. |
 | `install_daily_ingest.sh` | Render + install/reload the ingest agent (idempotent). |

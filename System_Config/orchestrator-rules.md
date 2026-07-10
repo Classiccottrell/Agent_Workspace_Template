@@ -1,11 +1,12 @@
-# Antigravity Workspace Rules & Orchestration Directives
+<!-- orchestrator-rules.md — SINGLE SOURCE for the rule sections shared by
+     CLAUDE.md (Claude Code) and .agents/AGENTS.md (Gemini/Antigravity).
+     Edit HERE, then run: bash System_Config/sync_rules.sh
+     The sync script replaces the regions between SHARED:<block>:BEGIN/END
+     markers in both harness files with the matching BLOCK below.
+     Provider-specific sections (System Directives, Agent Dispatch, Context
+     Window) stay authored in their own files, outside the markers. -->
 
-## System Directives
-*   **Role**: Apex Controller & Multi-Agent Dispatcher.
-*   **Goal**: Decompose tasks, delegate to specialized agents/skills, maintain global state, and ensure absolute minimum token usage.
-*   **Constraint**: Do not perform implementation tasks personally. Delegate to specialized agents/skills (architect, coder, eng-manager, archivist, curator). Read existing files to deduce stack. Do not ask.
-
-<!-- SHARED:core:BEGIN (source: System_Config/orchestrator-rules.md — edit there, run sync_rules.sh) -->
+<!-- BLOCK:core -->
 ## Response Style (Caveman Protocol)
 * Eliminate all conversational filler, preambles, and postambles.
 * Never say "Sure", "I'd be happy to", or "Let me explain".
@@ -28,26 +29,7 @@
 * Provide precise context/file paths for handoff.
 * Act as final arbiter on agent conflicts based on project constraints.
 * Strictly forbid auto-generating summary.md or documentation files unless specifically asked.
-<!-- SHARED:core:END -->
-
-## Context Window Protection Directives
-*   NEVER pull full directory trees into context.
-*   Index with `rg --files <dir>` or `find <dir> -maxdepth 2 -name "*.md"` before reading.
-*   Use `rg -l "<pattern>" <dir>` to locate files by content.
-*   Load only the target file — not the folder.
-*   Cap context per task: one project subdirectory per agent instance.
-
-## Agent Dispatch & Roster
-Subagents and skills are configured in `.agents/skills/`. You can define them dynamically or load them using the following routing matrix:
-*   **Architect** (`architect`): Schema, API, structure design.
-*   **Coder** (`coder`): Implementation only.
-*   **Eng Manager** (`eng-manager`): `Projects/` lifecycle management.
-*   **Archivist** (`archivist`): `Final_Products/` archival.
-*   **Curator** (`curator`): `Vault_Brain/` knowledge management.
-
-For UI work, load the relevant design skill(s) and inject their rules into the `coder` skill prompt. The `.cursor/rules/skill.md` design-engineering profile is the portable fallback design source.
-
-<!-- SHARED:delivery:BEGIN (source: System_Config/orchestrator-rules.md — edit there, run sync_rules.sh) -->
+<!-- BLOCK:delivery -->
 ## Git & GitHub (token discipline)
 * All git operations run as shell commands — `git` for local ops, `gh` for GitHub (PRs, issues, repos). Never hand-reason through diffs or reconstruct history in context.
 * Prefer: `gh pr create`, `gh pr view`, `gh issue list`, `gh repo create`.
@@ -72,4 +54,3 @@ For UI work, load the relevant design skill(s) and inject their rules into the `
   - All inline CSS from the template
 * **When the design system changes** (new tokens, new components): update the CSS block in `html-template.html` with the new date, then refresh all pages that copy from it.
 * **Template is portable:** no external CSS files, no relative paths that break when a workspace is instantiated in a different folder. Everything self-contained.
-<!-- SHARED:delivery:END -->
