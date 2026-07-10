@@ -7,6 +7,7 @@ All notable changes to this template are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- Wargame round 2 fixes: ingest concurrency lock, per-run clip cap (`INGEST_MAX_CLIPS_PER_RUN`), oversize-clip guard (`INGEST_MAX_BYTES`), verification false-negative fix, `rotate_log` capping all chatty logs
 - `./bootstrap.sh --update [--apply]`: pull template improvements, system files only, user data and config.sh never touched
 - CI self-tests: `System_Config/test.sh` + GitHub Actions workflow
 - Vault schema versioning (`.vault-schema` + `migrate_vault.sh`)

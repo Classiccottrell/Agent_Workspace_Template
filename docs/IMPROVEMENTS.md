@@ -110,3 +110,58 @@ Status lines are appended to cards as they land — keep this file current.
 **Landed:** `logs/metrics.tsv` (date, pending, ingested-total, jobs, wiki pages) appended each healthcheck run, header once, append-only; last snapshot surfaced in the status page via Layer I.
 **Why:** `healthcheck.sh` shows only the current snapshot; trends (ingest volume, failure rate over weeks) are invisible.
 > **Prompt:** "Have `healthcheck.sh` append a dated one-line metrics record (clips ingested, jobs healthy/failed, vault page count) to `System_Config/logs/metrics.tsv` on each run, and add a small section to the status page charting the last 30 records. Append-only; don't rewrite history. Show the healthcheck diff."
+
+---
+
+# Round 2 — Wargame 2026-07-10 (automation · ingestion · second-brain)
+
+Adversarial pass over the three core loops, with live log evidence. Cards 21–24
+were fixed on the spot; 25–32 carry lesser-model prompts like round 1.
+
+### 21. Ingest concurrency lock — ✅ DONE 2026-07-10
+**Was:** `daily_ingest.sh` had no lock (friday_process did); RunAtLoad + calendar + manual runs raced on the manifests and could double-bill clips — the log showed four overlapping-window manual runs on 2026-07-09.
+**Landed:** atomic `mkdir` lock with 4h stale-reclaim; second instance exits 0 with a log line; lock ordering guarantees a losing instance can't remove the winner's lock.
+
+### 22. Per-run spend cap + oversize guard — ✅ DONE 2026-07-10
+**Was:** only a per-clip budget; a 17-clip backlog could burn 17 × $1 in one unattended run. No size guard — a 5MB clip burns the full watchdog+budget and can trip the quota-wall stop, blocking clips behind it.
+**Landed:** `INGEST_MAX_CLIPS_PER_RUN` (default 10 — worst case = 10 × MAX_BUDGET) and `INGEST_MAX_BYTES` (default 500KB, skipped loudly) in config.sh.
+
+### 23. Verification false-negative rebilling — ✅ DONE 2026-07-10
+**Was:** the post-ingest check demanded the literal `[[dir/slug]]`; an agent writing `[[dir/slug|alias]]` or `[[dir/slug.md]]` completed the ingest but was marked NO-OP and re-billed run after run.
+**Landed:** match the slug substring (still fixed-string, still scoped to `wiki/`). The garbage-content half of this finding is card 29.
+
+### 24. Log rotation — ✅ DONE 2026-07-10
+**Was:** every log + `metrics.tsv` appended forever (healthcheck every 4h, ~775 ingest-log lines in days).
+**Landed:** `rotate_log <file> [max]` in config.sh; wired into daily_ingest (2000), healthcheck log (2000), metrics.tsv (1000), vault_snapshot.
+
+### 25. Job-failure notifications
+**Why:** WARN/FAIL only changes a webpage nobody opens. The Master Note sat at `_pending Friday summary_` for four straight weeks and nothing said so.
+> **Prompt:** "In `System_Config/healthcheck.sh`, after the status page is written, detect state transitions: keep the previous run's PASS/WARN/FAIL counts in `$LOG_DIR/.last_status` and when a check newly becomes FAIL (or ingest recency newly goes stale), fire a macOS notification: `osascript -e 'display notification \"<check> failed\" with title \"Agent Workspace\"'` (guard with `command -v osascript`, never fail the run). One notification per transition, not per run. Show the diff."
+
+### 26. Friday close-out catch-up
+**Why:** the Friday 16:30 job has `RunAtLoad=false`; a Mac asleep/off at that moment skips the week forever. Live evidence: only 2 runs ever fired, both failed, all four Master Note weeks stuck `_pending`.
+> **Prompt:** "In `System_Config/monday_init.sh`, before creating the new week's note, check whether LAST week's note (`weekly-logs/<prev-week>.md`) was closed out (friday_process writes a `.fridayclose.snapshot.md` baseline — check its existence). If missing, log 'last week never closed out — running catch-up' and run `bash friday_process.sh` targeted at the previous week (it must accept an optional week argument — add one, defaulting to current). Keep it idempotent. Show diffs for both scripts."
+
+### 27. Single push gateway (snapshot vs healthcheck race)
+**Why:** `vault_snapshot.sh` pushes main from the checkout while `healthcheck.sh` pushes main from a detached worktree every 4h. Already collided once (rejected non-fast-forward on 2026-07-09); a failed snapshot push has no retry until the next day.
+> **Prompt:** "Add `push_main()` to `System_Config/config.sh`: `git pull --rebase --autostash origin main && git push origin main`, up to 2 retries with a 10s sleep, returns non-zero on final failure without aborting the caller. Replace the raw `git push` in `vault_snapshot.sh` with it. Leave healthcheck's worktree publish as-is (it already force-syncs to origin/main) but note the ordering in a comment. Show diffs."
+
+### 28. Gemini ingest gating parity
+**Why:** the claude branch runs with an explicit tool allowlist and Bash denied; the gemini/agy branch (the DEFAULT when agy is installed) runs `--sandbox --dangerously-skip-permissions` with no tool restrictions — a prompt-injected clip has a wider blast radius than the docs claim.
+> **Prompt:** "Check the current agy/gemini CLI docs (`agy --help`, `gemini --help`) for tool-restriction or sandbox-scope flags equivalent to claude's `--allowedTools/--disallowedTools`. If they exist, add them to the gemini branch of `System_Config/run_agent.sh` to match the claude gating. If they don't, change nothing in run_agent.sh; instead (a) make ingest prefer claude when BOTH providers are installed via a new `INGEST_PREFER_SAFE_PROVIDER=1` default in config.sh honored by the provider-resolution block, and (b) document the asymmetry in `Vault_Brain/README.md`'s Safety paragraph. Verify with a DRY_RUN and show which provider resolves."
+
+### 29. Automated vault lint + index reconciliation
+**Why:** the schema documents a weekly lint nothing runs; `wiki/_index.md` lists 8 sources while 25 exist on disk; `updated:` frontmatter dates are stale; garbage-content ingests pass the slug check and are recorded forever.
+> **Prompt:** "Create `System_Config/vault_lint.sh` (read-only, exit 0 always): reports (1) wiki pages with no inbound links, (2) sources present on disk but absent from `wiki/_index.md`, (3) wiki pages whose `updated:` frontmatter is >60 days old, (4) wiki pages missing required frontmatter keys (title/type/updated) — the schema is in `Vault_Brain/CLAUDE.md`. Output a short report to `$LOG_DIR/vault_lint.log` and stdout. Wire it as a new healthcheck section (follow healthcheck.sh's begin_section/check pattern, WARN on any finding). No auto-fixing — report only."
+
+### 30. Setup-success probes (clipper + FDA)
+**Why:** clipper template import and Full Disk Access are manual, skippable steps whose failure is invisible; clips landing in the wrong folder just look like 'no new clips'.
+> **Prompt:** "In `System_Config/healthcheck.sh`, add two checks to the ingest section: (1) 'clip freshness' — mtime of the newest file in the first INGEST_SOURCES dir; WARN if >14 days ('clipper may be misconfigured — check the browser extension vault + path settings'); (2) FDA probe — attempt `ls` of a TCC-protected path the jobs need (the workspace under ~/Documents) from the healthcheck itself and note that a launchd-context EX_CONFIG 78 in `~/Library/Logs/<label>/` means FDA is missing; grep the newest .launchd.err for 'Operation not permitted' and WARN with the FDA steps. Show the diff."
+
+### 31. Fence-aware weekly carry-forward
+**Why:** `monday_init.sh`'s awk carry-forward tracks indentation but not markdown code fences; a fenced block under an open task (present in the live W28 note) can be swept into or truncate the capture.
+> **Prompt:** "In `System_Config/monday_init.sh`, find the awk program that carries open `- [ ]` items forward. Add fence awareness: toggle an `infence` flag on lines matching /^```/ and, while infence==1, treat lines as continuation of the current captured item (never as headers/separators/stop conditions). Add a test: run the carry-forward against a fixture note containing an open task followed by a fenced block and assert the fence travels with the task. Show the awk diff and the test output."
+
+### 32. Manifest hygiene
+**Why:** entries for deleted sources are kept forever ('source gone — keep name-only'), so manifests grow unbounded across years and mask real state.
+> **Prompt:** "In `System_Config/daily_ingest.sh`'s manifest-migration block, extend the per-line pass: a name-only legacy line whose source file no longer exists AND is older than the migration (no hash recoverable) should be dropped, with one summary log line 'pruned N manifest entries for deleted sources'. Hash-bearing lines for deleted files stay (they still dedup re-clipped content). Keep bash 3.2. Show the diff and a before/after line count on a copy of the real manifest."

@@ -14,6 +14,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/config.sh"
 
 LOG="$LOG_DIR/vault_snapshot.log"
 mkdir -p "$LOG_DIR"
+rotate_log "$LOG"
 ts() { date "+%Y-%m-%d %H:%M:%S"; }
 log() { echo "[$(ts)] $*" >> "$LOG"; }
 
