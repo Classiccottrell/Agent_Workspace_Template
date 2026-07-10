@@ -78,3 +78,6 @@ Projects/Brutal-UX/app/
 # ── Tool cache / stray worktrees ───────────────────────────────────────
 **/.impeccable/
 Projects/WestCoastModern/WCM/.claude/worktrees/
+
+.claude/skills/how-i-write/
+.agents/skills/how-i-write/
