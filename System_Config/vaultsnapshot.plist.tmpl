@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>__LABEL__</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>__WORKSPACE_ROOT__/System_Config/vault_snapshot.sh</string>
+    </array>
+
+    <!-- Runs daily at SNAP_HOUR:15 from install_vault_snapshot.sh (default: one
+         hour after daily_ingest). If the Mac is ASLEEP at that time, launchd
+         runs the missed job once at next wake. No RunAtLoad — a missed
+         snapshot just gets picked up by the next scheduled run (or a manual
+         `bash System_Config/vault_snapshot.sh`), so a login run isn't needed. -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>__SNAP_HOUR__</integer>
+        <key>Minute</key>
+        <integer>15</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>__LOG_DIR__/vault_snapshot.launchd.out</string>
+    <key>StandardErrorPath</key>
+    <string>__LOG_DIR__/vault_snapshot.launchd.err</string>
+</dict>
+</plist>

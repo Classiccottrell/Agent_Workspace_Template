@@ -3,28 +3,34 @@
 Twenty independent cards: 1–10 close today's gaps, 11–20 future-proof the
 template against change (model churn, spec drift, roster growth, tool lock-in).
 Each card is **what · why · a fix prompt** you can paste into any capable model —
-prompts are self-contained; run them from the workspace root. Items 1–4 unblock
-the public release; the rest can land in any order.
+prompts are self-contained; run them from the workspace root. Items 1–4 unblocked
+the public release and are done, as is 5; the rest can land in any order.
+Status lines are appended to cards as they land — keep this file current.
 
 ## Today's gaps (1–10)
 
-### 1. Cross-platform automation shim
+### 1. Cross-platform automation shim — ✅ DONE 2026-07-09
+**Landed:** `SCHEDULER` detect + `install_cron_job`/`remove_cron_job` in `config.sh`; all 5 installers branch to cron on Linux, print manual guidance elsewhere; macOS path unchanged. Windows native scheduling still open (WSL works via cron).
 **Why:** the whole `System_Config/` layer is macOS `launchd` — the single biggest blocker to "anyone can install."
 > **Prompt:** "In `System_Config/`, the 5 `install_*.sh` scripts render `.plist.tmpl` files for macOS launchd. Add an OS branch: on Linux render an equivalent `cron` entry, on Windows print WSL/Task-Scheduler guidance. Keep macOS behavior byte-identical. Add a `SCHEDULER` detect in `config.sh`. Show me the diff for one installer (`install_daily_ingest.sh`) as the pattern before doing the rest."
 
-### 2. Single-source orchestrator rules
+### 2. Single-source orchestrator rules — ✅ DONE 2026-07-09
+**Landed:** shared sections live in `System_Config/orchestrator-rules.md`; `sync_rules.sh` regenerates the `SHARED:*` marker regions in `CLAUDE.md` + `.agents/AGENTS.md`; `--check` exits 1 on drift (verified with a live drift test).
 **Why:** `CLAUDE.md` and `.agents/AGENTS.md` are near-verbatim mirrors — every rule change must be edited twice and drifts (see docs/FAILURE_MODES.md F6).
 > **Prompt:** "`CLAUDE.md` (Claude) and `.agents/AGENTS.md` (Gemini) duplicate the same orchestration rules. Extract the shared body into `System_Config/orchestrator-rules.md` and have both files include/reference it, or add a `make sync-rules` that regenerates both from the source. Do not change the actual rules. Prove the two outputs match."
 
-### 3. Install doctor + clean uninstaller
+### 3. Install doctor + clean uninstaller — ✅ DONE 2026-07-09
+**Landed:** `./bootstrap.sh --check` (tools + job status + FDA reminder), `--uninstall` (confirm, bootout + plist/cron removal, data untouched), `--help`.
 **Why:** there's no way to verify a healthy install or cleanly remove the launchd jobs.
 > **Prompt:** "Add `./bootstrap.sh --check` (prints found/missing for `claude|gemini|gh|node|npx|python3`, launchd job status via `launchctl print`, FDA reminder) and `./bootstrap.sh --uninstall` (boots out all 5 launchd jobs and removes the plists, leaves data untouched). Reuse the existing bootout/bootstrap fallback pattern already in `System_Config/install_*.sh`. Non-destructive; confirm before removing."
 
-### 4. Vault auto-commit snapshots
+### 4. Vault auto-commit snapshots — ✅ DONE 2026-07-09
+**Landed:** `vault_snapshot.sh` + installer + plist (daily INGEST_HOUR+1:15). Vault-only commits, skips when the index is staged, push failure non-fatal. First snapshot committed same day.
 **Why:** `Vault_Brain/` is auto-fed by ingest but never committed — a crash loses knowledge.
 > **Prompt:** "Add `System_Config/vault_snapshot.sh` that runs `git add Vault_Brain && git commit -m 'chore(vault): snapshot' && git push` (skip if no changes), plus an installer `install_vault_snapshot.sh` scheduling it daily after ingest. Model it on the existing `install_daily_ingest.sh`. Guard against committing secrets or `.mcp.json`."
 
-### 5. Secrets hygiene
+### 5. Secrets hygiene — ✅ DONE 2026-07-09
+**Landed:** `.gitignore` covers `.mcp.json`/`*.key`/`.env*` (with `!.env.example`) / logs; `.env.example` documents the `~/.config/anthropic/key` path; audit found zero tracked secrets and a credential-free `.mcp.json`.
 **Why:** `.mcp.json` and API keys risk being committed as the template gets shared publicly.
 > **Prompt:** "Audit `.gitignore` and confirm `.mcp.json`, `*.key`, `.env`, `System_Config/logs/` are ignored. Add a `.env.example`, document the `~/.config/anthropic/key` path `daily_ingest.sh` reads, and add a bootstrap warning if `.mcp.json` contains a non-empty token. Show what's currently tracked that shouldn't be: `git ls-files | grep -Ei 'key|env|secret|token'`."
 

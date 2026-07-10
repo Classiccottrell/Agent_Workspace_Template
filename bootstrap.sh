@@ -14,6 +14,127 @@ cd "$ROOT"
 
 SYSCFG="$ROOT/System_Config"
 
+# ---------------------------------------------------------------------------
+# Argument handling — --check / --uninstall / --help run before normal setup.
+# ---------------------------------------------------------------------------
+SUFFIXES="dailyingest healthcheck fridayprocess mondayinit syncskills"
+
+case "${1:-}" in
+  --help)
+    echo "Usage: ./bootstrap.sh [--check|--uninstall|--help]"
+    echo "  (no args)    run the interactive setup"
+    echo "  --check      read-only doctor: report tool + automation status"
+    echo "  --uninstall  remove background automation (launchd/cron); data is never touched"
+    exit 0
+    ;;
+  --check)
+    echo "=================================================="
+    echo " Agent Workspace Template — check"
+    echo "=================================================="
+    echo
+    echo "→ Tools:"
+    for t in agy gemini claude gh node npx python3; do
+      if p="$(command -v "$t" 2>/dev/null)"; then
+        echo "  [ok] $t $p"
+        if [ "$t" = "gh" ]; then
+          if gh auth status >/dev/null 2>&1; then
+            echo "       gh auth status: ok"
+          else
+            echo "       gh auth status: unauthenticated"
+          fi
+        fi
+      else
+        echo "  [--] $t missing"
+      fi
+    done
+    echo
+    echo "→ Automation:"
+    # shellcheck source=/dev/null
+    source "$SYSCFG/config.sh"
+    if [ "$SCHEDULER" = "launchd" ]; then
+      for s in $SUFFIXES; do
+        label="$LABEL_PREFIX.$s"
+        if out="$(launchctl print "gui/$(id -u)/$label" 2>/dev/null)"; then
+          state_line="$(echo "$out" | grep -m1 "state = " || true)"
+          echo "  [ok] $label loaded (${state_line#*state = })"
+        else
+          echo "  [--] $label not loaded"
+        fi
+      done
+    elif [ "$SCHEDULER" = "cron" ]; then
+      cron_lines="$(crontab -l 2>/dev/null | grep 'agent-ws:' || true)"
+      if [ -n "$cron_lines" ]; then
+        echo "$cron_lines" | sed 's/^/  /'
+      else
+        echo "  none"
+      fi
+    else
+      echo "  no scheduler on this platform"
+    fi
+    echo
+    echo "[note] To run the background automation, grant Full Disk Access to /bin/bash — see System_Config/README.md."
+    exit 0
+    ;;
+  --uninstall)
+    # shellcheck source=/dev/null
+    source "$SYSCFG/config.sh"
+    echo "=================================================="
+    echo " Agent Workspace Template — uninstall"
+    echo "=================================================="
+    echo
+    echo "This will remove background automation only. Vault_Brain/, Projects/, and logs are never touched."
+    echo
+    if [ "$SCHEDULER" = "launchd" ]; then
+      echo "The following launchd jobs will be removed:"
+      for s in $SUFFIXES; do
+        echo "  - $LABEL_PREFIX.$s  ($HOME/Library/LaunchAgents/$LABEL_PREFIX.$s.plist)"
+      done
+    elif [ "$SCHEDULER" = "cron" ]; then
+      echo "The following cron entries will be removed:"
+      crontab -l 2>/dev/null | grep 'agent-ws:' | sed 's/^/  /' || echo "  none"
+    else
+      echo "No scheduler automation is installed on this platform."
+    fi
+    echo
+    if [ ! -t 0 ]; then
+      echo "Non-interactive session — aborting without changes. Re-run interactively to confirm."
+      exit 0
+    fi
+    printf "Remove background automation? [y/N]: "
+    read -r UNINSTALL_REPLY || UNINSTALL_REPLY=""
+    case "$UNINSTALL_REPLY" in
+      [yY]*)
+        if [ "$SCHEDULER" = "launchd" ]; then
+          for s in $SUFFIXES; do
+            label="$LABEL_PREFIX.$s"
+            launchctl bootout "gui/$(id -u)/$label" 2>/dev/null || true
+            rm -f "$HOME/Library/LaunchAgents/$label.plist"
+            echo "  removed $label"
+          done
+        elif [ "$SCHEDULER" = "cron" ]; then
+          for s in $SUFFIXES; do
+            remove_cron_job "$s"
+            echo "  removed cron entry: $s"
+          done
+        fi
+        echo "→ Automation removed. Data (Vault_Brain/, Projects/, logs) untouched."
+        ;;
+      *)
+        echo "→ Aborted. No changes made."
+        ;;
+    esac
+    exit 0
+    ;;
+  --*)
+    echo "Unknown flag: ${1:-}"
+    echo "Usage: ./bootstrap.sh [--check|--uninstall|--help]"
+    echo "  (no args)    run the interactive setup"
+    echo "  --check      read-only doctor: report tool + automation status"
+    echo "  --uninstall  remove background automation (launchd/cron); data is never touched"
+    exit 1
+    ;;
+esac
+
 echo "=================================================="
 echo " Agent Workspace Template — bootstrap"
 echo " Workspace: $ROOT"

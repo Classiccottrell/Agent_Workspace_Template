@@ -5,6 +5,7 @@
 * Goal: Decompose tasks, delegate to specialized agents, maintain global state. Ensure absolute minimum token usage across system.
 * Constraint: Do not perform implementation tasks personally. Delegate. Read existing files to deduce stack. Do not ask.
 
+<!-- SHARED:core:BEGIN (source: System_Config/orchestrator-rules.md — edit there, run sync_rules.sh) -->
 ## Response Style (Caveman Protocol)
 * Eliminate all conversational filler, preambles, and postambles.
 * Never say "Sure", "I'd be happy to", or "Let me explain".
@@ -27,12 +28,14 @@
 * Provide precise context/file paths for handoff.
 * Act as final arbiter on agent conflicts based on project constraints.
 * Strictly forbid auto-generating summary.md or documentation files unless specifically asked.
+<!-- SHARED:core:END -->
 
 ## Agent Dispatch
 * Subagents live in `.claude/agents/`. Invoke by name via the Task tool — never paste role-file text into a prompt.
 * Routing: architecture/schema → `architect`; implementation → `coder`; `Projects/` lifecycle → `eng-manager`; `Final_Products/` archival → `archivist`; `Vault_Brain/` knowledge → `curator`; brand/visual/copy/design-feedback → `creative-director`.
 * For UI work, use `/master-orchestrator` to select the right skill(s) from `~/.claude/skills/` and inject them into `coder` prompts. The `.cursor/rules/skill.md` design profile is available as a fallback for Cursor IDE users.
 
+<!-- SHARED:delivery:BEGIN (source: System_Config/orchestrator-rules.md — edit there, run sync_rules.sh) -->
 ## Git & GitHub (token discipline)
 * All git operations run as shell commands — `git` for local ops, `gh` for GitHub (PRs, issues, repos). Never hand-reason through diffs or reconstruct history in context.
 * Prefer: `gh pr create`, `gh pr view`, `gh issue list`, `gh repo create`.
@@ -57,3 +60,4 @@
   - All inline CSS from the template
 * **When the design system changes** (new tokens, new components): update the CSS block in `html-template.html` with the new date, then refresh all pages that copy from it.
 * **Template is portable:** no external CSS files, no relative paths that break when a workspace is instantiated in a different folder. Everything self-contained.
+<!-- SHARED:delivery:END -->
