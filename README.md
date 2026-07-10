@@ -32,7 +32,7 @@ cd agent-workspace
 ./bootstrap.sh
 ```
 
-`bootstrap.sh` also has three utility modes: `--check` (install doctor: tools found/missing + background-job status), `--uninstall` (remove the background jobs, keep all data), and `--help`.
+`bootstrap.sh` also has utility modes: `--check` (install doctor: tools found/missing + background-job status), `--update` (pull template improvements — system files only, your data and `config.sh` are never touched; dry-run unless you add `--apply`), `--uninstall` (remove the background jobs, keep all data), and `--help`.
 
 `bootstrap.sh` is idempotent and never deletes or overwrites your data. It makes the scripts executable, creates the log directory, seeds `.mcp.json` from the example if you don't have one, prints a prerequisite check (including optional `gh`, `node`, `python3`), **asks before** installing any background automation (default is No), and walks you through the note-ingestion settings — source folders, provider (auto/claude/gemini), daily run hour, per-clip budget — writing them into `System_Config/config.sh`. If `gh` is installed and authenticated it can also create and push the workspace repo for you. You can re-run it any time.
 
