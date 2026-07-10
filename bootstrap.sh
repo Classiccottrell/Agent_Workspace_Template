@@ -21,17 +21,20 @@ SUFFIXES="dailyingest healthcheck fridayprocess mondayinit syncskills"
 
 case "${1:-}" in
   --help)
-    echo "Usage: ./bootstrap.sh [--check|--uninstall|--help]"
+    echo "Usage: ./bootstrap.sh [--check|--check-deps|--uninstall|--help]"
     echo "  (no args)    run the interactive setup"
     echo "  --check      read-only doctor: report tool + automation status"
+    echo "  --check-deps alias for --check"
     echo "  --uninstall  remove background automation (launchd/cron); data is never touched"
     exit 0
     ;;
-  --check)
+  --check|--check-deps)
     echo "=================================================="
     echo " Agent Workspace Template — check"
     echo "=================================================="
     echo
+    # shellcheck source=/dev/null
+    [ -f "$SYSCFG/deps.sh" ] && . "$SYSCFG/deps.sh" || true
     echo "→ Tools:"
     for t in agy gemini claude gh node npx python3; do
       if p="$(command -v "$t" 2>/dev/null)"; then
@@ -42,6 +45,12 @@ case "${1:-}" in
           else
             echo "       gh auth status: unauthenticated"
           fi
+        fi
+        installed_ver="$("$t" --version 2>/dev/null | head -1)" || installed_ver=""
+        var_name="TESTED_$(echo "$t" | tr '[:lower:]' '[:upper:]')"
+        eval "tested_ver=\"\${$var_name:-}\""
+        if [ -n "$tested_ver" ] && [ -n "$installed_ver" ] && [ "$tested_ver" != "$installed_ver" ]; then
+          echo "     tested: $tested_ver / installed: $installed_ver — untested combination (informational)"
         fi
       else
         echo "  [--] $t missing"
