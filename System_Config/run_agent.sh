@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # run_agent.sh — provider-agnostic headless agent invocation (sourced library, not standalone)
 # Extracted from daily_ingest.sh / friday_process.sh's near-identical run_claude().
 # Expects from the caller's environment: $CLAUDE $AGENT_TYPE $MAX_BUDGET $MAX_SECONDS $LOG $VAULT

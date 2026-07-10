@@ -39,11 +39,13 @@ Status lines are appended to cards as they land — keep this file current.
 **Why:** `.mcp.json.example` is empty; users re-add the same servers per project.
 > **Prompt:** "Populate `.mcp.json.example` with 3–5 common MCP servers (filesystem, github, etc.) disabled by default, and add a bootstrap prompt to enable a subset, writing to `.mcp.json`. Never overwrite an existing `.mcp.json`. Document in `README.md`."
 
-### 7. Template self-tests (CI)
+### 7. Template self-tests (CI) — ✅ DONE 2026-07-09
+**Landed:** `System_Config/test.sh` (bash -n + shellcheck errors + rules-drift + schema checks, PASS/FAIL summary) + `.github/workflows/ci.yml` running it on every push/PR. One shellcheck ERROR fixed (run_agent.sh shell directive); 54 style warnings inventoried, deliberately unfixed.
 **Why:** nothing validates the scripts before a user clones.
 > **Prompt:** "Add `shellcheck` over every `*.sh` in the repo root and `System_Config/`, plus `bash -n` syntax checks, wired as a `.github/workflows/ci.yml` GitHub Action and a local `System_Config/test.sh`. Fix any shellcheck errors it surfaces in the existing scripts. Start by listing the errors before fixing."
 
-### 8. Upstream update mechanism
+### 8. Upstream update mechanism — ⏳ OPEN (deliberately last)
+**Note:** touches installed users' working trees — path-scope mistakes here can clobber data. Do this one attended, not via a lesser model, and dry-run first.
 **Why:** an installed user can't pull template improvements without clobbering their `Projects/`/`Vault_Brain/` data.
 > **Prompt:** "Design and add `./bootstrap.sh --update`: fetches the template's upstream, updates only system files (`System_Config/`, `.claude/agents/`, `.agents/skills/`, `CLAUDE.md`, `bootstrap.sh`) and never touches `Projects/`, `Final_Products/`, `Vault_Brain/`, `.mcp.json`. Use a git strategy (sparse checkout or path-scoped merge). Dry-run by default; show the file list before applying."
 
