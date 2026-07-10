@@ -50,6 +50,10 @@ and **no output**, before the script runs. The scripts' own logs still live in
 | `orchestrator-rules.md` | **Single source** for the rule sections shared by `CLAUDE.md` and `.agents/AGENTS.md`. Edit here, then run `sync_rules.sh`. |
 | `sync_rules.sh` | Regenerate the `SHARED:*` marker regions in both orchestrator files from `orchestrator-rules.md`. `--check` exits 1 on drift (wired for CI/healthcheck use). |
 | `run_agent.sh` | Sourced library: `run_agent <prompt>` — the single provider-branch (claude/gemini flags + watchdog) shared by `daily_ingest.sh` and `friday_process.sh`. Flag changes happen here once. |
+| `deps.sh` | Recorded tested versions of the external CLIs; `./bootstrap.sh --check` prints an informational drift line when installed versions differ. |
+| `migrate_vault.sh` | Vault schema migration runner (`Vault_Brain/.vault-schema` marker, TARGET_SCHEMA constant). No-ops when current; errors if the vault is newer than the template. |
+| `new_agent.sh` | Scaffold a new agent in BOTH harness formats (`.claude/agents/` + `.agents/skills/`). Dry-run by default; `--write` creates. Register in `.AGENT.MD` afterwards. |
+| `export_workspace.sh` / `import_workspace.sh` | Portable tar.gz of the vault + projects + agent configs (secrets/logs/git excluded); import refuses non-empty targets. Anti-lock-in escape hatch. |
 | `vault_snapshot.sh` | Daily git snapshot of `Vault_Brain/` only (skips if the index has staged changes; push failure is non-fatal). |
 | `vaultsnapshot.plist.tmpl` | launchd agent template: snapshot daily one hour after ingest (INGEST_HOUR+1, :15). |
 | `install_vault_snapshot.sh` | Render + install/reload the snapshot agent (idempotent). |

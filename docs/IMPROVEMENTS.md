@@ -52,13 +52,15 @@ Status lines are appended to cards as they land — keep this file current.
 **Why:** a fresh clone drops the user into a cold workspace with no guided start.
 > **Prompt:** "Create a `WELCOME.md` shown after `./bootstrap.sh` completes (echo a pointer to it) that walks a new user through: open in Claude/Gemini, try one orchestrator command, add a first web clip, watch it ingest. Seed one tiny example under `Projects/example/` with a `BRIEF.md` demonstrating the eng-manager flow. Keep it deletable."
 
-### 10. Ingest resilience & observability
+### 10. Ingest resilience & observability — ✅ DONE 2026-07-09
+**Landed:** quota-wall detection (2 consecutive bad clips → loud log + stop, next scheduled run retries); summary line includes pending count; healthcheck Layer I "Ingest" surfaces pending/total in the status page.
 **Why:** the ingest hits a provider quota wall (~5–6 clips/run) with no visible metrics; failures are quiet.
 > **Prompt:** "In `System_Config/daily_ingest.sh` add exponential backoff + a clear log line on quota/budget exit (not a silent stop), and have `healthcheck.sh` surface per-source counts (clips pending, ingested, last-run status) into the status page it already writes. Don't change the one-clip-per-call design. Show the healthcheck diff."
 
 ## Future-proofing (11–20)
 
-### 11. Central model registry
+### 11. Central model registry — ✅ CLOSED (not needed) 2026-07-09
+**Audit result:** zero hardcoded model IDs anywhere in the template scripts, plists, or agent files — the CLIs run without `--model` and use their configured defaults. Registry would be dead flexibility; reopen only if a script gains a `--model` flag.
 **Why:** model IDs churn; scattered hardcodes make every bump a hunt.
 > **Prompt:** "Grep the repo for hardcoded model identifiers (`claude-*`, `gemini-*`, `opus`, `sonnet`, `haiku`). Consolidate them into a single `System_Config/models.sh` (e.g. `MODEL_INGEST`, `MODEL_ORCHESTRATOR`) sourced by the scripts, so a model rename is a one-line change. List every occurrence before consolidating."
 
@@ -67,7 +69,8 @@ Status lines are appended to cards as they land — keep this file current.
 **Why:** users and the `--update` mechanism (#8) need to know what version they have.
 > **Prompt:** "Add a `VERSION` file (semver, start `0.1.0`) and a `CHANGELOG.md` (Keep-a-Changelog format) at the repo root. Have `bootstrap.sh` print the version on run. Document the release/bump convention in `README.md`. Don't invent history — start the changelog at Unreleased."
 
-### 13. Vault schema versioning + migration path
+### 13. Vault schema versioning + migration path — ✅ DONE 2026-07-09
+**Landed:** `Vault_Brain/.vault-schema` (v1), `migrate_vault.sh` (up-to-date no-op, empty migration case, newer-than error), convention in `Vault_Brain/README.md`.
 **Why:** the wiki schema in `Vault_Brain/CLAUDE.md` will evolve; old vaults must upgrade without hand-editing.
 > **Prompt:** "Add a `schema_version` marker to `Vault_Brain/` (e.g. a `.vault-schema` file) and a `System_Config/migrate_vault.sh` stub that reads current vs target version and no-ops when equal. Document the migration convention in `Vault_Brain/README.md`. Ship version 1 matching today's schema; no data changes."
 
@@ -76,15 +79,18 @@ Status lines are appended to cards as they land — keep this file current.
 **Why:** as `config.sh` grows, a typo silently breaks background jobs.
 > **Prompt:** "Add a `validate_config()` function to `System_Config/config.sh` that asserts required vars are set and paths exist, called at the top of each `install_*.sh` and the ingest/process scripts. On failure print the offending var and exit non-zero. Keep it pure bash 3.2. Show one script wired as the pattern."
 
-### 15. Agent-roster scaffolder
+### 15. Agent-roster scaffolder — ✅ DONE 2026-07-09
+**Landed:** `new_agent.sh <name> "<scope>"` renders both harness files from the coder pattern; dry-run default, `--write` to create, refuses overwrites, prints the .AGENT.MD registration reminder.
 **Why:** every new agent must be added in TWO places (`.claude/agents/` + `.agents/skills/`) or the providers drift.
 > **Prompt:** "Add `System_Config/new_agent.sh <name> <scope>` that scaffolds both `.claude/agents/<name>.md` and `.agents/skills/<name>/SKILL.md` from a shared template and reminds the user to register it in `.AGENT.MD`'s coordination matrix. Model the templates on the existing `coder` entries. Dry-run print before writing."
 
-### 16. Skill index + versioning
+### 16. Skill index + versioning — ✅ DONE 2026-07-09
+**Landed:** `## Skill Index` table in `.AGENT.MD` (all six skills, v1); `sync-skills.sh` warns non-fatally when a repo skill is missing from the index.
 **Why:** skills will proliferate; without an index they're undiscoverable and unversioned.
 > **Prompt:** "Add a skill index (extend `.AGENT.MD`) listing every skill with name, one-line purpose, location, and a version field. Add a `sync-skills.sh` check that flags skills missing from the index. Don't change skill behavior — just catalog them."
 
-### 17. CLI dependency pinning + upstream-break detector
+### 17. CLI dependency pinning + upstream-break detector — ✅ DONE 2026-07-09
+**Landed:** `deps.sh` records tested versions; `--check`/`--check-deps` prints an informational drift line on mismatch. Never blocks.
 **Why:** `gh`, Playwright, `agy`, `npx skills` all evolve; a breaking upstream change fails silently in a background job.
 > **Prompt:** "Add a `System_Config/deps.sh` recording the tested version of each external CLI (`gh`, `node`, `playwright-cli`, `agy`/`gemini`, `claude`) and a `--check-deps` mode in `bootstrap.sh` that warns when the installed version differs from tested. Informational, never blocks. List current installed versions first."
 
@@ -93,10 +99,12 @@ Status lines are appended to cards as they land — keep this file current.
 **Why:** the claude-vs-gemini flag differences are copy-pasted across `daily_ingest.sh` and `friday_process.sh`; a new provider or flag change means editing every script.
 > **Prompt:** "Extract the provider-branch `run_claude` function in `System_Config/daily_ingest.sh` and `friday_process.sh` into one shared `System_Config/run_agent.sh` that both source, so provider/flag logic lives in one place. Behavior must stay identical per provider. Diff both callers before and after."
 
-### 19. Workspace export/import (anti-lock-in)
+### 19. Workspace export/import (anti-lock-in) — ✅ DONE 2026-07-09
+**Landed:** `export_workspace.sh` (dated tar.gz, secrets/logs/git excluded) + `import_workspace.sh` (refuses non-empty targets). Round-trip diff verified empty.
 **Why:** the whole value is a portable knowledge system; it should survive a move off this tool/machine as a plain archive.
 > **Prompt:** "Add `System_Config/export_workspace.sh` that tars `Vault_Brain/`, `Projects/`, `Final_Products/`, and config (excluding secrets, logs, node_modules, .git) into a dated portable archive, plus a matching `import_workspace.sh`. Document in `README.md`. Verify a round-trip (export → fresh dir → import) preserves the vault."
 
-### 20. Longitudinal observability
+### 20. Longitudinal observability — ✅ DONE 2026-07-09
+**Landed:** `logs/metrics.tsv` (date, pending, ingested-total, jobs, wiki pages) appended each healthcheck run, header once, append-only; last snapshot surfaced in the status page via Layer I.
 **Why:** `healthcheck.sh` shows only the current snapshot; trends (ingest volume, failure rate over weeks) are invisible.
 > **Prompt:** "Have `healthcheck.sh` append a dated one-line metrics record (clips ingested, jobs healthy/failed, vault page count) to `System_Config/logs/metrics.tsv` on each run, and add a small section to the status page charting the last 30 records. Append-only; don't rewrite history. Show the healthcheck diff."
