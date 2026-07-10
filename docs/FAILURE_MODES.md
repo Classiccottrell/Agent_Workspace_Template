@@ -17,6 +17,10 @@ knowledge of this repo. Run them from the workspace root.
 | F8 | `gh` unauthenticated → git ops fail | setup gap |
 | F9 | Fresh Mac missing node/python3/gh | setup gap |
 | F10 | Non-Mac install: automation impossible | known ceiling |
+| F11 | Friday close-out silently never runs | live evidence |
+| F12 | Snapshot vs healthcheck push race on origin | live evidence |
+| F13 | Job failures invisible (no notification channel) | recurring |
+| F14 | Concurrent ingest double-billing | fixed — verify |
 
 ---
 
@@ -174,3 +178,35 @@ then this is the documented ceiling of "anyone can install".
 > e.g. `0 7 * * * cd <workspace> && bash System_Config/daily_ingest.sh`.'
 > If asked to implement cron support, model it on the launchd installers but
 > write crontab entries instead of plists, keeping macOS behavior unchanged."
+
+## F11 — Friday close-out silently never runs
+
+**Symptom:** every Master Note week row stays `_pending Friday summary_` (live: 4 straight weeks).
+**Root cause:** the job fires only Fridays 16:30 with `RunAtLoad=false`; a Mac asleep or off at that moment skips the week permanently, and a Claude call that produces no summary fails with one log line nobody reads.
+**Fix:** catch-up check (IMPROVEMENTS.md card 26): monday_init detects a missing close-out snapshot and runs it late.
+
+> **Fix prompt:** "Check `Vault_Brain/Master Note.md` for rows still reading '_pending Friday summary_' and `System_Config/logs/friday_process.log` for the last successful run. For each missed week whose note exists in `Vault_Brain/weekly-logs/`, report it. If `friday_process.sh` accepts a week argument (post card-26), run the catch-up for each missed week, oldest first; otherwise report that card 26 is not yet landed."
+
+## F12 — Snapshot vs healthcheck push race
+
+**Symptom:** `logs/vault_snapshot.log` shows `! [rejected] main -> main (non-fast-forward)`; a vault snapshot sits committed locally, unpublished, until the next day at best.
+**Root cause:** two unsynchronized writers to `origin/main` — vault_snapshot pushes from the checkout, healthcheck pushes status files from a detached worktree every 4h, no fetch/rebase/retry on the snapshot side.
+**Fix:** shared `push_main()` with rebase + retry (IMPROVEMENTS.md card 27).
+
+> **Fix prompt:** "Run `git log origin/main..main --oneline` in the workspace. If local commits exist, run `git pull --rebase --autostash origin main && git push origin main` and report the result. Then grep `System_Config/logs/vault_snapshot.log` for 'push failed' lines and report how many snapshots failed to publish and when."
+
+## F13 — Job failures invisible
+
+**Symptom:** ingest quota-walls for a week, the Master Note stalls, a job crashloops — and the only trace is a WARN on a status page the user never opens.
+**Root cause:** `healthcheck.sh` has no user-facing alert channel; WARN/FAIL only changes HTML.
+**Fix:** transition-based macOS notifications (IMPROVEMENTS.md card 25).
+
+> **Fix prompt:** "Read `System_Config/status.json` and list every WARN/FAIL item. For each, state in one line what the user should do (grant FDA / run gh auth login / check clipper config / run the ingest manually). Then send ONE summary line via `osascript -e 'display notification ...'` if any FAIL exists (guard with `command -v osascript`)."
+
+## F14 — Concurrent ingest double-billing (fixed — verify)
+
+**Symptom (pre-fix):** two overlapping daily_ingest runs (RunAtLoad + schedule, or manual + scheduled) both saw the same clips as new and both paid to ingest them; manifest writes interleaved.
+**Root cause:** no lock (friday_process had one; daily_ingest did not).
+**Fix:** landed 2026-07-10 — atomic `mkdir` lock, 4h stale reclaim, losing instance exits cleanly and cannot remove the winner's lock.
+
+> **Fix prompt:** "Verify the lock: `mkdir System_Config/logs/daily_ingest.lock`, then run `DRY_RUN=1 bash System_Config/daily_ingest.sh` — expect rc=0, NO dry-run output, and a log line 'another daily_ingest is running'. Confirm the lock dir still exists afterwards (the loser must not remove it), then `rmdir` it and run again — expect a normal dry-run and the lock released at exit."

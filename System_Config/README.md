@@ -90,6 +90,8 @@ All are env-overridable per run.
 | `INGEST_HOUR` / `INGEST_MINUTE` | `7` / `0` | Daily launchd schedule, rendered into the plist on install. |
 | `INGEST_MAX_BUDGET` | `1.00` | Per-clip USD ceiling — claude only (gemini has no cost flag). |
 | `INGEST_MAX_SECONDS` | `900` | Per-clip wall-clock watchdog — both providers. |
+| `INGEST_MAX_CLIPS_PER_RUN` | `10` | Per-run ceiling: worst-case unattended spend = this × MAX_BUDGET; the backlog carries to the next run. |
+| `INGEST_MAX_BYTES` | `512000` | Clips larger than this are skipped with a WARN (split them or raise the cap). |
 
 > **Generated at runtime, not shipped:** `healthcheck.sh` writes
 > `status_page.html` and `status.json` into this directory each time it runs.

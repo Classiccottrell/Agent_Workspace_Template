@@ -34,6 +34,23 @@ fi
 mkdir -p "$LOG_DIR"
 ts() { date "+%Y-%m-%d %H:%M:%S"; }
 log() { echo "[$(ts)] $*" >> "$LOG"; }
+rotate_log "$LOG"
+
+# ── CONCURRENCY LOCK ──────────────────────────────────────────────────────────
+# RunAtLoad + the calendar schedule (or a manual run) can fire overlapping
+# instances; two ingests race on the manifests and double-bill clips. mkdir is
+# atomic. A lock older than 4h is stale (a kill -9'd run) — reclaim it.
+LOCK_DIR="$LOG_DIR/daily_ingest.lock"
+if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+  if [[ -n "$(find "$LOCK_DIR" -maxdepth 0 -mmin +240 2>/dev/null)" ]]; then
+    log "reclaiming stale lock (>4h old): $LOCK_DIR"
+    rmdir "$LOCK_DIR" 2>/dev/null || true
+    mkdir "$LOCK_DIR" 2>/dev/null || { log "another daily_ingest is running — exiting"; exit 0; }
+  else
+    log "another daily_ingest is running (lock: $LOCK_DIR) — exiting"
+    exit 0
+  fi
+fi
 
 log "daily_ingest start (sources: ${INGEST_SOURCES})"
 
@@ -58,7 +75,8 @@ restore_sources() {
   done
   IFS="$old_ifs"
 }
-trap restore_sources EXIT
+cleanup() { restore_sources; rmdir "$LOCK_DIR" 2>/dev/null || true; }
+trap cleanup EXIT
 
 # ── BOUNDED HEADLESS AGENT CALL ───────────────────────────────────────────────
 source "$(dirname "${BASH_SOURCE[0]}")/run_agent.sh"
@@ -135,6 +153,12 @@ process_dir() {
       _*|.*) continue ;;   # skip templates and dotfiles
     esac
     name_seen "$base" && continue                            # already ingested by name
+    # Oversize guard: a huge clip burns the full watchdog + budget and can trip
+    # the quota-wall heuristic, blocking smaller clips behind it. Skip loudly.
+    if [[ "$(wc -c < "$f" | tr -d ' ')" -gt "$INGEST_MAX_BYTES" ]]; then
+      log "WARN: skipping oversize clip (> ${INGEST_MAX_BYTES} bytes): $rel_dir/$base — split it or raise INGEST_MAX_BYTES in config.sh"
+      continue
+    fi
     h="$(shasum -a 256 "$f" | awk '{print $1}')"
     if hash_seen "$h"; then
       log "skip (duplicate content of an already-ingested clip): $rel_dir/$base [${h:0:12}]"
@@ -169,6 +193,13 @@ process_dir() {
   local clip src_link PROMPT rc
   for clip in "${NEW[@]}"; do
     if [[ "$wall_hit" == "1" ]]; then break; fi
+    # Per-RUN ceiling: worst-case unattended spend is CLIPS_PER_RUN × MAX_BUDGET
+    # no matter how big the backlog. The next scheduled run continues from here.
+    if [[ "$attempted" -ge "$INGEST_MAX_CLIPS_PER_RUN" ]]; then
+      log "per-run clip cap reached (${INGEST_MAX_CLIPS_PER_RUN}) — remaining clips carry to the next scheduled run"
+      wall_hit=1
+      break
+    fi
     attempted=$((attempted + 1))
     src_link="${rel_dir}/${clip%.md}"
     PROMPT="You are running headlessly to ingest ONE note into the Vault_Brain knowledge wiki.
@@ -193,9 +224,11 @@ Constraints: create-or-append only; never overwrite a page wholesale; never dele
     if run_agent "$PROMPT"; then
       # Verify the agent actually wikified this note before recording it. A no-op
       # (timeout, declined, empty result) also exits 0; without this check the note
-      # would be marked done forever and never retried. A real ingest always links
-      # [[<dir>/<slug>]] from a wiki page or _index.md.
-      if grep -rqF "[[${src_link}]]" "$VAULT/wiki/" 2>/dev/null; then
+      # would be marked done forever and never retried. Match the slug WITHOUT the
+      # [[ ]] wrapper: an agent writing [[dir/slug|alias]] or [[dir/slug.md]] is a
+      # completed ingest — the exact-bracket match false-negatived those and
+      # re-billed the same clip run after run.
+      if grep -rqF "${src_link}" "$VAULT/wiki/" 2>/dev/null; then
         h="$(shasum -a 256 "$src_dir/$clip" | awk '{print $1}')"
         printf '%s\t%s\n' "$h" "$clip" >> "$manifest"
         total_ingested=$((total_ingested + 1))

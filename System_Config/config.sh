@@ -27,6 +27,12 @@ INGEST_HOUR="${INGEST_HOUR:-7}"
 INGEST_MINUTE="${INGEST_MINUTE:-0}"
 INGEST_MAX_BUDGET="${INGEST_MAX_BUDGET:-1.00}"
 INGEST_MAX_SECONDS="${INGEST_MAX_SECONDS:-900}"
+# Per-RUN ceiling: caps worst-case unattended spend at CLIPS_PER_RUN × MAX_BUDGET
+# regardless of backlog size. Remaining clips carry to the next scheduled run.
+INGEST_MAX_CLIPS_PER_RUN="${INGEST_MAX_CLIPS_PER_RUN:-10}"
+# Clips larger than this are skipped with a WARN (huge clips burn the full
+# watchdog+budget and can trip the quota-wall heuristic). 500 KB default.
+INGEST_MAX_BYTES="${INGEST_MAX_BYTES:-512000}"
 # Resolve the agent CLI (prioritizing Gemini/Antigravity, falling back to claude).
 # The Gemini CLI ships as either `agy` (Antigravity) or `gemini`; accept both.
 # NOTE: $CLAUDE holds whichever binary won — it is the GEMINI binary when
@@ -70,6 +76,18 @@ install_cron_job() {
   crontab "$tmp"
   rm -f "$tmp"
   echo "  cron entry installed ($marker): $sched $script"
+}
+
+# rotate_log <file> [max_lines] — keep only the newest N lines (default 2000).
+# Cheap cap so append-only logs and metrics never grow unbounded across years.
+rotate_log() {
+  local f="$1" max="${2:-2000}" tmp
+  [ -f "$f" ] || return 0
+  if [ "$(wc -l < "$f")" -gt "$max" ]; then
+    tmp="$(mktemp)"
+    tail -n "$max" "$f" > "$tmp" && mv "$tmp" "$f"
+  fi
+  return 0
 }
 
 # remove_cron_job <label> — drop the marked entry, if any.

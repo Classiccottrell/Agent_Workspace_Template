@@ -383,6 +383,8 @@ jobs_loaded="${jobs_loaded:-0}"
 
 METRICS="$LOG_DIR/metrics.tsv"
 mkdir -p "$LOG_DIR"
+rotate_log "$METRICS" 1000
+rotate_log "$SYSCFG/logs/healthcheck.log" 2000
 [ -s "$METRICS" ] || printf 'date\tclips_pending\tclips_ingested_total\tjobs_loaded\twiki_pages\n' > "$METRICS"
 printf '%s\t%d\t%d\t%d\t%d\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$ing_pending" "$ing_total" "$jobs_loaded" "$wiki_page_count" >> "$METRICS"
 
