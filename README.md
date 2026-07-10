@@ -34,7 +34,7 @@ cd agent-workspace
 
 `bootstrap.sh` also has utility modes: `--check` (install doctor: tools found/missing + background-job status), `--update` (pull template improvements — system files only, your data and `config.sh` are never touched; dry-run unless you add `--apply`), `--uninstall` (remove the background jobs, keep all data), and `--help`.
 
-`bootstrap.sh` is idempotent and never deletes or overwrites your data. It makes the scripts executable, creates the log directory, seeds `.mcp.json` from the example if you don't have one, prints a prerequisite check (including optional `gh`, `node`, `python3`), **asks before** installing any background automation (default is No), and walks you through the note-ingestion settings — source folders, provider (auto/claude/gemini), daily run hour, per-clip budget — writing them into `System_Config/config.sh`. If `gh` is installed and authenticated it can also create and push the workspace repo for you. You can re-run it any time.
+`bootstrap.sh` is idempotent and never deletes or overwrites your data. It makes the scripts executable, creates the log directory, seeds `.mcp.json` from the example if you don't have one, prints a prerequisite check (including optional `gh`, `node`, `python3`), **asks before** installing any background automation (default is No), and walks you through the note-ingestion settings — source folders, provider (auto/claude/gemini), daily run hour, per-clip budget — writing them into `System_Config/config.sh`. It also offers to build or import a personal writing-voice skill — optional, stored outside the repo at `~/.claude/skills/how-i-write/SKILL.md`, never shipped with the template. If `gh` is installed and authenticated it can also create and push the workspace repo for you. You can re-run it any time.
 
 **Optional tooling** (detected, never required):
 - **GitHub CLI (`gh`)** — `brew install gh && gh auth login`. Agents use it for commit/push/PR work as plain shell commands instead of burning model tokens on git plumbing.
@@ -98,6 +98,8 @@ your-workspace/
 │   ├── friday_archive.sh       ← archive the week's note
 │   ├── install_*.sh            ← launchd installers (idempotent)
 │   ├── *.plist.tmpl            ← launchd agent templates (__LABEL__ rendered at install)
+│   ├── how-i-write-template.md ← generic scaffold for the writing-voice skill (copy → ~/.claude/skills/how-i-write/SKILL.md; outside this repo)
+│   ├── build_how_i_write.sh    ← fill the scaffold from a writing-samples folder via one bounded headless call; invoked by bootstrap.sh (step 5c) or by hand
 │   └── logs/                   ← per-job logs
 ├── Projects/                   ← active project workspaces
 │   ├── _TEMPLATE/              ← copy this to start a new project
@@ -146,6 +148,7 @@ Start a fresh weekly note any time with `bash System_Config/monday_init.sh`. Ful
 - **Append-only knowledge** — the wiki and weekly logs are create-or-append; agents never overwrite or delete vault content.
 - **One `.mcp.json` per machine** — `.mcp.json.example` is tracked; your real `.mcp.json` (with any server URLs or credentials) is git-ignored. Never commit it. **MCP servers travel with the workspace:** after cloning, edit `.mcp.json` (bootstrap seeds it from the example) and allow-list the servers in `.claude/settings.json` (`enabledMcpjsonServers`) — no per-project re-adding, no global config to copy around. The example ships with disabled server presets (filesystem, github, fetch) under `_disabled_examples` to copy from.
 - **Versioning** — `VERSION` holds the current semver (starts `0.1.0`); `CHANGELOG.md` follows Keep a Changelog. Bump `VERSION` and cut a dated section from `## [Unreleased]` on template releases; day-to-day work accumulates under Unreleased.
+- **Personal writing voice** — `~/.claude/skills/how-i-write/SKILL.md` is global and personal, never part of this repo. Build it from your own samples or import one from a previous instance via `bootstrap.sh` (optional, skippable, never silently overwritten).
 
 ---
 

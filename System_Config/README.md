@@ -76,6 +76,8 @@ and **no output**, before the script runs. The scripts' own logs still live in
 | `install_sync_skills.sh` | Render + install/reload the skill-sync agent (idempotent). |
 | `friday_archive.sh` | Archive the week's note (manual / `cron 0 18 * * 5`). |
 | `obsidian-webclipper-template.json` | Obsidian Web Clipper template → writes clips to the vault's `sources/` folder with frontmatter (filename via `{{title\|safe_name}}`). |
+| `build_how_i_write.sh` | Build the personal `how-i-write` writing-voice skill from a folder of writing samples, one bounded headless call (agy/gemini/claude, whichever config.sh resolves). Writes only to `~/.claude/skills/how-i-write/SKILL.md`; never overwrites an existing one. Invoked by `bootstrap.sh` (step 5c); also runs by hand. |
+| `how-i-write-template.md` | Canonical, generic scaffold for the writing-voice skill (white-label — no personal content). Copied to `~/.claude/skills/how-i-write/SKILL.md` by `build_how_i_write.sh` before the agent fills it in. |
 | `logs/` | Per-job **script** logs (`daily_ingest.log`, `healthcheck.log`, …) in the workspace. The launchd `.out`/`.err` redirects live in `~/Library/Logs/$LABEL_PREFIX/` (see Prerequisites). |
 
 ### Ingestion configuration (`config.sh`)
@@ -160,6 +162,10 @@ bash    System_Config/sync-skills.sh        # manual sync + re-index
 tail -f System_Config/logs/sync-skills.log
 launchctl bootout gui/$(id -u)/$LABEL_PREFIX.syncskills  # disable
 
+# Personal writing-voice skill (build once from your own samples; safe to re-run by hand)
+bash System_Config/build_how_i_write.sh /path/to/samples
+MAX_SECONDS=1800 MAX_BUDGET=3.00 bash System_Config/build_how_i_write.sh /path/to/large-samples-folder   # raise the caps for a big folder
+
 # Verify a scheduled agent (col 2 = last exit status; 0 = healthy)
 launchctl list | grep vaultbrain
 ```
@@ -170,6 +176,7 @@ launchctl list | grep vaultbrain
   Optional fallback for detached runs: `~/.config/anthropic/key` (mode 0600).
 - **Ingest safety:** shell denied, cwd confined to the vault, clip files locked
   read-only during a run, per-clip budget + wall-clock caps, create-or-append only.
+- **Writing-voice build safety:** same pattern as ingest — shell denied (Claude path) or sandboxed (gemini/agy path), cwd confined to `~/.claude/skills/how-i-write/`, samples folder copied into a disposable scratch dir and locked read-only (files only, not dirs) during the run, wall-clock capped, never overwrites an existing `SKILL.md`.
 - **Doc currency:** the health check's *Documentation Currency* section flags any
   README older than the files it documents. When you change a script or schema,
   update the governing README in the same task (see root `CLAUDE.md` →
