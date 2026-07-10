@@ -34,7 +34,8 @@ Status lines are appended to cards as they land — keep this file current.
 **Why:** `.mcp.json` and API keys risk being committed as the template gets shared publicly.
 > **Prompt:** "Audit `.gitignore` and confirm `.mcp.json`, `*.key`, `.env`, `System_Config/logs/` are ignored. Add a `.env.example`, document the `~/.config/anthropic/key` path `daily_ingest.sh` reads, and add a bootstrap warning if `.mcp.json` contains a non-empty token. Show what's currently tracked that shouldn't be: `git ls-files | grep -Ei 'key|env|secret|token'`."
 
-### 6. MCP server presets + picker
+### 6. MCP server presets + picker — ✅ DONE 2026-07-09
+**Landed:** `.mcp.json.example` ships filesystem/github/fetch presets under `_disabled_examples` (copy into `mcpServers` to enable, then allow-list in `.claude/settings.json`); bootstrap points at them on seed. No interactive picker — the presets + message cover it.
 **Why:** `.mcp.json.example` is empty; users re-add the same servers per project.
 > **Prompt:** "Populate `.mcp.json.example` with 3–5 common MCP servers (filesystem, github, etc.) disabled by default, and add a bootstrap prompt to enable a subset, writing to `.mcp.json`. Never overwrite an existing `.mcp.json`. Document in `README.md`."
 
@@ -46,7 +47,8 @@ Status lines are appended to cards as they land — keep this file current.
 **Why:** an installed user can't pull template improvements without clobbering their `Projects/`/`Vault_Brain/` data.
 > **Prompt:** "Design and add `./bootstrap.sh --update`: fetches the template's upstream, updates only system files (`System_Config/`, `.claude/agents/`, `.agents/skills/`, `CLAUDE.md`, `bootstrap.sh`) and never touches `Projects/`, `Final_Products/`, `Vault_Brain/`, `.mcp.json`. Use a git strategy (sparse checkout or path-scoped merge). Dry-run by default; show the file list before applying."
 
-### 9. First-run onboarding
+### 9. First-run onboarding — ✅ DONE 2026-07-09
+**Landed:** root `WELCOME.md` (first 15 minutes: open, delegate, clip, ingest, check) + disposable sandbox `Projects/example/` (hello.sh + toy BRIEF). `Projects/example-project/` stays as the reference brief; bootstrap prints the WELCOME pointer.
 **Why:** a fresh clone drops the user into a cold workspace with no guided start.
 > **Prompt:** "Create a `WELCOME.md` shown after `./bootstrap.sh` completes (echo a pointer to it) that walks a new user through: open in Claude/Gemini, try one orchestrator command, add a first web clip, watch it ingest. Seed one tiny example under `Projects/example/` with a `BRIEF.md` demonstrating the eng-manager flow. Keep it deletable."
 
@@ -60,7 +62,8 @@ Status lines are appended to cards as they land — keep this file current.
 **Why:** model IDs churn; scattered hardcodes make every bump a hunt.
 > **Prompt:** "Grep the repo for hardcoded model identifiers (`claude-*`, `gemini-*`, `opus`, `sonnet`, `haiku`). Consolidate them into a single `System_Config/models.sh` (e.g. `MODEL_INGEST`, `MODEL_ORCHESTRATOR`) sourced by the scripts, so a model rename is a one-line change. List every occurrence before consolidating."
 
-### 12. Template versioning + CHANGELOG
+### 12. Template versioning + CHANGELOG — ✅ DONE 2026-07-09
+**Landed:** `VERSION` (0.1.0), `CHANGELOG.md` (Keep-a-Changelog, Unreleased), bootstrap banner prints the version, convention documented in README.
 **Why:** users and the `--update` mechanism (#8) need to know what version they have.
 > **Prompt:** "Add a `VERSION` file (semver, start `0.1.0`) and a `CHANGELOG.md` (Keep-a-Changelog format) at the repo root. Have `bootstrap.sh` print the version on run. Document the release/bump convention in `README.md`. Don't invent history — start the changelog at Unreleased."
 
@@ -68,7 +71,8 @@ Status lines are appended to cards as they land — keep this file current.
 **Why:** the wiki schema in `Vault_Brain/CLAUDE.md` will evolve; old vaults must upgrade without hand-editing.
 > **Prompt:** "Add a `schema_version` marker to `Vault_Brain/` (e.g. a `.vault-schema` file) and a `System_Config/migrate_vault.sh` stub that reads current vs target version and no-ops when equal. Document the migration convention in `Vault_Brain/README.md`. Ship version 1 matching today's schema; no data changes."
 
-### 14. Config schema validation on load
+### 14. Config schema validation on load — ✅ DONE 2026-07-09
+**Landed:** `validate_config()` in config.sh (13 required vars, dir existence, hour/minute/provider ranges; returns, never exits) wired into all six installers. Verified both pass and fail paths.
 **Why:** as `config.sh` grows, a typo silently breaks background jobs.
 > **Prompt:** "Add a `validate_config()` function to `System_Config/config.sh` that asserts required vars are set and paths exist, called at the top of each `install_*.sh` and the ingest/process scripts. On failure print the offending var and exit non-zero. Keep it pure bash 3.2. Show one script wired as the pattern."
 
@@ -84,7 +88,8 @@ Status lines are appended to cards as they land — keep this file current.
 **Why:** `gh`, Playwright, `agy`, `npx skills` all evolve; a breaking upstream change fails silently in a background job.
 > **Prompt:** "Add a `System_Config/deps.sh` recording the tested version of each external CLI (`gh`, `node`, `playwright-cli`, `agy`/`gemini`, `claude`) and a `--check-deps` mode in `bootstrap.sh` that warns when the installed version differs from tested. Informational, never blocks. List current installed versions first."
 
-### 18. Provider-agnostic invocation layer
+### 18. Provider-agnostic invocation layer — ✅ DONE 2026-07-09
+**Landed:** `System_Config/run_agent.sh` (sourced library, byte-equal flags + watchdog) now the single provider branch; `daily_ingest.sh` and `friday_process.sh` source it. Flag changes happen in one place.
 **Why:** the claude-vs-gemini flag differences are copy-pasted across `daily_ingest.sh` and `friday_process.sh`; a new provider or flag change means editing every script.
 > **Prompt:** "Extract the provider-branch `run_claude` function in `System_Config/daily_ingest.sh` and `friday_process.sh` into one shared `System_Config/run_agent.sh` that both source, so provider/flag logic lives in one place. Behavior must stay identical per provider. Diff both callers before and after."
 

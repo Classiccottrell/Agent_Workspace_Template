@@ -80,3 +80,45 @@ remove_cron_job() {
   crontab "$tmp" 2>/dev/null || true
   rm -f "$tmp"
 }
+
+# validate_config — sanity-check the sourced config. Never exits; only
+# returns 0/1, so callers decide whether to abort. bash 3.2 safe (no arrays).
+validate_config() {
+  local var val
+  for var in WORKSPACE VAULT SOURCES LOG_DIR LABEL_PREFIX CLAUDE AGENT_TYPE \
+             SCHEDULER INGEST_SOURCES INGEST_PROVIDER INGEST_HOUR INGEST_MINUTE \
+             INGEST_MAX_BUDGET INGEST_MAX_SECONDS; do
+    eval "val=\"\${$var:-}\""
+    if [[ -z "$val" ]]; then
+      echo "config.sh: $var is unset/empty" >&2
+      return 1
+    fi
+  done
+
+  [[ -d "$WORKSPACE" ]] || { echo "config.sh: WORKSPACE dir missing: $WORKSPACE" >&2; return 1; }
+  [[ -d "$VAULT" ]] || { echo "config.sh: VAULT dir missing: $VAULT" >&2; return 1; }
+  [[ -d "$SOURCES" ]] || echo "config.sh: warning: SOURCES dir missing: $SOURCES" >&2
+
+  case "$INGEST_HOUR" in
+    ''|*[!0-9]*) echo "config.sh: INGEST_HOUR is not an integer: $INGEST_HOUR" >&2; return 1 ;;
+  esac
+  if [[ "$INGEST_HOUR" -lt 0 || "$INGEST_HOUR" -gt 23 ]]; then
+    echo "config.sh: INGEST_HOUR out of range 0-23: $INGEST_HOUR" >&2
+    return 1
+  fi
+
+  case "$INGEST_MINUTE" in
+    ''|*[!0-9]*) echo "config.sh: INGEST_MINUTE is not an integer: $INGEST_MINUTE" >&2; return 1 ;;
+  esac
+  if [[ "$INGEST_MINUTE" -lt 0 || "$INGEST_MINUTE" -gt 59 ]]; then
+    echo "config.sh: INGEST_MINUTE out of range 0-59: $INGEST_MINUTE" >&2
+    return 1
+  fi
+
+  case "$INGEST_PROVIDER" in
+    auto|claude|gemini) : ;;
+    *) echo "config.sh: INGEST_PROVIDER must be auto|claude|gemini: $INGEST_PROVIDER" >&2; return 1 ;;
+  esac
+
+  return 0
+}

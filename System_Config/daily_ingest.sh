@@ -61,30 +61,7 @@ restore_sources() {
 trap restore_sources EXIT
 
 # ── BOUNDED HEADLESS AGENT CALL ───────────────────────────────────────────────
-# File tools only; Bash and other escape hatches denied; cwd = vault so the sandbox
-# confines writes to the vault tree; budget + wall-clock watchdog bound the run.
-run_claude() {
-  local prompt="$1" pid wd rc
-  cd "$VAULT"
-  if [[ "${AGENT_TYPE:-}" == "gemini" ]]; then
-    "$CLAUDE" -p "$prompt" \
-          --sandbox \
-          --dangerously-skip-permissions >> "$LOG" 2>&1 &
-  else
-    "$CLAUDE" -p "$prompt" \
-          --allowedTools "Read,Write,Edit,Glob,Grep" \
-          --disallowedTools "Bash,KillShell,Task,WebFetch,WebSearch,NotebookEdit" \
-          --permission-mode acceptEdits \
-          --max-budget-usd "$MAX_BUDGET" >> "$LOG" 2>&1 &
-  fi
-  pid=$!
-  ( sleep "$MAX_SECONDS"; kill -TERM "$pid" 2>/dev/null ) &
-  wd=$!
-  disown "$wd" 2>/dev/null || true   # silence the "Terminated" job-control notice when we cancel the watchdog
-  if wait "$pid"; then rc=0; else rc=$?; fi
-  kill "$wd" 2>/dev/null || true
-  return "$rc"
-}
+source "$(dirname "${BASH_SOURCE[0]}")/run_agent.sh"
 
 # ── PER-DIRECTORY SCAN + INGEST ───────────────────────────────────────────────
 # Each source dir keeps its OWN manifest (<dir>/.ingested.log) so the legacy
@@ -205,7 +182,7 @@ Steps:
 Constraints: create-or-append only; never overwrite a page wholesale; never delete anything; stay within this vault."
 
     log "ingesting: $rel_dir/$clip"
-    if run_claude "$PROMPT"; then
+    if run_agent "$PROMPT"; then
       # Verify the agent actually wikified this note before recording it. A no-op
       # (timeout, declined, empty result) also exits 0; without this check the note
       # would be marked done forever and never retried. A real ingest always links

@@ -49,6 +49,7 @@ and **no output**, before the script runs. The scripts' own logs still live in
 | `config.sh` | Shared, relocatable configuration. Sourced first by every other script. Holds the `INGEST_*` ingestion settings (see table below) and the `SCHEDULER` detect (launchd on macOS, cron on Linux, none elsewhere) with `install_cron_job`/`remove_cron_job` helpers the installers use off-Mac. |
 | `orchestrator-rules.md` | **Single source** for the rule sections shared by `CLAUDE.md` and `.agents/AGENTS.md`. Edit here, then run `sync_rules.sh`. |
 | `sync_rules.sh` | Regenerate the `SHARED:*` marker regions in both orchestrator files from `orchestrator-rules.md`. `--check` exits 1 on drift (wired for CI/healthcheck use). |
+| `run_agent.sh` | Sourced library: `run_agent <prompt>` — the single provider-branch (claude/gemini flags + watchdog) shared by `daily_ingest.sh` and `friday_process.sh`. Flag changes happen here once. |
 | `vault_snapshot.sh` | Daily git snapshot of `Vault_Brain/` only (skips if the index has staged changes; push failure is non-fatal). |
 | `vaultsnapshot.plist.tmpl` | launchd agent template: snapshot daily one hour after ingest (INGEST_HOUR+1, :15). |
 | `install_vault_snapshot.sh` | Render + install/reload the snapshot agent (idempotent). |

@@ -95,30 +95,9 @@ B. CROSS-REFERENCES. For each project/entity named in a '#### Heading' under 'Th
 
 DO NOT edit 'Master Note.md'. DO NOT edit ${NOTE_REL}. DO NOT touch sources/. Create-or-append only; never delete; stay within this vault."
 
-run_claude() {
-  cd "$VAULT"
-  if [[ "${AGENT_TYPE:-}" == "gemini" ]]; then
-    "$CLAUDE" -p "$PROMPT" \
-          --sandbox \
-          --dangerously-skip-permissions >> "$LOG" 2>&1 &
-  else
-    "$CLAUDE" -p "$PROMPT" \
-          --allowedTools "Read,Write,Edit,Glob,Grep" \
-          --disallowedTools "Bash,KillShell,Task,WebFetch,WebSearch,NotebookEdit" \
-          --permission-mode acceptEdits \
-          --max-budget-usd "$MAX_BUDGET" >> "$LOG" 2>&1 &
-  fi
-  local pid wd rc
-  pid=$!
-  ( sleep "$MAX_SECONDS"; kill -TERM "$pid" 2>/dev/null ) &
-  wd=$!
-  disown "$wd" 2>/dev/null || true
-  if wait "$pid"; then rc=0; else rc=$?; fi
-  kill "$wd" 2>/dev/null || true
-  return "$rc"
-}
+source "$(dirname "${BASH_SOURCE[0]}")/run_agent.sh"
 
-if ! run_claude; then
+if ! run_agent "$PROMPT"; then
   rc=$?
   log "claude step FAILED (rc=${rc}; may have timed out after ${MAX_SECONDS}s) — Master Note untouched; will retry next run"
   exit 1
