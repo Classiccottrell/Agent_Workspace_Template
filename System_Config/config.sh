@@ -21,8 +21,17 @@ KB_STRATEGY="${KB_STRATEGY:-obsidian}"
 # INGEST_HOUR/MINUTE - daily launchd schedule (rendered into the plist on install).
 # INGEST_MAX_BUDGET  - per-clip USD ceiling (claude only; gemini has no cost flag).
 # INGEST_MAX_SECONDS - per-clip wall-clock watchdog (both providers).
+# INGEST_PREFER_SAFE_PROVIDER - 1|0. When INGEST_PROVIDER=auto, prefer claude
+#   over agy/gemini even if the latter are installed first on PATH. Reason:
+#   run_agent.sh gates the claude branch with --allowedTools/--disallowedTools
+#   (file tools only, Bash/Task/WebFetch denied); the agy/gemini branch only
+#   has --sandbox (terminal restrictions), no per-tool allow/deny list — agy
+#   ships no such flags at all, and gemini's --allowed-tools is a deprecated
+#   auto-approve whitelist, not a deny-list. Set to 0, or set
+#   INGEST_PROVIDER=gemini explicitly, to opt back into agy/gemini.
 INGEST_SOURCES="${INGEST_SOURCES:-sources:Raw_Notes}"
 INGEST_PROVIDER="${INGEST_PROVIDER:-auto}"
+INGEST_PREFER_SAFE_PROVIDER="${INGEST_PREFER_SAFE_PROVIDER:-1}"
 INGEST_HOUR="${INGEST_HOUR:-7}"
 INGEST_MINUTE="${INGEST_MINUTE:-0}"
 INGEST_MAX_BUDGET="${INGEST_MAX_BUDGET:-1.00}"
@@ -38,6 +47,9 @@ INGEST_MAX_BYTES="${INGEST_MAX_BYTES:-512000}"
 # NOTE: $CLAUDE holds whichever binary won — it is the GEMINI binary when
 # AGENT_TYPE=gemini. Historical name; scripts branch on AGENT_TYPE, not the path.
 if [[ "$INGEST_PROVIDER" == "claude" ]]; then
+  CLAUDE="$(command -v claude || echo "$HOME/.local/bin/claude")"
+  AGENT_TYPE="claude"
+elif [[ "$INGEST_PROVIDER" == "auto" && "$INGEST_PREFER_SAFE_PROVIDER" == "1" ]] && command -v claude >/dev/null 2>&1; then
   CLAUDE="$(command -v claude || echo "$HOME/.local/bin/claude")"
   AGENT_TYPE="claude"
 elif command -v agy >/dev/null 2>&1; then
@@ -90,6 +102,26 @@ rotate_log() {
   return 0
 }
 
+# push_main — single gateway for pushing origin/main. Rebases with autostash
+# first (snapshot and healthcheck both publish to main; rebase avoids the
+# non-fast-forward races between them). Retries up to 2 more times (10s apart).
+# Never exits — returns non-zero after the final failure; caller decides.
+push_main() {
+  local attempt=1 max=3
+  while [ "$attempt" -le "$max" ]; do
+    if git pull --rebase --autostash origin main && git push origin main; then
+      echo "push_main: attempt $attempt succeeded"
+      return 0
+    fi
+    echo "push_main: attempt $attempt failed"
+    if [ "$attempt" -lt "$max" ]; then
+      sleep 10
+    fi
+    attempt=$((attempt + 1))
+  done
+  return 1
+}
+
 # remove_cron_job <label> — drop the marked entry, if any.
 remove_cron_job() {
   local marker="# agent-ws:${1}" tmp
@@ -104,8 +136,8 @@ remove_cron_job() {
 validate_config() {
   local var val
   for var in WORKSPACE VAULT SOURCES LOG_DIR LABEL_PREFIX CLAUDE AGENT_TYPE \
-             SCHEDULER INGEST_SOURCES INGEST_PROVIDER INGEST_HOUR INGEST_MINUTE \
-             INGEST_MAX_BUDGET INGEST_MAX_SECONDS; do
+             SCHEDULER INGEST_SOURCES INGEST_PROVIDER INGEST_PREFER_SAFE_PROVIDER \
+             INGEST_HOUR INGEST_MINUTE INGEST_MAX_BUDGET INGEST_MAX_SECONDS; do
     eval "val=\"\${$var:-}\""
     if [[ -z "$val" ]]; then
       echo "config.sh: $var is unset/empty" >&2

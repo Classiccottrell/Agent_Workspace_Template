@@ -118,7 +118,11 @@ Browser (Web Clipper)  →  Vault_Brain/sources/YYYY-MM-DD_Title.md
 - Watch the log: `tail -f System_Config/logs/daily_ingest.log`
 - Stop auto-ingest: `launchctl bootout gui/$(id -u)/$(whoami | sed 's/.*/com.&.vaultbrain.dailyingest/')`
 
-**Safety** — the ingest agent runs with shell access **denied** (`--disallowedTools Bash`), its working directory confined to the vault, clip files locked read-only during the run, and per-clip budget + time caps. It only **creates or appends** — never overwrites or deletes. Each clip is a separate Claude call, so a failure retries just that clip.
+**Safety** — provider gating is not uniform, so `System_Config/config.sh` defaults `INGEST_PROVIDER=auto` to prefer the stricter one (`INGEST_PREFER_SAFE_PROVIDER=1`):
+- **claude** (default when installed): fine-grained tool gating — `--allowedTools "Read,Write,Edit,Glob,Grep"` and `--disallowedTools "Bash,KillShell,Task,WebFetch,WebSearch,NotebookEdit"`. Shell and network tools are explicitly denied.
+- **agy/gemini** (used when `INGEST_PROVIDER=gemini` is set explicitly, or `INGEST_PREFER_SAFE_PROVIDER=0`): runs under `--sandbox` (OS-level terminal restrictions) only — neither CLI exposes an equivalent per-tool allow/deny list (`agy --help` has no such flag; `gemini`'s `--allowed-tools` is a deprecated auto-approve whitelist, not a deny-list, and its real restriction path is the policy engine, not a drop-in flag). Treat this path as sandboxed, not fine-grained-gated.
+
+Both paths share: working directory confined to the vault, clip files locked read-only during the run, and per-clip budget + time caps. The agent only **creates or appends** — never overwrites or deletes. Each clip is a separate call, so a failure retries just that clip.
 
 **Dedup** — processed clips are tracked in `sources/.ingested.log` by **content hash** (`<sha256>\t<filename>`), so the same article saved under a different filename won't be ingested twice. Re-running is also idempotent: the agent checks whether the wiki page already links the source and stops if so.
 

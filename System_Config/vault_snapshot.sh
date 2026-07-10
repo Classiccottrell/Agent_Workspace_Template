@@ -42,7 +42,9 @@ fi
 git commit -m "chore(vault): snapshot $(date +%F)" >> "$LOG" 2>&1
 
 if git remote get-url origin >/dev/null 2>&1; then
-  git push >> "$LOG" 2>&1 || log "push failed — snapshot committed locally"
+  # healthcheck.sh also publishes docs/status.* to origin/main from its own
+  # worktree every 4h — push_main's rebase-before-push avoids racing it.
+  push_main >> "$LOG" 2>&1 || log "push failed after retries — snapshot committed locally"
 else
   log "no origin remote — snapshot committed locally"
 fi

@@ -42,6 +42,7 @@ TOTAL=0; PASS_N=0; WARN_N=0; FAIL_N=0
 OVERALL="PASS"
 ROWS=""; SECTIONS=""; JSON_ITEMS=""
 CUR_SECTION=""; CUR_ICON=""
+STATUS_LIST=""   # accumulates "name<TAB>status" lines across all checks (Card #25 notifications)
 
 esc()      { printf '%s' "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'; }
 json_esc() { printf '%s' "$1" | tr '\n\r\t' '   ' | sed 's/\\/\\\\/g; s/"/\\"/g'; }
@@ -57,6 +58,7 @@ check() {
     *)    st="WARN"; WARN_N=$((WARN_N + 1)); dot="warn"; [ "$OVERALL" = "PASS" ] && OVERALL="WARN" ;;
   esac
   ROWS="${ROWS}<tr class=\"${dot}\"><td class=\"s\"><span class=\"dot ${dot}\"></span>${st}</td><td class=\"n\">$(esc "$name")</td><td class=\"d\">$(esc "$detail")</td></tr>"
+  STATUS_LIST="${STATUS_LIST}${name}"$'\t'"${st}"$'\n'
   [ -n "$JSON_ITEMS" ] && comma=","
   JSON_ITEMS="${JSON_ITEMS}${comma}{\"layer\":\"$(json_esc "$CUR_SECTION")\",\"status\":\"${st}\",\"name\":\"$(json_esc "$name")\",\"detail\":\"$(json_esc "$detail")\"}"
 }
@@ -390,6 +392,53 @@ printf '%s\t%d\t%d\t%d\t%d\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$ing_pending" "$in
 
 last_metrics_line="$(tail -1 "$METRICS" | tr '\t' ' ')"
 check PASS "Last metrics snapshot" "${last_metrics_line}"
+
+# ── Vault lint (Card #29b) — run read-only lint, surface counts. Never let a
+# lint error fail the healthcheck run. ────────────────────────────────────────
+lint_out="$(bash "$SYSCFG/vault_lint.sh" 2>/dev/null || true)"
+lint_orphan="$(printf '%s\n' "$lint_out" | grep -oE 'orphan wiki pages: [0-9]+' | grep -oE '[0-9]+' || echo 0)"
+lint_missing="$(printf '%s\n' "$lint_out" | grep -oE 'sources missing from _index.md: [0-9]+' | grep -oE '[0-9]+' || echo 0)"
+lint_stale="$(printf '%s\n' "$lint_out" | grep -oE 'stale pages [^:]*: [0-9]+' | grep -oE '[0-9]+$' || echo 0)"
+lint_schema="$(printf '%s\n' "$lint_out" | grep -oE 'schema violations: [0-9]+' | grep -oE '[0-9]+' || echo 0)"
+lint_orphan="${lint_orphan:-0}"; lint_missing="${lint_missing:-0}"; lint_stale="${lint_stale:-0}"; lint_schema="${lint_schema:-0}"
+if [ "$lint_orphan" -eq 0 ] && [ "$lint_missing" -eq 0 ] && [ "$lint_stale" -eq 0 ] && [ "$lint_schema" -eq 0 ]; then
+  check PASS "Vault lint" "0 orphans, 0 unindexed sources, 0 stale pages, 0 schema violations"
+else
+  check WARN "Vault lint" "${lint_orphan} orphan page(s), ${lint_missing} unindexed source(s), ${lint_stale} stale page(s), ${lint_schema} schema violation(s) — see logs/vault_lint.log"
+fi
+
+# ── Clip freshness (Card #30a) — mtime of newest .md in the FIRST INGEST_SOURCES dir ──
+CF_OLD_IFS="$IFS"; IFS=':'
+CF_DIRS=($INGEST_SOURCES)
+IFS="$CF_OLD_IFS"
+cf_first="${CF_DIRS[0]:-}"
+if [ -n "$cf_first" ] && [ -d "$VAULT/$cf_first" ]; then
+  cf_newest=$(newest_mtime "$VAULT/$cf_first"/*.md)
+  if [ "$cf_newest" -eq 0 ]; then
+    check WARN "Clip freshness" "no clips found in ${cf_first}/"
+  else
+    cf_age_days=$(( (NOW_EPOCH - cf_newest) / 86400 ))
+    if [ "$cf_age_days" -gt 14 ]; then
+      check WARN "Clip freshness" "no new clips in ${cf_age_days} days — check the web clipper extension (vault + path settings)"
+    else
+      check PASS "Clip freshness" "newest clip in ${cf_first}/ is ${cf_age_days}d old"
+    fi
+  fi
+else
+  check WARN "Clip freshness" "first INGEST_SOURCES dir missing: ${cf_first:-unset}"
+fi
+
+# ── FDA probe (Card #30b) — grep newest launchd .err for the FDA denial signature ──
+if [ -d "$LAUNCHD_LOG_DIR" ]; then
+  fda_newest_err="$(find "$LAUNCHD_LOG_DIR" -maxdepth 1 -type f -name '*.err' -exec stat -f '%m %N' {} \; 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)"
+  if [ -n "$fda_newest_err" ] && grep -q 'Operation not permitted' "$fda_newest_err" 2>/dev/null; then
+    check WARN "Full Disk Access probe" "launchd jobs may lack Full Disk Access for /bin/bash — see System_Config/README.md Prerequisites"
+  else
+    check PASS "Full Disk Access probe" "no launchd errors recorded"
+  fi
+else
+  check PASS "Full Disk Access probe" "no launchd errors recorded"
+fi
 end_section
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -449,6 +498,39 @@ TMPJ="$(mktemp 2>/dev/null || echo "${OUT_JSON}.tmp")"
 printf '{"generated":"%s","overall":"%s","pass":%d,"warn":%d,"fail":%d,"checks":[%s]}\n' \
   "$NOW_HUMAN" "$OVERALL" "$PASS_N" "$WARN_N" "$FAIL_N" "$JSON_ITEMS" > "$TMPJ"
 mv "$TMPJ" "$OUT_JSON"
+
+# ────────────────────────────────────────────────────────────────────────────
+# Transition-based macOS notifications (Card #25). Fire ONE combined
+# notification only when a check NEWLY becomes FAIL this run (vs its status
+# in the previous run), or when "Ingest recency" newly goes WARN (stale
+# ingest). Never repeats on consecutive runs with the same status. Never
+# affects the run's exit code — every step here is best-effort.
+# bash 3.2: no associative arrays, so the previous run's snapshot is matched
+# via awk against a flat "name<TAB>status" file instead.
+mkdir -p "$LOG_DIR"
+LAST_STATUS_FILE="$LOG_DIR/.last_status"
+PREV_FILE="$LAST_STATUS_FILE"
+[ -f "$PREV_FILE" ] || PREV_FILE=/dev/null
+NEWLY_FAILING=""
+while IFS=$'\t' read -r cname cstat; do
+  [ -n "$cname" ] || continue
+  prev="$(awk -F'\t' -v n="$cname" '$1==n{print $2; exit}' "$PREV_FILE" 2>/dev/null)"
+  notify=0
+  if [ "$cstat" = "FAIL" ] && [ "$prev" != "FAIL" ]; then
+    notify=1
+  elif [ "$cname" = "Ingest recency" ] && [ "$cstat" = "WARN" ] && [ "$prev" != "WARN" ]; then
+    notify=1
+  fi
+  [ "$notify" -eq 1 ] && NEWLY_FAILING="${NEWLY_FAILING}${NEWLY_FAILING:+, }${cname}"
+done <<< "$STATUS_LIST"
+
+if [ -n "$NEWLY_FAILING" ]; then
+  if command -v osascript >/dev/null 2>&1; then
+    osascript -e "display notification \"${NEWLY_FAILING} failing\" with title \"Agent Workspace\"" >/dev/null 2>&1 || true
+  fi
+fi
+
+printf '%s' "$STATUS_LIST" > "$LAST_STATUS_FILE" 2>/dev/null || true
 
 # NOTE: the snapshot is NOT written into the local working tree's docs/. Doing so
 # rewrote tracked docs/status.{js,json} on every run, leaving the checkout perpetually

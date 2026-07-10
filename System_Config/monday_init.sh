@@ -82,6 +82,22 @@ fi
 
 echo "[monday_init] Initializing W${WEEK_NUM} ${YEAR} — Sprint ${SPRINT}, Q${QUARTER}"
 
+# ── FRIDAY CLOSE-OUT CATCH-UP ─────────────────────────────────────────────────
+# If last week's note exists but was never closed out (no Friday snapshot),
+# run friday_process.sh against it now. Non-fatal; idempotent (snapshot
+# existing means it will not re-run).
+mlog() { echo "[$(date "+%Y-%m-%d %H:%M:%S")] $*" >> "$LOG_DIR/monday_init.log"; }
+LAST_TAG=$(date -v-7d +%G-W%V 2>/dev/null || date -d '7 days ago' +%G-W%V 2>/dev/null || true)
+if [[ -n "$LAST_TAG" ]]; then
+  LAST_NOTE="$WEEKLY_LOGS/${LAST_TAG}.md"
+  LAST_SNAP="$WEEKLY_LOGS/.${LAST_TAG}.fridayclose.snapshot.md"
+  if [[ -f "$LAST_NOTE" && ! -f "$LAST_SNAP" ]]; then
+    mlog "last week (${LAST_TAG}) never closed out — running catch-up"
+    bash "$(dirname "${BASH_SOURCE[0]}")/friday_process.sh" "$LAST_TAG" \
+      || mlog "catch-up failed — will not retry automatically"
+  fi
+fi
+
 # ── CARRY FORWARD open action items from the previous ISO week ────────────────
 # Previous week derived from MONDAY−7d (handles year/W01 rollover correctly).
 PY=$(date -v-7d -j -f "%Y-%m-%d" "$MONDAY" +%G 2>/dev/null || date -d "$MONDAY -7 days" +%G)
@@ -95,6 +111,9 @@ if [[ -f "$PREV_NOTE" ]]; then
   # stop at Decisions (permanent record, not carried forward); ignore 'Carried From' /
   # 'Weekend Edits' blocks (so items don't re-carry), drop 'Action item one'.
   CARRIED=$(awk '
+    infence && /^[[:space:]]*```/ { infence=0; if (cap) print; next }
+    infence                       { if (cap) print; next }
+    /^[[:space:]]*```/            { infence=1; if (cap) print; next }
     /^## Decisions/                            { exit }
     /^## Carried From/ || /^## Weekend Edits/  { skip=1; hdr=""; printed=0; cap=0; next }
     /^## /                  { skip=0; hdr=""; cap=0; next }
