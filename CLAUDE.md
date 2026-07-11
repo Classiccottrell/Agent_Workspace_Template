@@ -32,8 +32,23 @@
 
 ## Agent Dispatch
 * Subagents live in `.claude/agents/`. Invoke by name via the Task tool — never paste role-file text into a prompt.
-* Routing: architecture/schema → `architect`; implementation → `coder`; `Projects/` lifecycle → `eng-manager`; `Final_Products/` archival → `archivist`; `Vault_Brain/` knowledge → `curator`; brand/visual/copy/design-feedback → `creative-director`.
+* Routing: architecture/schema → `architect`; implementation → `coder`; `Projects/` lifecycle → `eng-manager`; `Final_Products/` archival → `archivist`; `Vault_Brain/` knowledge → `curator`; brand/visual/copy/design-feedback → `creative-director`; production-repo PR regression/QA → `qa`.
 * For UI work, use `/master-orchestrator` to select the right skill(s) from `~/.claude/skills/` and inject them into `coder` prompts. The `.cursor/rules/skill.md` design profile is available as a fallback for Cursor IDE users.
+
+<!-- SHARED:pr_quality_gate:BEGIN (source: System_Config/orchestrator-rules.md — edit there, run sync_rules.sh) -->
+## Production PR Quality Gate
+* Pattern: a task produces a code change intended for a PR against an existing, cloned repository under `Projects/` — not a project scaffolded fresh from `Projects/_TEMPLATE/`.
+* Execute:
+  1. `coder` implements the change and runs the repo's own lint/typecheck commands — mandatory, not optional.
+  2. Dispatch `qa` to run the repo's unit tests, check for existing e2e coverage before authoring new coverage, run it against a reachable dev environment, and compile a QA report (see `.claude/agents/qa.md`).
+  3. `eng-manager` validates `qa`'s report as a precondition before drafting a PR — a failed or missing QA report blocks drafting.
+  4. **Stop and present the drafted PR (branch, diff, QA report) to the user for explicit go-ahead.** No PR is created without this checkpoint.
+  5. Only on user approval does anything call `gh pr create`.
+  6. If the workspace tracks work items in an external tracker, link the PR back to the tracked item using that tracker's own convention.
+  7. Log the decision/session per the workspace's own session-logging convention, if one exists.
+* No ad-hoc general-purpose agent dispatch for production-repo code changes. Always the named roster: `coder` / `qa` / `eng-manager`.
+* Branch naming: if the work is tied to a tracked item, prefix the branch with that item's ID, e.g. `<TRACKING-ID>-short-description` — never a bare description.
+<!-- SHARED:pr_quality_gate:END -->
 
 <!-- SHARED:delivery:BEGIN (source: System_Config/orchestrator-rules.md — edit there, run sync_rules.sh) -->
 ## Git & GitHub (token discipline)
@@ -41,6 +56,7 @@
 * Prefer: `gh pr create`, `gh pr view`, `gh issue list`, `gh repo create`.
 * Branch before committing on the default branch.
 * If `gh` is missing: `brew install gh && gh auth login`. Fall back to plain `git` + remote URL.
+* Never scrape a token via the git credential helper (e.g. `git credential fill`) plus a raw `curl` call as a workaround for a missing `gh` CLI — install and authenticate `gh` instead (see the line above).
 
 ## Documentation Integrity
 * After ANY change to system files (scripts, agents, config, schema, structure), check the governing doc and update it IN THE SAME TASK if now out of date.
@@ -49,10 +65,10 @@
 * **After creating, archiving, or renaming any project folder**, run `bash System_Config/update_active_projects.sh` to sync the `## Active Projects` table in `Projects/.AGENT.MD`. Healthcheck Layer E warns when the table is stale.
 * Update docs in place. Never spawn a separate summary.md.
 
-## HTML Page Template (Vega Design System)
-* **Single source of truth:** `System_Config/html-template.html` — canonical template with Vega CSS, header, footer, and structure.
+## HTML Page Template (ClassicCottrell Design System)
+* **Single source of truth:** `System_Config/html-template.html` — canonical template with ClassicCottrell CSS, header, footer, and structure.
 * **When creating or updating any `.html` file:** Copy `System_Config/html-template.html` as the scaffold. Never hand-write the CSS block.
-* **The CSS block (Vega HSL design tokens)** is frozen at the top of the template with an update date. All pages inline this block; it's designed for portability across independent workspace instances.
+* **The CSS block (ClassicCottrell design tokens)** is frozen at the top of the template with an update date. All pages inline this block; it's designed for portability across independent workspace instances.
 * **Structure required on every page:**
   - Sticky header with `.wordmark` (links to parent index); `.back` button (when present) sits in a `.subnav` row directly below the header, not inside it
   - `<main><div class="wrap">` content area

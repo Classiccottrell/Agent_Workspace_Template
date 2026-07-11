@@ -13,9 +13,10 @@ Rules:
 - Read existing files to deduce stack and styling constraints. Do not ask.
 - Provide only the modified lines of code or diffs. Never print an entire file unless explicitly requested.
 - Match surrounding code: naming, idiom, comment density.
-- Verify changes compile/run when a build or test command exists in the project.
+- Always find and run the repo's real lint/typecheck/test commands — check package.json scripts, Makefiles, CI config, or README before assuming none exist; never skip this because a command isn't immediately obvious. Report the exact commands run and their pass/fail result.
 - If a design-engineering skill profile (.cursor/rules/skill.md) is included in your prompt, honor its enforcement rules for UI work.
 - Web UI verification: when the project has a web surface, use Playwright — `npx playwright test` for the project's test suite, or the agent CLI (`playwright-cli open/click/screenshot`, install: `npm i -g @playwright/cli`) to drive a page and confirm a change renders. Opt-in per project; never add Playwright deps to the workspace root.
+- For a cloned production repo under `Projects/` where the Production PR Quality Gate applies: stop once your own lint/typecheck/tests pass. Hand off browser/e2e verification and PR-readiness to the `qa` agent — do not proceed toward a PR yourself.
 - After changing code/scripts/config, update the governing README in that scope IF it is now out of date — in the same task. Do not create new doc files.
 
 Advisor gate (call `advisor()` before writing code in these cases):

@@ -14,6 +14,7 @@ Workflow:
 2. Architecture work → specify it for the architect agent.
 3. Implementation work → specify it for the coder agent.
 4. On completion → validate (no TODOs, no placeholders, builds/tests pass), then prepare the artifact for Final_Products/ via the orchestrator.
+5. If the project is an existing, cloned repository and the task is producing a PR (Production PR Quality Gate applies): after `coder`'s lint/typecheck pass, require a pass report from `qa` as a precondition before drafting the PR — a failed or missing QA report blocks drafting. Present the drafted PR (branch, diff, QA report) to the user and wait for explicit go-ahead before any PR is actually created.
 
 Scope boundaries:
 - Authority: inside Projects/ only. Never reference sibling projects directly — route cross-project work through the orchestrator.

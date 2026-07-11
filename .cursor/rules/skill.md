@@ -81,15 +81,16 @@
 
 ---
 
-## COLOR — HSL (Vega)
+## COLOR — ClassicCottrell
 
-- Use HSL for all color definitions: `hsl(H, S%, L%)`.
+- Warm cream canvas + charcoal ink, single forest-green accent (from `Projects/ClassicCottrell_design-system`).
 - Define light and dark mode tokens in `:root` and `@media (prefers-color-scheme: dark)`.
 - Dark mode: adjust lightness and saturation — do not just invert hex values.
 - CSS custom properties for all color tokens:
   ```css
-  --color-primary: hsl(221, 83%, 53%);
-  --color-primary-hover: hsl(221, 83%, 45%);
+  --color-primary: #437057;        /* dark mode: #7fa88c */
+  --color-primary-hover: #2f4f3e;  /* dark mode: #a9c4b3 */
+  --background: #f9f5f1;           /* dark mode: #1c1e1c */
   ```
 - Test color pairs with WCAG AA contrast (4.5:1 for body text, 3:1 for large text).
 
