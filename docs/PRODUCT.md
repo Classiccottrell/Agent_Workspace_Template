@@ -22,7 +22,7 @@ multi-agent workspace. They read code and a terminal; respect their fluency.
 
 ## Brand & design system — IDENTITY PRESERVATION WINS
 
-The site already ships a committed design system — the **shadcn/ui "Vega" theme**
+The site already ships a committed design system — the **ClassicCottrell design system** (warm cream canvas, forest-green accent, Rosarivo serif / Red Hat Display sans)
 (`System_Config/html-template.html`). Do **not** reinvent the palette or swap
 fonts. Polish strictly within these committed tokens:
 
