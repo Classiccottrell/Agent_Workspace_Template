@@ -75,7 +75,7 @@ and **no output**, before the script runs. The scripts' own logs still live in
 | `syncskills.plist.tmpl` | launchd agent template: fires via WatchPaths on `~/.agents/skills` + hourly + at login. Rendered into `~/Library/LaunchAgents/` by the installer. |
 | `install_sync_skills.sh` | Render + install/reload the skill-sync agent (idempotent). |
 | `friday_archive.sh` | Archive the week's note (manual / `cron 0 18 * * 5`). |
-| `obsidian-webclipper-template.json` | Obsidian Web Clipper template → writes clips to the vault's `sources/` folder with frontmatter (filename via `{{title\|safe_name}}`). |
+| `clipper-templates/` | Web-clipper templates and their README. `obsidian-webclipper.json` (Obsidian Web Clipper, the default KB) and `marksnip-frontmatter.md` (MarkSnip) both write a contract-shaped `.md` into `Vault_Brain/sources/` with structured frontmatter. |
 | `build_how_i_write.sh` | Build the personal `how-i-write` writing-voice skill from a folder of writing samples, one bounded headless call (agy/gemini/claude, whichever config.sh resolves). Writes only to `~/.claude/skills/how-i-write/SKILL.md`; never overwrites an existing one. Invoked by `bootstrap.sh` (step 5c); also runs by hand. |
 | `how-i-write-template.md` | Canonical, generic scaffold for the writing-voice skill (white-label — no personal content). Copied to `~/.claude/skills/how-i-write/SKILL.md` by `build_how_i_write.sh` before the agent fills it in. |
 | `logs/` | Per-job **script** logs (`daily_ingest.log`, `healthcheck.log`, …) in the workspace. The launchd `.out`/`.err` redirects live in `~/Library/Logs/$LABEL_PREFIX/` (see Prerequisites). |
