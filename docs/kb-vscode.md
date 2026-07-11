@@ -49,7 +49,8 @@ After installing Foam, create `Vault_Brain/.vscode/settings.json` (if not alread
   "foam.openDailyNote.titleFormat": "Week of YYYY-MM-DD",
   "foam.files.ignore": [
     "**/.git/**",
-    "**/node_modules/**"
+    "**/node_modules/**",
+    "**/.obsidian/**"
   ],
   "markdown.links.openLocation": "currentGroup"
 }
@@ -110,11 +111,12 @@ tags: source, clipping{{keywords}}
 
 1. **Web clip:** click MarkSnip → file lands in `Vault_Brain/sources/`.
 2. **Quick note:** `⌘N` in VS Code → new `.md` (save to `Vault_Brain/sources/` with frontmatter when ready to ingest).
-3. **Run ingest** (or let the 07:00 launchd job handle it):
+3. **Process inbox:** promote notes from `Vault_Brain/inbox/` to `Vault_Brain/sources/` with standard frontmatter before running ingest.
+4. **Run ingest** (or let the 07:00 launchd job handle it):
    ```bash
    bash System_Config/daily_ingest.sh
    ```
-4. **Search:** `⌘⇧F` in VS Code, or:
+5. **Search:** `⌘⇧F` in VS Code, or:
    ```bash
    rg "your search term" Vault_Brain/
    ```
@@ -129,6 +131,8 @@ tags: source, clipping{{keywords}}
 | Backlinks panel | Foam: BACKLINKS sidebar |
 | `[[wikilinks]]` | Foam autocomplete |
 | Daily notes | Foam: Open Daily Note |
+| Themes | VS Code color themes |
+| Starred notes | VS Code bookmarks or pinned tabs |
 | Quick switcher | `⌘P` file search |
 | Full-text search | `⌘⇧F` |
 
