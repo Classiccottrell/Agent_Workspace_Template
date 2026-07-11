@@ -196,12 +196,12 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
   <div class="wrap"><a class="back" href="index.html">&#8592; Docs</a></div>
 </div>
 
-<main id="main">
+<main id="main" tabindex="-1">
 
-  <section class="hero" id="top">
+  <section class="hero" id="top" aria-labelledby="top-h">
     <div class="wrap reveal">
       <p class="eyebrow">// agent workspace template &middot; the story</p>
-      <h1>Stop rebuilding your AI setup.</h1>
+      <h1 id="top-h">Stop rebuilding your AI setup.</h1>
       <p class="lede">Every time Claude Code evolves, most developers rebuild from scratch: new agent files, new automation, new knowledge store, new conventions. This template ends that loop. Clone it once. The agents, the automation, the knowledge pipeline, the health monitoring &#8212; all wired, all running, all self-checking.</p>
       <div class="cta-row">
         <a class="btn btn-primary" href="https://github.com/Classiccottrell/Agent_Workspace_Template" rel="noopener">Clone on GitHub &#8599;</a>
@@ -210,11 +210,11 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
     </div>
   </section>
 
-  <section id="outcomes">
+  <section id="outcomes" aria-labelledby="outcomes-h">
     <div class="wrap reveal">
       <div class="rule-top">
         <p class="eyebrow">// what you get</p>
-        <h2>Six outcomes, zero setup debt</h2>
+        <h2 id="outcomes-h">Six outcomes, zero setup debt</h2>
         <p>Everything below is in the repo on day one. Not a starter &#8212; a complete operating environment.</p>
         <div class="grid-3">
 
@@ -288,11 +288,11 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
     </div>
   </section>
 
-  <section id="day">
+  <section id="day" aria-labelledby="day-h">
     <div class="wrap reveal">
       <div class="rule-top">
         <p class="eyebrow">// a day in the life</p>
-        <h2>What it actually looks like to use this</h2>
+        <h2 id="day-h">What it actually looks like to use this</h2>
         <p>This is a representative day. The automation runs whether you&#8217;re at your desk or not.</p>
         <ul class="tl">
 
@@ -336,11 +336,11 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
     </div>
   </section>
 
-  <section id="workflow">
+  <section id="workflow" aria-labelledby="workflow-h">
     <div class="wrap reveal">
       <div class="rule-top">
         <p class="eyebrow">// before &amp; after</p>
-        <h2>What actually changes when you use this</h2>
+        <h2 id="workflow-h">What actually changes when you use this</h2>
         <p>Six workflow comparisons. The left column is the default state of the art; the right is what this template delivers.</p>
         <div class="ba-grid">
 
@@ -457,11 +457,11 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
     </div>
   </section>
 
-  <section id="start">
+  <section id="start" aria-labelledby="start-h">
     <div class="wrap reveal">
       <div class="rule-top">
         <p class="eyebrow">// get started</p>
-        <h2>Clone, bootstrap, operate</h2>
+        <h2 id="start-h">Clone, bootstrap, operate</h2>
         <p>Three commands. The health check at the end tells you everything is working.</p>
         <div class="term">
           <div class="term-bar"><span class="dot" aria-hidden="true"></span><span class="dot" aria-hidden="true"></span><span class="dot" aria-hidden="true"></span><span style="margin-left:.5rem">bash &#8212; agent-workspace</span></div>
@@ -529,7 +529,7 @@ document.documentElement.classList.add('js');
       if(en.isIntersecting){
         links.forEach(function(l){l.classList.remove('active');l.removeAttribute('aria-current');});
         var a=map[en.target.id];
-        if(a){a.classList.add('active');a.setAttribute('aria-current','true');}
+        if(a){a.classList.add('active');a.setAttribute('aria-current','location');}
       }
     });
   },{rootMargin:'-40% 0px -55% 0px'});
