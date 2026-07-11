@@ -21,6 +21,8 @@ if [ -z "$SAMPLES_DIR" ] || [ ! -d "$SAMPLES_DIR" ]; then
   echo "Usage: bash System_Config/build_how_i_write.sh <path-to-writing-samples-folder>" >&2
   exit 1
 fi
+# Canonicalize to absolute NOW — we cd elsewhere below, and the scratch-copy
+# step must resolve correctly regardless of the caller's original cwd.
 SAMPLES_DIR="$(cd "$SAMPLES_DIR" && pwd)"
 
 SKILL_DIR="$HOME/.claude/skills/how-i-write"
@@ -37,6 +39,9 @@ if [ ! -f "$SCAFFOLD" ]; then
   exit 1
 fi
 
+# `|| true` guards the pipeline under `set -o pipefail`: a permission error
+# partway through -maxdepth 3 must not abort the script before we get a
+# chance to print a friendly "no samples found" warning.
 SAMPLE_COUNT=$(find "$SAMPLES_DIR" -maxdepth 3 -type f \( -name '*.md' -o -name '*.txt' \) 2>/dev/null | wc -l | tr -d ' ' || true)
 SAMPLE_COUNT="${SAMPLE_COUNT:-0}"
 if [ "$SAMPLE_COUNT" -eq 0 ]; then
@@ -53,21 +58,25 @@ ts()  { date "+%Y-%m-%d %H:%M:%S"; }
 log() { echo "[$(ts)] $*" >> "$LOG"; }
 log "build_how_i_write start: samples=$SAMPLES_DIR count=$SAMPLE_COUNT agent_type=${AGENT_TYPE:-claude}"
 
-MAX_SECONDS="${MAX_SECONDS:-900}"
+MAX_SECONDS="${MAX_SECONDS:-900}"   # wall-clock watchdog (bootstrap.sh passes 300 for the interactive path)
 MAX_BUDGET="${MAX_BUDGET:-2.00}"    # USD ceiling — Claude path only; gemini/agy has no budget flag here (see daily_ingest.sh)
 
 if [[ -r "$HOME/.config/anthropic/key" ]]; then
   export ANTHROPIC_API_KEY="$(cat "$HOME/.config/anthropic/key")"
 fi
 
+# Disposable read-only COPY of the samples, staged inside the write-jail
+# (cwd). No cross-directory grant flag needed for either CLI, and the user's
+# real folder is never chmod'd or exposed to Write/Edit — we only ever read
+# from it, once, before this point.
 SCRATCH="$SKILL_DIR/.build-samples"
-cleanup_scratch() { rm -rf "$SCRATCH"; }
+# Restore write permission before any removal so rm -rf succeeds even when
+# a-w was set during the run (mirrors daily_ingest.sh restore-then-act pattern).
+cleanup_scratch() { chmod -R u+w "$SCRATCH" 2>/dev/null || true; rm -rf "$SCRATCH"; }
 trap cleanup_scratch EXIT
-rm -rf "$SCRATCH"; mkdir -p "$SCRATCH"
+chmod -R u+w "$SCRATCH" 2>/dev/null || true; rm -rf "$SCRATCH"; mkdir -p "$SCRATCH"
 cp -R "$SAMPLES_DIR"/. "$SCRATCH"/
-# Lock files only (not the directory itself) so the EXIT trap's rm -rf can still
-# unlink them — mirrors daily_ingest.sh's "files read-only, dir stays writable" pattern.
-find "$SCRATCH" -type f -exec chmod a-w {} + 2>/dev/null || true
+chmod -R a-w "$SCRATCH" 2>/dev/null || true   # harmless best-effort; it's a disposable copy either way
 
 PROMPT="You are running headlessly, ONE time, to fill in a personal writing-voice
 skill from the user's own writing samples.
@@ -114,6 +123,10 @@ set -e
 if [ "$rc" -eq 0 ]; then
   log "build_how_i_write done: OK"
 else
+  # Explicit cleanup here, not via a trap (the EXIT trap slot is already used
+  # by cleanup_scratch — bash keeps only the last `trap ... EXIT`). Deleting
+  # the placeholder-filled SKILL.md on failure stops the anti-overwrite guard
+  # from wedging on retry.
   rm -f "$SKILL_FILE"
   log "build_how_i_write done: FAILED rc=$rc (may have timed out after ${MAX_SECONDS}s) — SKILL.md removed, retry any time"
 fi
