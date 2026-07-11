@@ -47,6 +47,7 @@ Vault_Brain/sources/.ingested.log
 
 # ── Claude Code local state ──────────────────────────────────────────────
 .claude/settings.local.json
+.claude/worktrees/
 
 # ── MCP config (user-specific; the .example is tracked) ──────────────────
 .mcp.json
