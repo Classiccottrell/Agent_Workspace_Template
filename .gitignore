@@ -60,10 +60,6 @@ Vault_Brain/sources/.ingested.log
 *.pem
 *.cert
 
-# ── WCM project — local-only folders (never commit) ──────────────────────
-Projects/WestCoastModern/WCM_Local_Files/
-Projects/WestCoastModern/WCM-Test/
-
 # ── Nested git repos (independent clones, not submodules) ────────────────
 Projects/impeccable/
 Projects/tweakcn/
@@ -77,7 +73,6 @@ Projects/Brutal-UX/app/
 
 # ── Tool cache / stray worktrees ───────────────────────────────────────
 **/.impeccable/
-Projects/WestCoastModern/WCM/.claude/worktrees/
 
 .claude/skills/how-i-write/
 .agents/skills/how-i-write/
