@@ -7,29 +7,33 @@
 <meta http-equiv="refresh" content="300">
 <title>System Health — Agent Workspace Template</title>
 <meta name="description" content="Live health dashboard for the Agent Workspace: every layer — orchestration, automation, knowledge, persistence, and documentation currency — probed and reported.">
-<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="hsl(222,84%,5%)" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f9f5f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1c1e1c" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:ital,wght@0,400..700;1,400..700&amp;family=Rosarivo:ital@0;1&amp;display=swap" rel="stylesheet">
 <style>
-/* shadcn/ui Vega theme — 2026-06-30 */
+/* ClassicCottrell design system — 2026-07-10 */
 :root{
-  --bg:#ffffff;--surface:#ffffff;
-  --ink:hsl(222,47%,11%);--ink-2:hsl(215,16%,35%);--muted:hsl(215,16%,47%);--rule:hsl(214,32%,91%);
-  --accent:hsl(221,83%,53%);--accent-hover:hsl(221,83%,45%);--accent-ink:#ffffff;
-  --accent-soft:hsl(214,96%,97%);--accent-soft-ink:hsl(221,60%,30%);
-  --ok:hsl(142,71%,45%);--warn:hsl(38,92%,50%);--fail:hsl(0,84%,60%);
-  --ok-soft:hsl(142,71%,96%);--warn-soft:hsl(38,92%,95%);--fail-soft:hsl(0,84%,97%);
-  --radius:0.5rem;--shadow:0 1px 3px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.06);
-  --sans:"Inter",ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --bg:#f9f5f1;--surface:#fffdfb;
+  --ink:#2c2c2c;--ink-2:#4a463f;--muted:#77726a;--rule:#e4ddd2;
+  --accent:#437057;--accent-hover:#2f4f3e;--accent-ink:#f9f5f1;
+  --accent-soft:#e2ebe4;--accent-soft-ink:#2f4f3e;
+  --ok:#437057;--warn:#a07d33;--fail:#b4462f;
+  --ok-soft:#e2ebe4;--warn-soft:#f3ecdd;--fail-soft:#f6e3dd;
+  --radius:0.625rem;--shadow:0 1px 3px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.06);
+  --sans:"Red Hat Display",ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --serif:"Rosarivo",Georgia,"Times New Roman",serif;
   --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme:dark){
   :root{
-    --bg:hsl(222,84%,5%);--surface:hsl(222,47%,11%);
-    --ink:hsl(210,40%,98%);--ink-2:hsl(215,20%,82%);--muted:hsl(215,20%,60%);--rule:hsl(217,33%,18%);
-    --accent:hsl(217,91%,60%);--accent-hover:hsl(217,91%,70%);--accent-ink:#ffffff;
-    --accent-soft:hsl(217,33%,15%);--accent-soft-ink:hsl(214,85%,75%);
-    --ok:hsl(142,71%,55%);--warn:hsl(38,92%,60%);--fail:hsl(0,72%,60%);
-    --ok-soft:hsl(142,40%,13%);--warn-soft:hsl(38,50%,14%);--fail-soft:hsl(0,50%,15%);--shadow:none;
+    --bg:#1c1e1c;--surface:#262825;
+    --ink:#f2ede5;--ink-2:#cfcac0;--muted:#a7a297;--rule:rgba(255,255,255,.12);
+    --accent:#7fa88c;--accent-hover:#a9c4b3;--accent-ink:#16211a;
+    --accent-soft:#33413a;--accent-soft-ink:#cfe0d5;
+    --ok:#7fa88c;--warn:#c2a878;--fail:#d9694f;
+    --ok-soft:#33413a;--warn-soft:#3a3426;--fail-soft:#3d2a24;--shadow:none;
   }
 }
 *{box-sizing:border-box}
@@ -102,6 +106,9 @@ footer.site a{color:var(--accent);text-decoration:underline;text-underline-offse
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important}}
 .subnav{border-bottom:1px solid var(--rule)}
 .subnav .wrap{padding:.55rem clamp(1.25rem,5vw,3rem)}
+
+/* editorial display type — ClassicCottrell */
+h1,h2,.hero h1{font-family:var(--serif);font-weight:400;letter-spacing:0}
 </style>
 </head>
 <body>
