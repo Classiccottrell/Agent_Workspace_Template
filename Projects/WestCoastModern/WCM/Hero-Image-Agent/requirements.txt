@@ -1,3 +1,0 @@
-anthropic>=0.40
-Pillow>=9.1
-watchdog>=3.0
