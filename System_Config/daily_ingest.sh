@@ -264,6 +264,7 @@ for d in "${DIRS[@]}"; do
 done
 
 restore_sources
+bash "$(dirname "${BASH_SOURCE[0]}")/kb_adapter.sh" || true
 # pending = new clips seen minus ingested, among dirs actually SCANNED this run.
 # If the quota wall broke the loop early, dirs not yet reached aren't counted
 # here — the WALL log line above already flags that remaining clips retry next run.

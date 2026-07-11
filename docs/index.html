@@ -228,14 +228,14 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
   </div>
 </header>
 
-<main id="main">
+<main id="main" tabindex="-1">
 
-  <section class="hero" id="top">
+  <section class="hero" id="top" aria-labelledby="top-h">
     <div class="wrap reveal">
       <div class="hero-grid">
         <div>
           <p class="eyebrow">// multi-agent operating environment · macOS · Claude Code</p>
-          <h1>A one-person, multi-agent operating environment</h1>
+          <h1 id="top-h">A one-person, multi-agent operating environment</h1>
           <p class="lede">A root orchestrator decomposes work and delegates to six scoped subagents. A pluggable Markdown knowledge layer holds your durable knowledge, fed automatically from web clips, and macOS <code>launchd</code> jobs keep the whole thing ingesting, summarizing, and self-checking in the background.</p>
           <div class="cta-row">
             <a class="btn btn-primary" href="https://github.com/Classiccottrell/Agent_Workspace_Template" rel="noopener">View on GitHub ↗</a>
@@ -421,11 +421,11 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
     </div>
   </section>
 
-  <section id="layout">
+  <section id="layout" aria-labelledby="layout-h">
     <div class="wrap reveal">
       <div class="rule-top">
         <p class="eyebrow">// workspace layout</p>
-        <h2>The directory tree</h2>
+        <h2 id="layout-h">The directory tree</h2>
         <figure class="tree">
 <pre>your-workspace/
 ├── README.md                 <span class="cmt">← spin-up guide / entry point</span>
@@ -457,11 +457,11 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
     </div>
   </section>
 
-  <section id="conventions">
+  <section id="conventions" aria-labelledby="conventions-h">
     <div class="wrap reveal">
       <div class="rule-top">
         <p class="eyebrow">// conventions &amp; constraints</p>
-        <h2>The rules it runs by</h2>
+        <h2 id="conventions-h">The rules it runs by</h2>
         <dl class="conv">
           <div><dt>bash 3.2</dt><dd>Scripts run on stock macOS <code>/bin/bash</code> — no associative arrays, no <code>mapfile</code>, no bash 4+ syntax.</dd></div>
           <div><dt>relocatable</dt><dd>Nothing hardcoded. Every script sources <code>config.sh</code>, which derives the workspace path, vault paths, and the <code>launchd</code> label namespace from its own location.</dd></div>
@@ -473,11 +473,11 @@ footer .colophon{font-family:var(--mono);font-size:.8rem}
     </div>
   </section>
 
-  <section id="prerequisites">
+  <section id="prerequisites" aria-labelledby="prerequisites-h">
     <div class="wrap reveal">
       <div class="rule-top">
         <p class="eyebrow">// prerequisites &amp; pointers</p>
-        <h2>Before you bootstrap</h2>
+        <h2 id="prerequisites-h">Before you bootstrap</h2>
         <p class="prereq"><strong>Requires:</strong> macOS with <code>launchd</code> (the install step is mac-only); the Claude Code CLI installed and logged in; stock <code>/bin/bash</code> (3.2) — no extra shell needed; a knowledge viewer is optional — bootstrap guides you to Obsidian or VS Code + Foam; and a one-time grant of Full Disk Access to <code>/bin/bash</code> if you install the background automation, so the scheduled jobs can read your workspace.</p>
         <h3 style="margin-top:1.5rem;margin-bottom:.75rem">Further reading</h3>
         <ul class="points">
@@ -524,7 +524,7 @@ document.documentElement.classList.add('js');
       if(en.isIntersecting){
         links.forEach(function(l){l.classList.remove('active');l.removeAttribute('aria-current');});
         var a=map[en.target.id];
-        if(a){a.classList.add('active');a.setAttribute('aria-current','true');}
+        if(a){a.classList.add('active');a.setAttribute('aria-current','location');}
       }
     });
   },{rootMargin:'-40% 0px -55% 0px'});
