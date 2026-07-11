@@ -43,10 +43,10 @@
 * **After creating, archiving, or renaming any project folder**, run `bash System_Config/update_active_projects.sh` to sync the `## Active Projects` table in `Projects/.AGENT.MD`. Healthcheck Layer E warns when the table is stale.
 * Update docs in place. Never spawn a separate summary.md.
 
-## HTML Page Template (Vega Design System)
-* **Single source of truth:** `System_Config/html-template.html` — canonical template with Vega CSS, header, footer, and structure.
+## HTML Page Template (ClassicCottrell Design System)
+* **Single source of truth:** `System_Config/html-template.html` — canonical template with ClassicCottrell CSS, header, footer, and structure.
 * **When creating or updating any `.html` file:** Copy `System_Config/html-template.html` as the scaffold. Never hand-write the CSS block.
-* **The CSS block (Vega HSL design tokens)** is frozen at the top of the template with an update date. All pages inline this block; it's designed for portability across independent workspace instances.
+* **The CSS block (ClassicCottrell design tokens)** is frozen at the top of the template with an update date. All pages inline this block; it's designed for portability across independent workspace instances.
 * **Structure required on every page:**
   - Sticky header with `.wordmark` (links to parent index); `.back` button (when present) sits in a `.subnav` row directly below the header, not inside it
   - `<main><div class="wrap">` content area
