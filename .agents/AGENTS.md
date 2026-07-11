@@ -44,8 +44,24 @@ Subagents and skills are configured in `.agents/skills/`. You can define them dy
 *   **Eng Manager** (`eng-manager`): `Projects/` lifecycle management.
 *   **Archivist** (`archivist`): `Final_Products/` archival.
 *   **Curator** (`curator`): `Vault_Brain/` knowledge management.
+*   **QA** (`qa`): Production-repo PR regression/QA. Claude Code only today (`.claude/agents/qa.md`) — no Gemini skill counterpart yet.
 
 For UI work, load the relevant design skill(s) and inject their rules into the `coder` skill prompt. The `.cursor/rules/skill.md` design-engineering profile is the portable fallback design source.
+
+<!-- SHARED:pr_quality_gate:BEGIN (source: System_Config/orchestrator-rules.md — edit there, run sync_rules.sh) -->
+## Production PR Quality Gate
+* Pattern: a task produces a code change intended for a PR against an existing, cloned repository under `Projects/` — not a project scaffolded fresh from `Projects/_TEMPLATE/`.
+* Execute:
+  1. `coder` implements the change and runs the repo's own lint/typecheck commands — mandatory, not optional.
+  2. Dispatch `qa` to run the repo's unit tests, check for existing e2e coverage before authoring new coverage, run it against a reachable dev environment, and compile a QA report (see `.claude/agents/qa.md`).
+  3. `eng-manager` validates `qa`'s report as a precondition before drafting a PR — a failed or missing QA report blocks drafting.
+  4. **Stop and present the drafted PR (branch, diff, QA report) to the user for explicit go-ahead.** No PR is created without this checkpoint.
+  5. Only on user approval does anything call `gh pr create`.
+  6. If the workspace tracks work items in an external tracker, link the PR back to the tracked item using that tracker's own convention.
+  7. Log the decision/session per the workspace's own session-logging convention, if one exists.
+* No ad-hoc general-purpose agent dispatch for production-repo code changes. Always the named roster: `coder` / `qa` / `eng-manager`.
+* Branch naming: if the work is tied to a tracked item, prefix the branch with that item's ID, e.g. `<TRACKING-ID>-short-description` — never a bare description.
+<!-- SHARED:pr_quality_gate:END -->
 
 <!-- SHARED:delivery:BEGIN (source: System_Config/orchestrator-rules.md — edit there, run sync_rules.sh) -->
 ## Git & GitHub (token discipline)
@@ -53,6 +69,7 @@ For UI work, load the relevant design skill(s) and inject their rules into the `
 * Prefer: `gh pr create`, `gh pr view`, `gh issue list`, `gh repo create`.
 * Branch before committing on the default branch.
 * If `gh` is missing: `brew install gh && gh auth login`. Fall back to plain `git` + remote URL.
+* Never scrape a token via the git credential helper (e.g. `git credential fill`) plus a raw `curl` call as a workaround for a missing `gh` CLI — install and authenticate `gh` instead (see the line above).
 
 ## Documentation Integrity
 * After ANY change to system files (scripts, agents, config, schema, structure), check the governing doc and update it IN THE SAME TASK if now out of date.

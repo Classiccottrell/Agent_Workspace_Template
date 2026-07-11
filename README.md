@@ -1,6 +1,6 @@
 # Agent Workspace Template
 
-A one-person, multi-agent operating environment — works with **[Claude Code](https://docs.claude.com/en/docs/claude-code)** and **[Gemini CLI](https://github.com/google-gemini/gemini-cli)** (Antigravity). A root **orchestrator** decomposes work and delegates to five scoped subagents (architect, coder, eng-manager, archivist, curator); a small Obsidian LLM-wiki ("Vault_Brain") holds your durable knowledge and is fed automatically from browser clips; and a set of macOS `launchd` jobs ("System_Config") keep the whole thing ingesting, summarizing, and self-checking in the background. Clone it, run one script, and you have a relocatable knowledge-and-delivery system that runs itself.
+A one-person, multi-agent operating environment — works with **[Claude Code](https://docs.claude.com/en/docs/claude-code)** and **[Gemini CLI](https://github.com/google-gemini/gemini-cli)** (Antigravity). A root **orchestrator** decomposes work and delegates to six scoped subagents (architect, coder, eng-manager, archivist, curator, qa); a small Obsidian LLM-wiki ("Vault_Brain") holds your durable knowledge and is fed automatically from browser clips; and a set of macOS `launchd` jobs ("System_Config") keep the whole thing ingesting, summarizing, and self-checking in the background. Clone it, run one script, and you have a relocatable knowledge-and-delivery system that runs itself.
 
 **Live overview:** https://classiccottrell.github.io/Agent_Workspace_Template/
 
@@ -58,7 +58,7 @@ This template is an Integrated Context Management (ICM) folder pattern layered o
 
 ### Agent roster
 
-The same five agents are available for both Claude Code and Gemini — the role definitions are identical, only the harness format differs.
+Most agents are available for both Claude Code and Gemini — the role definitions are identical, only the harness format differs. `qa` (production-repo PR regression/QA) is Claude Code only today.
 
 | Agent | Scope | Claude Code entry | Gemini entry | Hands off to |
 |-------|-------|-------------------|--------------|--------------|
@@ -67,6 +67,7 @@ The same five agents are available for both Claude Code and Gemini — the role 
 | **eng-manager** | `Projects/` lifecycle | `.claude/agents/eng-manager.md` | `.agents/skills/eng-manager/SKILL.md` | architect, coder |
 | **archivist** | `Final_Products/` artifacts | `.claude/agents/archivist.md` | `.agents/skills/archivist/SKILL.md` | orchestrator |
 | **curator** | `Vault_Brain/` knowledge | `.claude/agents/curator.md` | `.agents/skills/curator/SKILL.md` | orchestrator |
+| **qa** | Production-repo PR regression/QA | `.claude/agents/qa.md` | — (Claude Code only) | eng-manager |
 
 **Claude Code** — agents are invoked by name via the Task tool; never paste role text into a prompt.  
 **Gemini CLI** — skills are loaded from `.agents/skills/<role>/SKILL.md`; the orchestrator entry point is `.agents/AGENTS.md`.
@@ -88,7 +89,7 @@ your-workspace/
 │   └── skills/                 ← architect, coder, eng-manager, archivist, curator
 ├── .claude/
 │   ├── settings.json           ← project permissions + MCP allow-list
-│   └── agents/                 ← architect, coder, eng-manager, archivist, curator
+│   └── agents/                 ← architect, coder, eng-manager, archivist, curator, qa
 ├── System_Config/              ← automation hub (see System_Config/README.md)
 │   ├── config.sh               ← shared, relocatable config (sourced by every script)
 │   ├── daily_ingest.sh         ← ingest new clips into the wiki
