@@ -389,11 +389,15 @@ elif [ -t 0 ]; then
     read -r GH_REPLY || GH_REPLY=""
     case "$GH_REPLY" in
       [yY]*)
-        git branch -M main
-        if gh repo create "$(basename "$ROOT")" --private --source . --remote origin --push; then
-          echo "    [ok]   Repo created and pushed via gh."
+        if ! git rev-parse --git-dir >/dev/null 2>&1; then
+          echo "    [warn] Not a git repo (ZIP download?) — run 'git init && git add -A && git commit -m init' first."
         else
-          echo "    [warn] gh repo create failed — add a remote manually later."
+          git branch -M main 2>/dev/null || true
+          if gh repo create "$(basename "$ROOT")" --private --source . --remote origin --push; then
+            echo "    [ok]   Repo created and pushed via gh."
+          else
+            echo "    [warn] gh repo create failed — add a remote manually later."
+          fi
         fi
         ;;
       *) echo "    [skip] No remote configured. Later: gh repo create --private --source . --push" ;;
@@ -407,49 +411,27 @@ else
 fi
 
 if [ -n "$GIT_REMOTE" ]; then
-  git remote add origin "$GIT_REMOTE" 2>/dev/null || git remote set-url origin "$GIT_REMOTE"
-  git branch -M main
-  git push -u origin main
-  echo "    [ok]   Remote set: $GIT_REMOTE"
+  # Guarded: under `set -e` a failed push (no auth) or a ZIP download (no .git)
+  # must not abort the rest of the setup.
+  if git rev-parse --git-dir >/dev/null 2>&1; then
+    git remote add origin "$GIT_REMOTE" 2>/dev/null || git remote set-url origin "$GIT_REMOTE"
+    git branch -M main 2>/dev/null || true
+    if git push -u origin main; then
+      echo "    [ok]   Remote set: $GIT_REMOTE"
+    else
+      echo "    [warn] push failed (auth?) — setup continues; push later with: git push -u origin main"
+    fi
+  else
+    echo "    [warn] Not a git repo (ZIP download?) — run 'git init && git add -A && git commit -m init' first."
+  fi
 elif ! git remote get-url origin >/dev/null 2>&1; then
   echo "    [skip] No remote configured. Add later:"
   echo "           git remote add origin <url>   (or: gh repo create --private --source . --push)"
   echo "           git branch -M main && git push -u origin main"
 fi
 
-# ---------------------------------------------------------------------------
-# Hook wiring — doc currency check (idempotent).
-# ---------------------------------------------------------------------------
-echo "→ Wiring doc-currency hook into .claude/settings.json…"
-HOOK_PY="$ROOT/.claude/hooks/readme-currency-check.py"
-SETTINGS="$ROOT/.claude/settings.json"
-if [ -f "$HOOK_PY" ] && [ -f "$SETTINGS" ] && command -v python3 >/dev/null 2>&1; then
-  python3 - "$SETTINGS" "$HOOK_PY" << 'PYEOF2'
-import json, sys
-settings_path, hook_path = sys.argv[1], sys.argv[2]
-with open(settings_path) as f:
-    s = json.load(f)
-hooks = s.setdefault("hooks", {})
-pt = hooks.setdefault("PostToolUse", [])
-pt[:] = [h for h in pt if "readme-currency-check" not in str(h)]
-pt.append({
-    "matcher": "Write|Edit|MultiEdit",
-    "hooks": [{
-        "type": "command",
-        "command": f'python3 "{hook_path}" 2>/dev/null || true',
-        "timeout": 15,
-        "statusMessage": "README currency check"
-    }]
-})
-with open(settings_path, "w") as f:
-    json.dump(s, f, indent=2)
-    f.write("\n")
-PYEOF2
-  echo "    [ok]   Doc-currency hook wired at: $HOOK_PY"
-else
-  echo "    [skip] python3 not found or files missing — wire manually:"
-  echo "           Add to .claude/settings.json > hooks > PostToolUse (see docs/)"
-fi
+# NOTE: the doc-currency hook ships pre-wired in .claude/settings.json (it uses
+# $CLAUDE_PROJECT_DIR, so it is relocatable) — no bootstrap wiring step needed.
 
 # ---------------------------------------------------------------------------
 # 7. Next steps.

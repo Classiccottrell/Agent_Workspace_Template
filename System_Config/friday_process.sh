@@ -13,6 +13,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/config.sh"
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 # WORKSPACE / VAULT / LOG_DIR / CLAUDE come from config.sh.
+SYSCFG="$WORKSPACE/System_Config"   # config.sh does not define it; gen_site step needs it
 WEEKLY_LOGS="$VAULT/weekly-logs"
 MASTER="$VAULT/Master Note.md"
 LOG="$LOG_DIR/friday_process.log"

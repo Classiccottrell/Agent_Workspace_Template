@@ -6,6 +6,21 @@ All notable changes to this template are documented here. Format follows
 
 ## [Unreleased]
 
+### Fixed (hardening audit, 2026-07-17)
+- `friday_process.sh`: define `SYSCFG` — the microsite-regen step crashed every Friday run under `set -u`
+- `healthcheck.sh`: memory-dir slug now matches Claude Code's real slugging (`_`/`.`/space → `-`), so Layer H checks the directory that actually exists
+- Doc-currency hook ships pre-wired in `.claude/settings.json` (bootstrap wiring block removed; hook uses `$CLAUDE_PROJECT_DIR`)
+- `bootstrap.sh`: git remote/push steps guarded — a ZIP download (no `.git`) or failed auth no longer aborts setup mid-way
+- `run_agent.sh`: watchdog escalates TERM → KILL after 20s so a wedged CLI can't hang a scheduled job forever; `cd "$VAULT"` failure aborts the call
+- `update_active_projects.sh`: exits 1 with an error if the `## Active Projects` heading is missing instead of silently doing nothing
+- `healthcheck.sh`: agent-roster check now includes `qa`
+
+### Added (hardening audit, 2026-07-17)
+- `daily_ingest.sh`: concurrency lock (`logs/daily_ingest.lock`) — overlapping runs skip instead of racing the manifest and chmod source-locking
+- `daily_ingest.sh`: poisoned-clip quarantine — 3 failed/no-op attempts park a clip in `<dir>/.failed.log`; healthcheck Layer I surfaces the count
+- `healthcheck.sh` Layer E: warns when the `## Active Projects` table drifts from `Projects/` reality
+- `test.sh`: `py_compile` on hook + `gen_site.py`, JSON validation of `settings.json` / `.mcp.json.example`
+
 ### Added
 - CI self-tests: `System_Config/test.sh` + GitHub Actions workflow
 - Vault schema versioning (`.vault-schema` + `migrate_vault.sh`)

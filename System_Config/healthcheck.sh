@@ -27,8 +27,9 @@ source "$(dirname "${BASH_SOURCE[0]}")/config.sh"
 SYSCFG="$WORKSPACE/System_Config"
 MANIFEST="$SOURCES/.ingested.log"
 AGENTS="$WORKSPACE/.claude/agents"
-# Claude Code stores per-project memory under a slug of the workspace path.
-WS_SLUG="$(printf '%s' "$WORKSPACE" | sed 's|/|-|g')"
+# Claude Code stores per-project memory under a slug of the workspace path
+# ('/', '_', '.', and spaces all become '-').
+WS_SLUG="$(printf '%s' "$WORKSPACE" | tr '/_. ' '----')"
 MEMDIR="$HOME/.claude/projects/${WS_SLUG}/memory"
 OUT_HTML="$SYSCFG/status_page.html"
 OUT_JSON="$SYSCFG/status.json"
@@ -104,7 +105,7 @@ if [ -d "$AGENTS" ]; then
   acount=$(find "$AGENTS" -maxdepth 1 -type f -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
   if [ "$acount" -ge 1 ]; then check PASS "Subagents directory" ".claude/agents/ present (${acount} files)"; else check FAIL "Subagents directory" ".claude/agents/ exists but is EMPTY"; fi
   roster_total=0; roster_ok=0; roster_names=""
-  for ag in architect coder eng-manager archivist curator creative-director; do
+  for ag in architect coder eng-manager archivist curator creative-director qa; do
     f="$AGENTS/$ag.md"
     roster_total=$((roster_total + 1))
     if [ -s "$f" ]; then
@@ -283,6 +284,30 @@ if [ -d "$WORKSPACE/Projects" ]; then
   pc=$(find "$WORKSPACE/Projects" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
   check PASS "Projects workspace" "${pc} project folder(s)"
   [ -s "$WORKSPACE/Projects/.AGENT.MD" ] && check PASS "Eng-manager scope" "Projects/.AGENT.MD present" || check WARN "Eng-manager scope" "Projects/.AGENT.MD missing or empty"
+  # Active Projects table currency (mirrors update_active_projects.sh merge semantics:
+  # stale = a table row whose dir is gone, or a BRIEF.md dir missing from the table).
+  PAM="$WORKSPACE/Projects/.AGENT.MD"
+  if [ -s "$PAM" ]; then
+    ap_stale=""
+    ap_rows="$(awk '/^## Active Projects/{f=1;next} f&&/^## /{exit}
+      f&&/^\|/ && $0 !~ /^\|[-| ]+\|?[[:space:]]*$/ {split($0,a,"|"); n=a[2];
+      gsub(/^[ \t]+|[ \t]+$/,"",n); if (n!="" && n!="Project") print n}' "$PAM")"
+    while IFS= read -r ap_r; do
+      [ -n "$ap_r" ] && [ ! -d "$WORKSPACE/Projects/$ap_r" ] && ap_stale="${ap_stale} -${ap_r}"
+    done <<EOF
+$ap_rows
+EOF
+    while IFS= read -r ap_bf; do
+      [ -n "$ap_bf" ] || continue
+      ap_d="$(basename "$(dirname "$ap_bf")")"
+      case "$ap_d" in _*|.*) continue ;; esac
+      printf '%s\n' "$ap_rows" | grep -qxF "$ap_d" || ap_stale="${ap_stale} +${ap_d}"
+    done <<EOF
+$(find "$WORKSPACE/Projects" -mindepth 2 -maxdepth 2 -name BRIEF.md 2>/dev/null)
+EOF
+    if [ -z "$ap_stale" ]; then check PASS "Active Projects table" "in sync with Projects/"
+    else check WARN "Active Projects table" "stale:${ap_stale} — run update_active_projects.sh"; fi
+  fi
 else
   check FAIL "Projects workspace" "Projects/ missing"
 fi
@@ -357,7 +382,7 @@ end_section
 # LAYER I — Ingest Observability (Card #10 / #20: pending, ingested, trend)
 # ════════════════════════════════════════════════════════════════════════════
 begin_section "Ingest" "&#128229;"
-ing_pending=0; ing_total=0
+ing_pending=0; ing_total=0; ing_quarantined=0
 ING_OLD_IFS="$IFS"; IFS=':'
 ING_DIRS=($INGEST_SOURCES)
 IFS="$ING_OLD_IFS"
@@ -372,9 +397,15 @@ for isd in "${ING_DIRS[@]}"; do
     awk -F'\t' -v n="$isb" '$NF==n{f=1} END{exit !f}' "$imf" || ing_pending=$((ing_pending + 1))
   done < <(find "$isdir" -maxdepth 1 -type f -name '*.md' 2>/dev/null)
   ing_total=$((ing_total + $(wc -l < "$imf" | tr -d ' ')))
+  # clips daily_ingest.sh quarantined after 3 failed/no-op attempts
+  if [ -s "$isdir/.failed.log" ]; then
+    ing_quarantined=$((ing_quarantined + $(awk -F'\t' '$1>=3{c++} END{print c+0}' "$isdir/.failed.log")))
+  fi
 done
 if [ "$ing_pending" -eq 0 ]; then check PASS "Clips pending" "0 pending across INGEST_SOURCES"
 else check WARN "Clips pending" "${ing_pending} clip(s) pending across INGEST_SOURCES"; fi
+if [ "$ing_quarantined" -eq 0 ]; then check PASS "Clips quarantined" "no clip stuck after 3 failed attempts"
+else check WARN "Clips quarantined" "${ing_quarantined} clip(s) quarantined (3+ failed attempts) — see .failed.log in the source dir"; fi
 check PASS "Clips ingested (total)" "${ing_total} clip(s) recorded across manifests"
 
 wiki_page_count=$(find "$VAULT/wiki" -maxdepth 1 -type f -name '*.md' 2>/dev/null | wc -l | tr -d ' ')

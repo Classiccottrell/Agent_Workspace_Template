@@ -37,6 +37,10 @@ if not os.path.isdir(projects_dir):
 with open(agent_file) as f:
     content = f.read()
 
+if not re.search(r'^## Active Projects\s*$', content, re.M):
+    print("ERROR: '## Active Projects' heading not found in Projects/.AGENT.MD — nothing updated")
+    sys.exit(1)
+
 # ── Parse current table (merge base) ─────────────────────────────────────────
 existing = {}   # name -> (type_str, stack_str)
 in_section = False

@@ -16,7 +16,7 @@ knowledge of this repo. Run them from the workspace root.
 | F7 | Stale README after a script change | recurring |
 | F8 | `gh` unauthenticated → git ops fail | setup gap |
 | F9 | Fresh Mac missing node/python3/gh | setup gap |
-| F10 | Non-Mac install: automation impossible | known ceiling |
+| F10 | Windows install: automation impossible | known ceiling (Linux cron landed) |
 
 ---
 
@@ -26,7 +26,10 @@ knowledge of this repo. Run them from the workspace root.
 **Root cause:** provider quota wall. Each clip is one headless agent call; after
 ~5–6 calls the provider throttles. `daily_ingest.sh` is designed for this — a
 clip is only recorded in the manifest after the wiki link is verified, so
-unprocessed clips retry automatically on the next scheduled run.
+unprocessed clips retry automatically on the next scheduled run. A clip that
+fails or no-ops **3 times** is quarantined (skipped, logged as `QUARANTINED`)
+via `<source-dir>/.failed.log` so a poisoned clip can't burn budget forever —
+fix or remove the clip, then delete its line from `.failed.log` to retry.
 **Fix:** none needed; the backlog drains across days. Verify it is actually draining:
 
 > **Fix prompt:** "In the git repo at the current directory, run
@@ -35,8 +38,9 @@ unprocessed clips retry automatically on the next scheduled run.
 > still pending per source dir. Compare with
 > `grep -c 'OK:' System_Config/logs/daily_ingest.log` and the last 3 dated 'daily_ingest done'
 > lines of that log. Expected: the manifest line count grows across dated runs
-> and pending count shrinks. If the same clips appear as 'NO-OP' for 3+ runs,
-> report those filenames — they are stuck and need manual ingestion."
+> and pending count shrinks. Clips listed in a source dir's `.failed.log` with
+> count 3+ are quarantined — report those filenames; they need manual ingestion
+> (then delete their `.failed.log` line)."
 
 ## F2 — Gemini ingest runs unbounded / costs spike
 
@@ -155,22 +159,22 @@ weekly site generator no-ops.
 > Then re-run `./bootstrap.sh` in a terminal and confirm the prerequisite
 > block prints [ok] for everything installed."
 
-## F10 — Non-Mac install: automation impossible (known ceiling)
+## F10 — Non-Mac install: Windows automation impossible (known ceiling)
 
-**Symptom:** on Linux/Windows, `./bootstrap.sh` runs but no background jobs install.
-**Root cause:** the entire automation layer is macOS `launchd` (five plists).
-By design the agents, skills, and Vault_Brain work anywhere the CLI runs —
-only `System_Config/` scheduling is Mac-bound.
-**Fix (deferred):** per-OS scheduler shim — Linux `cron` entries or Windows
-Task Scheduler equivalents of the five plists (docs/IMPROVEMENTS.md #1). Until
-then this is the documented ceiling of "anyone can install".
+**Symptom:** on Windows, `./bootstrap.sh` runs but no background jobs install.
+**Status:** partially closed. `config.sh` now detects the scheduler (`launchd`
+on macOS, `cron` on Linux) and the installers write crontab entries via
+`install_cron_job` when on Linux. Windows Task Scheduler remains unsupported —
+that is the remaining ceiling of "anyone can install".
 
-> **Fix prompt:** "Detect the OS with `uname -s`. On Darwin, report 'automation
-> supported'. On anything else, print: 'Background automation is macOS-only for
-> now. The agents and Vault_Brain still work — run the jobs manually:
+> **Fix prompt:** "Detect the OS with `uname -s`. On Darwin or Linux, report
+> 'automation supported' (launchd / cron respectively — verify with
+> `launchctl list | grep vaultbrain` or `crontab -l`). On anything else, print:
+> 'Background automation is macOS/Linux-only for now. The agents and
+> Vault_Brain still work — run the jobs manually:
 > `bash System_Config/daily_ingest.sh` (daily),
 > `bash System_Config/monday_init.sh` (Mondays),
-> `bash System_Config/friday_process.sh` (Fridays), or wire them into cron,
-> e.g. `0 7 * * * cd <workspace> && bash System_Config/daily_ingest.sh`.'
-> If asked to implement cron support, model it on the launchd installers but
-> write crontab entries instead of plists, keeping macOS behavior unchanged."
+> `bash System_Config/friday_process.sh` (Fridays).'
+> If asked to implement Windows support, model it on `install_cron_job` in
+> `System_Config/config.sh` but emit Task Scheduler XML, keeping macOS and
+> Linux behavior unchanged."

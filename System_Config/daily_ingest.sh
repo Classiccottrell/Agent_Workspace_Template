@@ -58,7 +58,15 @@ restore_sources() {
   done
   IFS="$old_ifs"
 }
-trap restore_sources EXIT
+
+# ── CONCURRENCY LOCK (atomic mkdir; released by the EXIT trap) ────────────────
+# A manual run overlapping the scheduled one would interleave manifest appends
+# and race the chmod source-locking — skip instead.
+LOCK_DIR="$LOG_DIR/daily_ingest.lock"
+if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+  log "another daily_ingest holds $LOCK_DIR — skipping"; exit 0
+fi
+trap 'restore_sources; rmdir "$LOCK_DIR" 2>/dev/null || true' EXIT
 
 # ── BOUNDED HEADLESS AGENT CALL ───────────────────────────────────────────────
 source "$(dirname "${BASH_SOURCE[0]}")/run_agent.sh"
@@ -115,6 +123,24 @@ process_dir() {
   name_seen() { awk -F'\t' -v n="$1" '$NF==n{f=1} END{exit !f}' "$manifest"; }
   hash_seen() { awk -F'\t' -v h="$1" 'NF>=2 && $1==h{f=1} END{exit !f}' "$manifest"; }
 
+  # ── QUARANTINE (poisoned-clip guard) ────────────────────────────────────────
+  # A clip that fails/no-ops every run would otherwise retry daily forever,
+  # burning MAX_BUDGET each time. Track attempts in "<count>\t<basename>";
+  # after 3 failures the clip is skipped until its line is removed by hand.
+  local failmf="$src_dir/.failed.log"
+  # `|| true`: missing .failed.log makes awk exit 2, which set -e would turn
+  # into a full-script abort via the command substitution — never fail here.
+  attempts_of() { awk -F'\t' -v n="$1" '$2==n{print $1; exit}' "$failmf" 2>/dev/null || true; }
+  bump_fail() {
+    local n="$1" c; c="$(attempts_of "$n")"; c=$(( ${c:-0} + 1 ))
+    { [[ -f "$failmf" ]] && awk -F'\t' -v n="$n" '$2!=n' "$failmf"; printf '%s\t%s\n' "$c" "$n"; } > "$failmf.tmp"
+    mv "$failmf.tmp" "$failmf"
+  }
+  clear_fail() {
+    [[ -f "$failmf" ]] || return 0
+    awk -F'\t' -v n="$1" '$2!=n' "$failmf" > "$failmf.tmp" && mv "$failmf.tmp" "$failmf"
+  }
+
   # ── FIND NEW NOTES (content-hash dedup) ──────────────────────────────────────
   # Capture find's exit status explicitly — process substitution would swallow it.
   local NEW=() FOUND f base h
@@ -166,9 +192,14 @@ process_dir() {
   chmod a-w "$src_dir"/*.md 2>/dev/null || true
 
   # ── INGEST EACH CLIP INDEPENDENTLY ───────────────────────────────────────────
-  local clip src_link PROMPT rc
+  local clip src_link PROMPT rc fc
   for clip in "${NEW[@]}"; do
     if [[ "$wall_hit" == "1" ]]; then break; fi
+    fc="$(attempts_of "$clip")"
+    if [[ "${fc:-0}" -ge 3 ]]; then
+      log "QUARANTINED (${fc} failed attempts): $rel_dir/$clip — fix or remove the clip, then delete its line from ${rel_dir}/.failed.log"
+      continue
+    fi
     attempted=$((attempted + 1))
     src_link="${rel_dir}/${clip%.md}"
     PROMPT="You are running headlessly to ingest ONE note into the Vault_Brain knowledge wiki.
@@ -201,14 +232,17 @@ Constraints: create-or-append only; never overwrite a page wholesale; never dele
         total_ingested=$((total_ingested + 1))
         log "OK: $rel_dir/$clip"
         consecutive_bad=0
+        clear_fail "$clip"
       else
         log "NO-OP (exit 0 but no wiki link to ${src_link}): $rel_dir/$clip — NOT recorded, will retry next run"
         consecutive_bad=$((consecutive_bad + 1))
+        bump_fail "$clip"
       fi
     else
       rc=$?
       log "FAILED (rc=${rc}; may have timed out after ${MAX_SECONDS}s): $rel_dir/$clip — NOT recorded, will retry next run"
       consecutive_bad=$((consecutive_bad + 1))
+      bump_fail "$clip"
     fi
 
     if [[ "$consecutive_bad" -ge 2 ]]; then

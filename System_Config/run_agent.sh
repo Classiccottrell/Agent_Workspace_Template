@@ -7,7 +7,7 @@
 # confines writes to the vault tree; budget + wall-clock watchdog bound the run.
 run_agent() {
   local prompt="$1" pid wd rc
-  cd "$VAULT"
+  cd "$VAULT" || return 1
   if [[ "${AGENT_TYPE:-}" == "gemini" ]]; then
     "$CLAUDE" -p "$prompt" \
           --sandbox \
@@ -20,7 +20,10 @@ run_agent() {
           --max-budget-usd "$MAX_BUDGET" >> "$LOG" 2>&1 &
   fi
   pid=$!
-  ( sleep "$MAX_SECONDS"; kill -TERM "$pid" 2>/dev/null ) &
+  # TERM first; a CLI wedged in a network read can ignore TERM, so escalate to
+  # KILL 20s later — otherwise `wait` blocks forever and the job never exits.
+  ( sleep "$MAX_SECONDS"; kill -TERM "$pid" 2>/dev/null
+    sleep 20;             kill -KILL "$pid" 2>/dev/null ) &
   wd=$!
   disown "$wd" 2>/dev/null || true   # silence the "Terminated" job-control notice when we cancel the watchdog
   if wait "$pid"; then rc=0; else rc=$?; fi
