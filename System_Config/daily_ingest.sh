@@ -26,7 +26,9 @@ MAX_BUDGET="${MAX_BUDGET:-$INGEST_MAX_BUDGET}"      # per-clip USD ceiling (clau
                                                     # ceiling is the MAX_SECONDS watchdog)
 
 # Optional non-interactive auth for unattended runs (avoids keychain prompts).
-if [[ -r "$HOME/.config/anthropic/key" ]]; then
+# INGEST_IGNORE_KEYFILE=1 skips the key file (e.g. it holds a revoked key) and
+# relies on the login keychain instead.
+if [[ "${INGEST_IGNORE_KEYFILE:-0}" != "1" && -r "$HOME/.config/anthropic/key" ]]; then
   export ANTHROPIC_API_KEY="$(cat "$HOME/.config/anthropic/key")"
 fi
 
@@ -82,6 +84,7 @@ total_new=0
 consecutive_bad=0
 attempted=0
 wall_hit=0
+cap_hit=0
 
 process_dir() {
   local rel_dir="$1"
@@ -192,9 +195,14 @@ process_dir() {
   chmod a-w "$src_dir"/*.md 2>/dev/null || true
 
   # ── INGEST EACH CLIP INDEPENDENTLY ───────────────────────────────────────────
-  local clip src_link PROMPT rc fc
+  local clip src_link PROMPT rc fc log_offset chunk fail_label="QUOTA/BUDGET WALL"
   for clip in "${NEW[@]}"; do
     if [[ "$wall_hit" == "1" ]]; then break; fi
+    if [[ "$attempted" -ge "$INGEST_MAX_CLIPS_PER_RUN" ]]; then
+      log "PER-RUN CLIP CAP reached (INGEST_MAX_CLIPS_PER_RUN=${INGEST_MAX_CLIPS_PER_RUN}) — stopping this run; remaining clips retry next scheduled run"
+      cap_hit=1
+      break
+    fi
     fc="$(attempts_of "$clip")"
     if [[ "${fc:-0}" -ge 3 ]]; then
       log "QUARANTINED (${fc} failed attempts): $rel_dir/$clip — fix or remove the clip, then delete its line from ${rel_dir}/.failed.log"
@@ -221,6 +229,7 @@ Steps:
 Constraints: create-or-append only; never overwrite a page wholesale; never delete anything; stay within this vault."
 
     log "ingesting: $rel_dir/$clip"
+    log_offset="$(wc -c < "$LOG" | tr -d ' ')"
     if run_agent "$PROMPT"; then
       # Verify the agent actually wikified this note before recording it. A no-op
       # (timeout, declined, empty result) also exits 0; without this check the note
@@ -240,13 +249,20 @@ Constraints: create-or-append only; never overwrite a page wholesale; never dele
       fi
     else
       rc=$?
+      # Distinguish a dead/revoked key (401) from a real provider quota wall —
+      # both used to produce the identical "QUOTA/BUDGET WALL" log line, which
+      # sends troubleshooting down the wrong path.
+      chunk="$(tail -c +"$((log_offset + 1))" "$LOG" 2>/dev/null || true)"
+      if printf '%s' "$chunk" | grep -qiE "API key is invalid|Failed to authenticate|HTTP/1\.1 401|[^0-9]401[^0-9]"; then
+        fail_label="AUTH FAILURE"
+      fi
       log "FAILED (rc=${rc}; may have timed out after ${MAX_SECONDS}s): $rel_dir/$clip — NOT recorded, will retry next run"
       consecutive_bad=$((consecutive_bad + 1))
       bump_fail "$clip"
     fi
 
     if [[ "$consecutive_bad" -ge 2 ]]; then
-      log "QUOTA/BUDGET WALL suspected after ${attempted} clips — stopping this run; remaining clips retry next scheduled run"
+      log "${fail_label} suspected after ${attempted} clips — stopping this run; remaining clips retry next scheduled run"
       wall_hit=1
       break
     fi
@@ -258,7 +274,7 @@ OLD_IFS="$IFS"; IFS=':'
 DIRS=($INGEST_SOURCES)
 IFS="$OLD_IFS"
 for d in "${DIRS[@]}"; do
-  [[ "$wall_hit" == "1" ]] && break
+  [[ "$wall_hit" == "1" || "$cap_hit" == "1" ]] && break
   [[ -n "$d" ]] && process_dir "$d"
 done
 

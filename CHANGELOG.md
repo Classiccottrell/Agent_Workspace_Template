@@ -6,6 +6,13 @@ All notable changes to this template are documented here. Format follows
 
 ## [Unreleased]
 
+### Fixed (ingest reliability, 2026-07-20)
+- `daily_ingest.sh`: auth failures (revoked/invalid API key) previously produced the identical "QUOTA/BUDGET WALL suspected" log line as a real provider quota wall — now classified separately ("AUTH FAILURE suspected") by grepping each failed clip's captured output for auth-error markers, so troubleshooting isn't misdirected
+- `daily_ingest.sh`: `~/.config/anthropic/key` is read unconditionally even when it's known-stale; `INGEST_IGNORE_KEYFILE=1` (new `config.sh` var) now skips it and falls through to login-keychain auth
+- `daily_ingest.sh`: `INGEST_MAX_CLIPS_PER_RUN` (already declared, documented as a safety cap) was never actually enforced — a run processed the entire backlog regardless; now stops after that many attempts per run, same pattern as the existing quota-wall stop, logged distinctly as "PER-RUN CLIP CAP reached"
+- `monday_init.sh`: if something else creates the week's note before the scheduled 08:00 run (e.g. an ingest agent's own "ensure the weekly note exists" fallback), the script used to see the file, log "skipping," and exit — silently dropping the Master Note index row and the prior week's carry-forward items forever. Now backfills both idempotently instead of skipping outright (verified: running it twice produces no duplicate carry-forward section or Master Note row)
+- `monday_init.sh`: the week's `Raw_Notes` folder is created every Monday but was never added to `INGEST_SOURCES` — new weeks' clips were invisible to ingest (non-recursive scan) until someone noticed a log WARN and manually edited `config.sh`. Now auto-registers the new folder path in `config.sh` idempotently right after creating it
+
 ### Fixed (hardening audit, 2026-07-17)
 - `friday_process.sh`: define `SYSCFG` — the microsite-regen step crashed every Friday run under `set -u`
 - `healthcheck.sh`: memory-dir slug now matches Claude Code's real slugging (`_`/`.`/space → `-`), so Layer H checks the directory that actually exists

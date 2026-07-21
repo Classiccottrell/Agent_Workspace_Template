@@ -23,10 +23,16 @@ KB_STRATEGY="${KB_STRATEGY:-obsidian}"
 # INGEST_MAX_SECONDS - per-clip wall-clock watchdog (both providers).
 INGEST_SOURCES="${INGEST_SOURCES:-sources:Raw_Notes}"
 INGEST_PROVIDER="${INGEST_PROVIDER:-auto}"
+# INGEST_IGNORE_KEYFILE=1 skips ~/.config/anthropic/key and relies on the
+# login keychain instead — use if that file ever holds a stale/revoked key.
+INGEST_IGNORE_KEYFILE="${INGEST_IGNORE_KEYFILE:-0}"
 INGEST_HOUR="${INGEST_HOUR:-7}"
 INGEST_MINUTE="${INGEST_MINUTE:-0}"
 INGEST_MAX_BUDGET="${INGEST_MAX_BUDGET:-1.00}"
 INGEST_MAX_SECONDS="${INGEST_MAX_SECONDS:-900}"
+# Per-RUN ceiling: caps worst-case unattended spend at CLIPS_PER_RUN × MAX_BUDGET
+# regardless of backlog size. Remaining clips carry to the next scheduled run.
+INGEST_MAX_CLIPS_PER_RUN="${INGEST_MAX_CLIPS_PER_RUN:-10}"
 # Resolve the agent CLI (prioritizing Gemini/Antigravity, falling back to claude).
 # The Gemini CLI ships as either `agy` (Antigravity) or `gemini`; accept both.
 # NOTE: $CLAUDE holds whichever binary won — it is the GEMINI binary when

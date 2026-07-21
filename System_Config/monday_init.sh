@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # monday_init.sh — Weekly Workspace Initializer
 # Creates this week's note from the template (filling Sprint + Quarter) and adds
-# a row to the Master Note's Weekly Index. Idempotent: skips if the note exists.
+# a row to the Master Note's Weekly Index. Idempotent: if the note already exists
+# (e.g. created by something else first) it skips re-templating but still backfills
+# a missing carry-forward section and the Master Note row.
 # All date values are anchored to the MONDAY of the current ISO week, so the
 # note is correct no matter which weekday the script runs.
 #
@@ -74,15 +76,33 @@ fi
 mkdir -p "$VAULT/Raw_Notes/${YEAR}/W${WEEK_NUM} ${WEEK_LABEL}"
 echo "[monday_init] Raw_Notes folder ready: Raw_Notes/${YEAR}/W${WEEK_NUM} ${WEEK_LABEL}"
 
-# ── GUARD: skip if note already exists ───────────────────────────────────────
-if [[ -f "$NOTE_FILE" ]]; then
-  echo "[monday_init] Note already exists: $NOTE_FILE — skipping."
-  exit 0
+# ── AUTO-REGISTER this week's folder in INGEST_SOURCES (self-heals D3) ────────
+# daily_ingest.sh only scans dirs literally listed in INGEST_SOURCES
+# (non-recursive) — without this, every new week's folder is invisible to
+# ingest until someone manually edits config.sh. Plain bash string ops, not
+# sed/regex — the line format is fixed and known, and BSD sed chokes on the
+# literal braces in it.
+CONFIG_FILE="$(dirname "${BASH_SOURCE[0]}")/config.sh"
+NEW_SOURCE="Raw_Notes/${YEAR}/W${WEEK_NUM} ${WEEK_LABEL}"
+if [[ -f "$CONFIG_FILE" ]]; then
+  CONFIG_LINE="$(grep "^INGEST_SOURCES=" "$CONFIG_FILE" || true)"
+  if [[ -n "$CONFIG_LINE" && "$CONFIG_LINE" != *"$NEW_SOURCE"* ]]; then
+    NEW_LINE="${CONFIG_LINE%\}\"}:${NEW_SOURCE}}\""
+    if awk -v old="$CONFIG_LINE" -v new="$NEW_LINE" \
+        '$0==old{print new; next}{print}' "$CONFIG_FILE" > "$CONFIG_FILE.tmp" \
+        && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"; then
+      echo "[monday_init] INGEST_SOURCES: registered ${NEW_SOURCE}"
+    else
+      rm -f "$CONFIG_FILE.tmp"
+      echo "[monday_init] WARNING: could not auto-register ${NEW_SOURCE} in INGEST_SOURCES — add manually." >&2
+    fi
+  fi
 fi
 
-echo "[monday_init] Initializing W${WEEK_NUM} ${YEAR} — Sprint ${SPRINT}, Q${QUARTER}"
-
 # ── CARRY FORWARD open action items from the previous ISO week ────────────────
+# Computed unconditionally (whether we're about to create today's note or it
+# already exists) so the guard below can backfill a missing carry-forward
+# section into an existing note — see docs/IMPROVEMENTS.md item D2.
 # Previous week derived from MONDAY−7d (handles year/W01 rollover correctly).
 PY=$(date -v-7d -j -f "%Y-%m-%d" "$MONDAY" +%G 2>/dev/null || date -d "$MONDAY -7 days" +%G)
 PW=$(date -v-7d -j -f "%Y-%m-%d" "$MONDAY" +%V 2>/dev/null || date -d "$MONDAY -7 days" +%V)
@@ -111,6 +131,49 @@ if [[ -f "$PREV_NOTE" ]]; then
     { cap=0 }
   ' "$PREV_NOTE" 2>/dev/null || true)
 fi
+
+# ── UPDATE MASTER NOTE WEEKLY INDEX (function — called from both branches) ────
+update_master_index() {
+  if [[ ! -f "$MASTER" ]]; then
+    echo "[monday_init] WARNING: Master Note not found at $MASTER — row NOT added." >&2
+  elif grep -Fq "| ${WIKILINK} |" "$MASTER"; then
+    echo "[monday_init] Master Note already has a row for $WIKILINK — not duplicating."
+  elif ! grep -Fq "$INDEX_SENTINEL" "$MASTER"; then
+    echo "[monday_init] WARNING: index sentinel not found in Master Note — row NOT added." >&2
+  else
+    # Insert the row before the FIRST sentinel only (robust against duplicate sentinels).
+    if awk -v row="$INDEX_ROW" -v sent="$INDEX_SENTINEL" '
+          index($0, sent) && !done { print row; done=1 } { print }
+        ' "$MASTER" > "$MASTER.tmp"; then
+      mv "$MASTER.tmp" "$MASTER"
+      echo "[monday_init] Master Note index row added for $WIKILINK."
+    else
+      rm -f "$MASTER.tmp"
+      echo "[monday_init] WARNING: index update failed — row NOT added." >&2
+    fi
+  fi
+}
+
+# ── GUARD: note already exists — backfill carry-forward + index row, else skip ─
+# Self-heals the case where something other than this script created the note
+# first (e.g. the daily-ingest agent's Bash-less template fallback), which
+# would otherwise silently skip carry-forward AND the Master Note row forever.
+if [[ -f "$NOTE_FILE" ]]; then
+  if [[ -n "$CARRIED" ]] && ! grep -q "^## Carried From W${PW}" "$NOTE_FILE"; then
+    {
+      echo ""
+      echo "## Carried From W${PW}"
+      echo "$CARRIED"
+    } >> "$NOTE_FILE"
+    echo "[monday_init] Note already exists: $NOTE_FILE — backfilled missing carry-forward from W${PW}."
+  else
+    echo "[monday_init] Note already exists: $NOTE_FILE — skipping note body."
+  fi
+  update_master_index
+  exit 0
+fi
+
+echo "[monday_init] Initializing W${WEEK_NUM} ${YEAR} — Sprint ${SPRINT}, Q${QUARTER}"
 
 # ── GENERATE NEW NOTE FROM TEMPLATE ──────────────────────────────────────────
 sed \
@@ -166,22 +229,5 @@ elif [[ -f "$PREV_NOTE" ]]; then
 fi
 
 # ── UPDATE MASTER NOTE WEEKLY INDEX ───────────────────────────────────────────
-if [[ ! -f "$MASTER" ]]; then
-  echo "[monday_init] WARNING: Master Note not found at $MASTER — row NOT added." >&2
-elif grep -Fq "| ${WIKILINK} |" "$MASTER"; then
-  echo "[monday_init] Master Note already has a row for $WIKILINK — not duplicating."
-elif ! grep -Fq "$INDEX_SENTINEL" "$MASTER"; then
-  echo "[monday_init] WARNING: index sentinel not found in Master Note — row NOT added." >&2
-else
-  # Insert the row before the FIRST sentinel only (robust against duplicate sentinels).
-  if awk -v row="$INDEX_ROW" -v sent="$INDEX_SENTINEL" '
-        index($0, sent) && !done { print row; done=1 } { print }
-      ' "$MASTER" > "$MASTER.tmp"; then
-    mv "$MASTER.tmp" "$MASTER"
-    echo "[monday_init] Master Note index row added for $WIKILINK."
-  else
-    rm -f "$MASTER.tmp"
-    echo "[monday_init] WARNING: index update failed — row NOT added." >&2
-  fi
-fi
+update_master_index
 echo "[monday_init] Done — $(date)"
