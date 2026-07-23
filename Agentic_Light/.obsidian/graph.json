@@ -16,10 +16,6 @@
       "color": { "a": 1, "rgb": 14701138 }
     },
     {
-      "query": "path:council_decisions",
-      "color": { "a": 1, "rgb": 3407897 }
-    },
-    {
       "query": "path:raw",
       "color": { "a": 1, "rgb": 9323647 }
     }

@@ -1,7 +1,7 @@
 # Agentic Light — Orchestrator Context
 
 Lighter sibling of the parent workspace: Obsidian second brain + dev pipeline
-+ LLM Council decision engine + self-bootstrapping. No background automation.
++ self-bootstrapping. No background automation.
 
 ## Build / Run
 
@@ -9,7 +9,6 @@ Lighter sibling of the parent workspace: Obsidian second brain + dev pipeline
 - `bash bootstrap.sh --check` — read-only doctor (tools + provider + no-automation note).
 - `bash pipeline/run.sh` — Task Input → coder → ESLint gate → Playwright gate → Human Gate → `gh pr create`.
 - `bash skills/skills.sh list` — list available skills.
-- `bash skills/llm-council/run_council.sh "<question>"` — run the 5-advisor council + chairman synthesis.
 - `bash System_Config/healthcheck.sh` — layered PASS/WARN/FAIL report, self-heals docs via `gen_site.py`.
 - `bash System_Config/new_agent.sh <name> "<scope>" [--write]` — scaffold a new `agents/<name>.md`.
 
@@ -26,19 +25,15 @@ Agentic_Light/
 │   ├── monday_init.sh · friday_process.sh · daily_ingest.sh · run_agent.sh
 │   ├── gen_site.py · healthcheck.sh
 ├── agents/
-│   ├── architect.md · coder.md · creative-director.md · curator.md · eng-manager.md · qa.md · README.md
-│   └── council/{contrarian,first-principles,expansionist,outsider,executor,chairman}.md
+│   └── architect.md · coder.md · creative-director.md · curator.md · eng-manager.md · qa.md · README.md
 ├── skills/
-│   ├── skills.sh
-│   └── llm-council/{SKILL.md, advisors.json, run_council.sh, templates/decision-report.md}
-├── extensions/langflow/{export_flow.py, flows/agentic-light-roster.json, README.md}
+│   └── skills.sh
 ├── microsite/{template.html, index.html, health.html, status.json, README.md}
 ├── brain/
 │   ├── CLAUDE.md · README.md
 │   ├── raw/README.md
 │   ├── wiki/index.md
-│   ├── weekly_logs/{Weekly_Note_Template.md, "2026 Master Note.md", 2026/2026-W30.md}
-│   └── council_decisions/README.md
+│   └── weekly_logs/{Weekly_Note_Template.md, "2026 Master Note.md", 2026/2026-W30.md}
 └── pipeline/
     ├── run.sh · README.md · logs/.gitkeep
     └── lib/{eslint_gate.sh, playwright_gate.sh, human_gate.sh, pr_create.sh}
@@ -67,12 +62,6 @@ Agentic_Light/
 | `curator` | `brain/` knowledge base curation |
 | `eng-manager` | `Projects/` lifecycle, PR drafting |
 | `qa` | Test coverage, regression checks |
-| `council/contrarian` | LLM Council advisor — challenges the majority view |
-| `council/first-principles` | LLM Council advisor — reasons from fundamentals |
-| `council/expansionist` | LLM Council advisor — explores upside/opportunity |
-| `council/outsider` | LLM Council advisor — non-domain-expert sanity check |
-| `council/executor` | LLM Council advisor — feasibility/execution risk |
-| `council/chairman` | Synthesizes anonymized advisor input into one decision report |
 
 `archivist` and `rally` are **excluded from this roster by design** — Agentic
 Light has no archival pipeline and no rally/broadcast agent; do not add them.

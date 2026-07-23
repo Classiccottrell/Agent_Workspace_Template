@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # healthcheck.sh — Agentic Light health check → microsite/status.{json,js}
 #
-# Probes directory layout, agent/council/skill roster completeness, brain
-# scaffolding, council/wiki sync, pipeline log recency, and doc currency.
+# Probes directory layout, agent/skill roster completeness, brain
+# scaffolding, pipeline log recency, and doc currency.
 # On a stale microsite (Layer F), self-heals by invoking gen_site.py for
 # real so microsite/index.html never drifts from the roster.
 #
@@ -18,7 +18,6 @@ source "$(dirname "${BASH_SOURCE[0]}")/config.sh"
 
 SYSCFG="$WORKSPACE/System_Config"
 AGENTS="$WORKSPACE/agents"
-COUNCIL="$AGENTS/council"
 SKILLS="$WORKSPACE/skills"
 MICROSITE="$WORKSPACE/microsite"
 PIPELINE="$WORKSPACE/pipeline"
@@ -111,18 +110,12 @@ REQUIRED_DIRS="
 System_Config
 System_Config/logs
 agents
-agents/council
 skills
-skills/llm-council
-skills/llm-council/templates
-extensions/langflow
-extensions/langflow/flows
 microsite
 brain
 brain/raw
 brain/wiki
 brain/weekly_logs
-brain/council_decisions
 pipeline
 pipeline/lib
 pipeline/logs
@@ -136,7 +129,7 @@ done
 end_section
 
 # ════════════════════════════════════════════════════════════════════════
-# LAYER B — Roster completeness (agents + council + skills frontmatter)
+# LAYER B — Roster completeness (agents + skills frontmatter)
 # ════════════════════════════════════════════════════════════════════════
 begin_section "Roster Completeness"
 for f in "$AGENTS"/*.md; do
@@ -145,13 +138,6 @@ for f in "$AGENTS"/*.md; do
   [ "$b" = "README.md" ] && continue
   if frontmatter_ok "$f"; then check PASS "Agent: $b" "frontmatter valid (name + description)"
   else check FAIL "Agent: $b" "missing name/description in frontmatter"; fi
-done
-for f in "$COUNCIL"/*.md; do
-  [ -e "$f" ] || continue
-  b="$(basename "$f")"
-  [ "$b" = "README.md" ] && continue
-  if frontmatter_ok "$f"; then check PASS "Council: $b" "frontmatter valid (name + description)"
-  else check FAIL "Council: $b" "missing name/description in frontmatter"; fi
 done
 for f in "$SKILLS"/*/SKILL.md; do
   [ -e "$f" ] || continue
@@ -182,31 +168,6 @@ fi
 end_section
 
 # ════════════════════════════════════════════════════════════════════════
-# LAYER D — Council/wiki sync
-# ════════════════════════════════════════════════════════════════════════
-begin_section "Council/Wiki Sync"
-CD="$BRAIN/council_decisions"
-WIKI_INDEX="$BRAIN/wiki/index.md"
-if [ -d "$CD" ]; then
-  found_any=0
-  for f in "$CD"/*.md; do
-    [ -e "$f" ] || continue
-    b="$(basename "$f" .md)"
-    [ "$b" = "README" ] && continue
-    found_any=1
-    if [ -s "$WIKI_INDEX" ] && grep -qF "[[council_decisions/${b}]]" "$WIKI_INDEX"; then
-      check PASS "Decision: $b" "linked from wiki/index.md"
-    else
-      check FAIL "Decision: $b" "no [[council_decisions/${b}]] row in wiki/index.md"
-    fi
-  done
-  [ "$found_any" -eq 0 ] && check WARN "Council decisions" "no reports yet in brain/council_decisions/"
-else
-  check FAIL "Council decisions dir" "brain/council_decisions/ missing"
-fi
-end_section
-
-# ════════════════════════════════════════════════════════════════════════
 # LAYER E — Pipeline log recency (informational — fresh scaffold has none yet)
 # ════════════════════════════════════════════════════════════════════════
 begin_section "Pipeline Logs"
@@ -233,9 +194,9 @@ doc_check "brain/README" "$BRAIN/README.md" "$BRAIN/CLAUDE.md" "$SYSCFG/monday_i
 
 if command -v python3 >/dev/null 2>&1; then
   if python3 "$SYSCFG/gen_site.py" --check >/dev/null 2>&1; then
-    check PASS "microsite/index.html" "up to date with agents/council/skills frontmatter"
+    check PASS "microsite/index.html" "up to date with agents/skills frontmatter"
   else
-    check WARN "microsite/index.html" "stale vs agents/council/skills frontmatter"
+    check WARN "microsite/index.html" "stale vs agents/skills frontmatter"
   fi
 else
   check WARN "microsite/index.html" "python3 not found — cannot verify currency"

@@ -10,7 +10,6 @@ Managed sections:
 
 Sources:
   agents/*.md         -- core agents: name + description from YAML frontmatter
-  agents/council/*.md -- LLM Council advisors + chairman, same frontmatter shape
   skills/*/SKILL.md   -- name + description from YAML frontmatter
 
 Usage:
@@ -23,7 +22,6 @@ import os, re, glob, sys
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(SCRIPT_DIR)
 AGENTS_DIR = os.path.join(ROOT, 'agents')
-COUNCIL_DIR = os.path.join(ROOT, 'agents', 'council')
 SKILLS_DIR = os.path.join(ROOT, 'skills')
 HTML_PATH = os.path.join(ROOT, 'microsite', 'index.html')
 
@@ -58,16 +56,6 @@ def get_agents():
     return agents
 
 
-def get_council():
-    council = []
-    for path in sorted(glob.glob(os.path.join(COUNCIL_DIR, '*.md'))):
-        info = read_frontmatter(path)
-        if info:
-            info['rel'] = 'agents/council/' + os.path.basename(path)
-            council.append(info)
-    return council
-
-
 def get_skills():
     skills = []
     for path in sorted(glob.glob(os.path.join(SKILLS_DIR, '*', 'SKILL.md'))):
@@ -88,18 +76,12 @@ def build_roster_rows(rows):
     return '\n'.join(out)
 
 
-def build_agents_block(agents, council):
+def build_agents_block(agents):
     return (
         '        <h3>Core Agents</h3>\n'
         '        <table>\n'
         '          <thead><tr><th>Agent</th><th>Scope</th><th>File</th></tr></thead>\n'
         '          <tbody>\n' + build_roster_rows(agents) + '\n'
-        '          </tbody>\n'
-        '        </table>\n'
-        '        <h3>LLM Council</h3>\n'
-        '        <table>\n'
-        '          <thead><tr><th>Role</th><th>Scope</th><th>File</th></tr></thead>\n'
-        '          <tbody>\n' + build_roster_rows(council) + '\n'
         '          </tbody>\n'
         '        </table>'
     )
@@ -138,11 +120,10 @@ def main():
 
     html = original
     agents = get_agents()
-    council = get_council()
     skills = get_skills()
-    roster_total = len(agents) + len(council)
+    roster_total = len(agents)
 
-    html = replace_block(html, 'agents', build_agents_block(agents, council))
+    html = replace_block(html, 'agents', build_agents_block(agents))
     html = replace_block(html, 'skills', build_skills_block(skills))
     html = replace_inline(html, 'agent-count', str(roster_total))
     html = replace_inline(html, 'skills-count', str(len(skills)))

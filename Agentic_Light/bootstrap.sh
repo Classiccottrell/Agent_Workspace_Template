@@ -96,14 +96,10 @@ mkdir -p \
   "$ROOT/Projects/_TEMPLATE/active" \
   "$ROOT/Projects/_TEMPLATE/archive" \
   "$ROOT/System_Config/logs" \
-  "$ROOT/agents/council" \
-  "$ROOT/skills/llm-council/templates" \
-  "$ROOT/extensions/langflow/flows" \
   "$ROOT/microsite" \
   "$ROOT/brain/raw" \
   "$ROOT/brain/wiki" \
   "$ROOT/brain/weekly_logs/2026" \
-  "$ROOT/brain/council_decisions" \
   "$ROOT/pipeline/logs" \
   "$ROOT/pipeline/lib"
 

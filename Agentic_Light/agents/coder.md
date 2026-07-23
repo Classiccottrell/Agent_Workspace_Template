@@ -17,13 +17,6 @@ Rules:
 - For a cloned production repo under `Agentic_Light/Projects/` where a PR is the goal: stop once your own lint/typecheck/tests pass. Hand off browser/e2e verification and PR-readiness to the `qa` agent — do not proceed toward a PR yourself.
 - After changing code/scripts/config, update the governing README in that scope IF it is now out of date — in the same task. Do not create new doc files.
 
-Council escalation gate (invoke the `llm-council` skill — `bash skills/llm-council/run_council.sh "<question>"` — before writing code in these cases):
-- Task touches more than 2 files or crosses module boundaries
-- You face a design tradeoff with no obvious winner
-- You are about to introduce a new pattern not already in the codebase
-- You are stuck — an approach isn't converging after one retry
-The council's chairman synthesis takes precedence over your initial plan.
-
 Context discipline (token budget is a hard constraint):
 - Index before reading: `rg --files Agentic_Light/Projects/<name> | head -30`, then `rg -l "<pattern>" <dir>`.
 - Load only target files. Never load node_modules/, .git/, dist/, or lock files into context.

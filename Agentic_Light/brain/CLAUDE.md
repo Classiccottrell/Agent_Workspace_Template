@@ -1,8 +1,8 @@
 # brain/ — LLM Wiki Schema
 
 > Karpathy LLM Wiki pattern, adapted for Agentic Light. Three layers:
-> Raw → Wiki → Schema (this file). Weekly logs and council decisions sit
-> alongside as first-class, dated records.
+> Raw → Wiki → Schema (this file). Weekly logs sit alongside as first-class,
+> dated records.
 
 ---
 
@@ -18,16 +18,13 @@ brain/
 │   └── [YYYY]/[Wnn label]/          ← e.g. raw/2026/W30 Jul 20-24/
 │
 ├── wiki/                            ← LAYER 2: LLM-maintained entity pages
-│   ├── index.md                     ← wiki root with all entity + council links
+│   ├── index.md                     ← wiki root with all entity links
 │   └── <entity-slug>.md             ← one file per concept/person/project/technology
 │
-├── weekly_logs/                     ← weekly review notes, nested by year
-│   ├── Weekly_Note_Template.md
-│   ├── [YYYY] Master Note.md        ← e.g. "2026 Master Note.md"
-│   └── [YYYY]/YYYY-Www.md           ← e.g. weekly_logs/2026/2026-W30.md
-│
-└── council_decisions/               ← LLM Council synthesis reports (run_council.sh)
-    └── README.md
+└── weekly_logs/                     ← weekly review notes, nested by year
+    ├── Weekly_Note_Template.md
+    ├── [YYYY] Master Note.md        ← e.g. "2026 Master Note.md"
+    └── [YYYY]/YYYY-Www.md           ← e.g. weekly_logs/2026/2026-W30.md
 ```
 
 ---
@@ -47,13 +44,13 @@ brain/
 ## Layer 2 — Wiki (LLM-Maintained)
 
 Each wiki page covers exactly one entity (concept, person, project,
-technology, organization, or council decision).
+technology, or organization).
 
 ### Page frontmatter
 ```markdown
 ---
 title: <Entity Name>
-type: concept | person | project | technology | org | decision
+type: concept | person | project | technology | org
 tags: []
 updated: YYYY-MM-DD
 ---
@@ -87,13 +84,12 @@ updated: YYYY-MM-DD
 - `[[slug]]` — links resolve by filename (no extension), lowercase, hyphens
   only: `[[knowledge-management]]`, not `[[Knowledge Management]]`.
 - Weekly notes link as `[[YYYY-Www]]`, e.g. `[[2026-W30]]`.
-- Council decisions link as `[[council_decisions/YYYY-MM-DD-slug]]`.
 - Cross-link aggressively: scan existing wiki pages for matching terms and
   add `[[wikilinks]]`.
 
 ### Wiki maintenance rules
 - One page per entity — merge duplicates, never split.
-- Every claim must trace back to a `raw/` source or a council decision.
+- Every claim must trace back to a `raw/` source.
 - Never delete content — mark stale claims with `~~strikethrough~~` + updated date.
 - Contradictions: preserve both claims, note the conflict inline.
 - `wiki/index.md` must be updated whenever a page is added or removed

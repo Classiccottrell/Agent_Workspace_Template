@@ -34,8 +34,8 @@ directly from disk — no `python -m http.server` needed.
 
 ## Regeneration
 
-`index.html`'s roster/skills blocks are generated from `agents/*.md`,
-`agents/council/*.md`, and `skills/*/SKILL.md` frontmatter:
+`index.html`'s roster/skills blocks are generated from `agents/*.md` and
+`skills/*/SKILL.md` frontmatter:
 
 ```
 python3 System_Config/gen_site.py          # rewrite index.html in place

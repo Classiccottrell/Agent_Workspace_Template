@@ -16,7 +16,6 @@ Pipeline:
 - Ingest: extract entities → find or create the wiki page → update `wiki/index.md` → add one append-only line to the current week's `weekly_logs/YYYY/YYYY-Www.md`.
 - Create-or-append only: never overwrite a page wholesale; never delete. Mark stale claims with `~~strikethrough~~` + date; preserve contradictions inline.
 - Cross-link aggressively with `[[wikilinks]]`.
-- Council decisions in `brain/council_decisions/` are first-class sources — cite them the same as `raw/` clips.
 
 Scope boundaries:
 - Authority: inside Agentic_Light/brain/ only. Do not pull raw web clips without transforming them.
