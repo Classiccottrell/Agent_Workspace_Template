@@ -42,8 +42,17 @@ script here runs by hand; that's the only way it runs in Agentic Light.**
   idempotent re-scans; quarantines a clip after 3 failed attempts
   (`brain/raw/.failed.log`). Atomic `mkdir` lock; `DRY_RUN=1` preview.
 
-## Scripts arriving in later batches
-
-Documented here once Batch 3/5 land:
-
-- `healthcheck.sh`, `gen_site.py` — Batch 5 (microsite + healthcheck).
+- **`gen_site.py`** — regenerates `microsite/index.html`'s
+  `<!-- gen:agents-start/end -->` / `<!-- gen:skills-start/end -->` blocks and
+  `<!-- gen:agent-count -->` / `<!-- gen:skills-count -->` counters from
+  `agents/*.md`, `agents/council/*.md`, and `skills/*/SKILL.md` frontmatter.
+  `--check` exits 1 if stale (used by `healthcheck.sh`); `--dry-run` prints
+  the diff without writing. Stdlib-only Python 3.
+- **`healthcheck.sh`** — layered PASS/WARN/FAIL check: directory layout,
+  agent/council/skill roster frontmatter completeness, brain scaffolding
+  (`wiki/index.md`, current weekly note, Master Note sentinel), council
+  decision ↔ wiki index sync, pipeline log recency, and doc currency.
+  Self-heals a stale `microsite/index.html` by invoking `gen_site.py` for
+  real. Writes `microsite/status.json` + `microsite/status.js` (the payload
+  `microsite/health.html` renders). Never `set -e`, always exits 0. No
+  launchd/cron trigger and no GitHub Pages publish step — run it by hand.
