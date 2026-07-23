@@ -9,6 +9,7 @@
 
 | Page | Type | Updated |
 |------|------|---------|
+| [[council_decisions/2026-07-23-should-agentic-light-s-brain-use-nested-weekly-logs-yyyy-fol]] | decision | 2026-07-23 |
 <!-- COUNCIL-INDEX-INSERT -->
 
 ---

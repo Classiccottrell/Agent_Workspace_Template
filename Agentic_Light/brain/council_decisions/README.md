@@ -6,35 +6,14 @@ accumulate here as the council runs.
 
 ## Report format
 
-```markdown
----
-title: <Question, short form>
-type: decision
-tags: [council]
-updated: YYYY-MM-DD
-advisors: [contrarian, first-principles, expansionist, outsider, executor]
----
-
-## Question
-<the exact question posed to the council>
-
-## Advisor Positions
-### Contrarian
-<anonymized during peer review, attributed here>
-...
-
-## Peer Review
-<each advisor's anonymized critique of the other positions>
-
-## Chairman Synthesis
-<the chairman's synthesis of all positions + peer review>
-
-## Decision
-<the final recommendation>
-
-## Dissents
-<any advisor positions the chairman's decision does not fully incorporate>
-```
+Structure lives in `skills/llm-council/templates/decision-report.md`
+(frontmatter `title`/`type: council-decision`/`tags`/`updated` +
+`## Question`, `## Advisor Positions (Anonymized)` (A–E subsections),
+`## Peer Review Notes`, `## Chairman Synthesis`, `## Decision`,
+`## Dissents`). Advisor identity stays anonymized (`Advisor A..E`)
+throughout the report — the shuffle mapping is per-run and not recorded, by
+design, so the chairman's synthesis is judged on content, not on which
+advisor said it.
 
 `run_council.sh` writes the report here and appends an index row to
 `brain/wiki/index.md` (backup → rewrite → validate → rollback, same safety
