@@ -18,9 +18,32 @@ script here runs by hand; that's the only way it runs in Agentic Light.**
   Dry-run by default; refuses to overwrite an existing file.
 - **`logs/`** — script output lands here. `.gitkeep` tracks the empty dir.
 
+- **`run_agent.sh`** — sourced library (not standalone). Provides
+  `run_agent "<prompt>"`: a thin wrapper around the resolved agent CLI
+  (`$CLAUDE`/`$AGENT_TYPE` from `config.sh`) with a wall-clock watchdog
+  (`MAX_SECONDS`, default 300s) and a Claude-only budget cap (`MAX_BUDGET`).
+  cwd is `$BRAIN`; file tools only, Bash denied.
+- **`monday_init.sh`** — weekly initializer. Creates
+  `brain/weekly_logs/${YEAR}/${YEAR}-Www.md` from the template, creates
+  `brain/raw/${YEAR}/Wnn label/`, and adds a row to
+  `brain/weekly_logs/${YEAR} Master Note.md`'s Weekly Index (backup → edit
+  → validate → rollback). Implements **Vacation Recovery**: if the most
+  recently logged week is more than 7 days behind the current week, inserts
+  exactly one synthetic catch-up row (`catch-up`, weeks-skipped count) before
+  resuming normal weekly notes. Atomic `mkdir` lock; `DRY_RUN=1` preview.
+- **`friday_process.sh`** — weekly close-out. Appends a close-out line to
+  the week's `## Claude Sessions`, fills the Master Note row's Summary cell
+  (backup → awk rewrite → validate → rollback). Atomic `mkdir` lock;
+  `DRY_RUN=1` preview. No microsite regen and no GitHub Pages publish here.
+- **`daily_ingest.sh`** — scans `brain/raw/YYYY/Wnn label/*.md` (exactly two
+  levels deep; deeper nesting WARNs and is skipped) for new clips and
+  ingests each with one `run_agent` call, wikifying it into `brain/wiki/`.
+  Content-hash manifest (`brain/raw/.ingested.log`, sha256-keyed) for
+  idempotent re-scans; quarantines a clip after 3 failed attempts
+  (`brain/raw/.failed.log`). Atomic `mkdir` lock; `DRY_RUN=1` preview.
+
 ## Scripts arriving in later batches
 
-Documented here once Batch 2/3/5 land:
+Documented here once Batch 3/5 land:
 
-- `run_agent.sh`, `monday_init.sh`, `friday_process.sh`, `daily_ingest.sh` — Batch 2 (brain scaffolding + weekly automation).
 - `healthcheck.sh`, `gen_site.py` — Batch 5 (microsite + healthcheck).

@@ -45,6 +45,13 @@ Vault_Brain/sources/.ingested.log
 **/.obsidian/
 **/.obsidian/workspace*.json
 
+# Agentic Light diverges: it ships .obsidian/ vault config so every clone
+# opens with working core plugins + graph view (see Agentic_Light/CLAUDE.md).
+# Still exclude per-machine session state within it.
+!Agentic_Light/.obsidian/
+!Agentic_Light/.obsidian/**
+Agentic_Light/.obsidian/workspace*.json
+
 # ── Claude Code local state ──────────────────────────────────────────────
 .claude/settings.local.json
 
