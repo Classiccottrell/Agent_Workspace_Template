@@ -1,0 +1,211 @@
+{
+  "data": {
+    "nodes": [
+      {
+        "id": "architect",
+        "type": "agent",
+        "data": {
+          "name": "architect",
+          "description": "System designer for Agentic Light. Use for high-level architecture, schemas, folder structures, API contracts, and data-model design \u2014 before any implementation. Produces specs and Mermaid diagrams; hands blueprints to the coder agent. Not for writing feature code."
+        },
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": "coder",
+        "type": "agent",
+        "data": {
+          "name": "coder",
+          "description": "Implementation engineer for Agentic Light. Use to write or modify code against an existing stack or an architect's blueprint, fix bugs, and run builds/tests. Returns diffs of changed lines. Not for high-level design (use architect) or knowledge notes (use curator)."
+        },
+        "position": {
+          "x": 220,
+          "y": 0
+        }
+      },
+      {
+        "id": "creative-director",
+        "type": "agent",
+        "data": {
+          "name": "creative-director",
+          "description": "Elite Creative Director and Brand Strategist for Agentic Light. Use for brand critique, campaign concepts, tagline generation, visual direction, copy refinement, and design feedback (e.g. `microsite/`). Applies Impact/Clarity/Disruption framework. Tone: inspiring, candid, sophisticated \u2014 NOT Caveman Protocol."
+        },
+        "position": {
+          "x": 440,
+          "y": 0
+        }
+      },
+      {
+        "id": "curator",
+        "type": "agent",
+        "data": {
+          "name": "curator",
+          "description": "Knowledge curator for the Agentic Light Obsidian LLM-wiki. Use to ingest sources into wiki entity pages, extract concept notes, maintain wiki/index.md and cross-links, and answer knowledge queries from the brain. Follows the Karpathy LLM Wiki schema. Authority limited to Agentic_Light/brain/."
+        },
+        "position": {
+          "x": 660,
+          "y": 0
+        }
+      },
+      {
+        "id": "eng-manager",
+        "type": "agent",
+        "data": {
+          "name": "eng-manager",
+          "description": "Project lifecycle controller for Agentic_Light/Projects/. Use to scope a project from its BRIEF.md and stack, plan and route work to architect/coder, validate completion, and prepare artifacts for handoff. Authority limited to Agentic_Light/Projects/."
+        },
+        "position": {
+          "x": 880,
+          "y": 0
+        }
+      },
+      {
+        "id": "qa",
+        "type": "agent",
+        "data": {
+          "name": "qa",
+          "description": "Quality-assurance verifier for pull requests against existing, cloned repositories under Agentic_Light/Projects/. Use to run a target repo's own lint/typecheck/unit-test commands, extend or author browser/e2e coverage, and compile a pass/fail QA report before a PR is drafted. Not for implementation (use coder) or for creating branches, commits, or PRs (that stays with the orchestrator's approved flow)."
+        },
+        "position": {
+          "x": 1100,
+          "y": 0
+        }
+      },
+      {
+        "id": "chairman",
+        "type": "advisor",
+        "data": {
+          "name": "chairman",
+          "description": "LLM Council synthesis role. Reads the 5 anonymized advisor positions plus their peer-review notes and produces the final decision report \u2014 does NOT introduce a 6th opinion of its own. The only council role permitted to write. Use only via the llm-council skill, not directly."
+        },
+        "position": {
+          "x": 0,
+          "y": 220
+        }
+      },
+      {
+        "id": "contrarian",
+        "type": "advisor",
+        "data": {
+          "name": "contrarian",
+          "description": "LLM Council advisor. Actively argues against the majority or most-obvious position on the question posed \u2014 finds the strongest case against whatever seems most popular, even if that means defending an unpopular or uncomfortable stance. Use only via the llm-council skill, not directly."
+        },
+        "position": {
+          "x": 220,
+          "y": 220
+        }
+      },
+      {
+        "id": "executor",
+        "type": "advisor",
+        "data": {
+          "name": "executor",
+          "description": "LLM Council advisor. Ruthless feasibility, cost, and timeline lens \u2014 \"can this actually ship,\" flags anything impractical, underspecified, or likely to blow the budget/schedule. Use only via the llm-council skill, not directly."
+        },
+        "position": {
+          "x": 440,
+          "y": 220
+        }
+      },
+      {
+        "id": "expansionist",
+        "type": "advisor",
+        "data": {
+          "name": "expansionist",
+          "description": "LLM Council advisor. Maximizes scope and ambition on the question posed \u2014 asks \"what if we went further,\" argues for the bigger, more ambitious version over the safe incremental one. Use only via the llm-council skill, not directly."
+        },
+        "position": {
+          "x": 660,
+          "y": 220
+        }
+      },
+      {
+        "id": "first-principles",
+        "type": "advisor",
+        "data": {
+          "name": "first-principles",
+          "description": "LLM Council advisor. Decomposes the question to its fundamentals \u2014 physics, incentives, constraints, first causes \u2014 and reasons upward from there, deliberately ignoring precedent, convention, and \"how it's usually done.\" Use only via the llm-council skill, not directly."
+        },
+        "position": {
+          "x": 880,
+          "y": 220
+        }
+      },
+      {
+        "id": "outsider",
+        "type": "advisor",
+        "data": {
+          "name": "outsider",
+          "description": "LLM Council advisor. Naive-user/non-expert lens \u2014 flags jargon, hidden assumptions, and anything an outsider encountering this for the first time would find confusing, unjustified, or a red flag. Use only via the llm-council skill, not directly."
+        },
+        "position": {
+          "x": 1100,
+          "y": 220
+        }
+      },
+      {
+        "id": "llm-council",
+        "type": "skill",
+        "data": {
+          "name": "llm-council",
+          "description": "Use for high-stakes or ambiguous decisions that benefit from 5 adversarial perspectives plus synthesis \u2014 architecture choices, product direction, tradeoffs with no clear right answer. Not for routine implementation questions."
+        },
+        "position": {
+          "x": 0,
+          "y": 440
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "architect->coder",
+        "source": "architect",
+        "target": "coder"
+      },
+      {
+        "id": "coder->qa",
+        "source": "coder",
+        "target": "qa"
+      },
+      {
+        "id": "coder->eng-manager",
+        "source": "coder",
+        "target": "eng-manager"
+      },
+      {
+        "id": "qa->eng-manager",
+        "source": "qa",
+        "target": "eng-manager"
+      },
+      {
+        "id": "contrarian->chairman",
+        "source": "contrarian",
+        "target": "chairman"
+      },
+      {
+        "id": "first-principles->chairman",
+        "source": "first-principles",
+        "target": "chairman"
+      },
+      {
+        "id": "expansionist->chairman",
+        "source": "expansionist",
+        "target": "chairman"
+      },
+      {
+        "id": "outsider->chairman",
+        "source": "outsider",
+        "target": "chairman"
+      },
+      {
+        "id": "executor->chairman",
+        "source": "executor",
+        "target": "chairman"
+      }
+    ]
+  },
+  "description": "Agentic Light agent/council/skill roster, auto-exported from agents/*.md, agents/council/*.md, skills/*/SKILL.md frontmatter. Read-only visualization aid.",
+  "name": "Agentic Light Roster"
+}
