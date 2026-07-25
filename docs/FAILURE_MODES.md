@@ -17,6 +17,10 @@ knowledge of this repo. Run them from the workspace root.
 | F8 | `gh` unauthenticated → git ops fail | setup gap |
 | F9 | Fresh Mac missing node/python3/gh | setup gap |
 | F10 | Windows install: automation impossible | known ceiling (Linux cron landed) |
+| F11 | Self-hosted Docker/Podman stack silently crash-loops under a memory-constrained VM | regression guard |
+| F12 | A hotfix inside a vendored/upstream git clone gets silently lost | fixed — verify |
+| F13 | Embedding binary payloads as base64 through the model's own context is catastrophically expensive for some tokenizers | recurring |
+| F14 | A single-tab-bound plugin/MCP bridge silently breaks when a second browser tab opens the same tool | recurring |
 
 ---
 
@@ -178,3 +182,107 @@ that is the remaining ceiling of "anyone can install".
 > If asked to implement Windows support, model it on `install_cron_job` in
 > `System_Config/config.sh` but emit Task Scheduler XML, keeping macOS and
 > Linux behavior unchanged."
+
+## F11 — Self-hosted Docker/Podman stack silently crash-loops under a memory-constrained VM
+
+**Symptom:** MCP tool calls that depend on a backend service intermittently
+fail with vague errors (e.g. a bare "http error"), while simpler calls to the
+same server keep succeeding.
+**Root cause:** the container runtime's VM has too little memory for what's
+running under load (a JVM backend is a common culprit). The process OOMs and
+restarts every ~60-120 seconds; timing-sensitive calls land mid-crash and
+fail, while cheap/stateless calls dodge the window and look fine — making it
+read like a flaky MCP/API bug instead of a resource ceiling.
+**Fix:** before assuming a tool bug, check VM memory and watch for a restart
+loop: `podman machine inspect --format '{{.Resources.Memory}}'`, then poll
+`podman inspect <container> --format '{{.RestartCount}}'` twice a few seconds
+apart — if the count moves, it's crash-looping. Raise the VM's memory
+allocation (`podman machine stop && podman machine set --memory <MB> &&
+podman machine start`, then bring the stack back up) if it's constrained
+relative to what's running inside it.
+
+> **Fix prompt:** "A self-hosted Docker/Podman-backed tool is intermittently
+> failing calls that touch its backend with vague/generic errors, while other
+> calls to the same tool succeed. Run `podman machine inspect --format
+> '{{.Resources.Memory}}'` to check the VM's memory ceiling, then for each
+> running container run `podman inspect <name> --format '{{.RestartCount}}'`,
+> wait 5 seconds, and run it again — report any container whose count changed
+> (that's crash-looping, almost certainly OOM). If found, stop the machine,
+> raise its memory (`podman machine set --memory <higher-value>`), restart
+> it, and bring the compose stack back up with `podman compose up -d`. Report
+> before/after restart counts over a 60+ second window to confirm stability."
+
+## F12 — A hotfix inside a vendored/upstream git clone gets silently lost
+
+**Symptom:** a local config/ops fix living inside a `Projects/<vendored-tool>/`
+clone of someone else's repo (or another team's template) mysteriously stops
+working after routine git hygiene on that nested repo — a `git pull`,
+`checkout .`, or `reset --hard` run for an unrelated reason.
+**Root cause:** the fix was made as an uncommitted working-tree edit inside a
+foreign git clone. Git has no reason to protect an unstaged, unexplained
+diff — any future git operation (by a human or an agent) that resets the tree
+wipes it, with no error and no warning.
+**Fix:** commit local-only ops tweaks to vendored repos immediately, as their
+own commit with a message that says explicitly it's a local deployment fix
+and not meant for upstream. Do not push it to the vendor's remote unless it's
+an actual intended contribution.
+
+> **Fix prompt:** "For every git repo nested under `Projects/` in this
+> workspace, run `git -C <path> status --short`. For any repo showing
+> uncommitted changes to config/deployment files (docker-compose.yaml, .env,
+> install scripts — not source code), check whether those changes represent a
+> working fix for a bug already hit once (check this session's memory/notes
+> for context). If so, commit them locally in that repo with a message noting
+> they're a local ops fix, not an upstream contribution — do not push unless
+> explicitly asked."
+
+## F13 — Embedding binary payloads as base64 through the model's own context is catastrophically expensive for some tokenizers
+
+**Symptom:** a single image/asset upload attempt burns tens or hundreds of
+thousands of tokens, or the file gets silently truncated when read back (a
+"cap 25000 tokens" style warning) before it can even be embedded.
+**Root cause:** some execution contexts tokenize opaque base64 text at close
+to 1 token per character — not the usual ~4 characters per token for normal
+prose/code. A "just base64 a small file" instinct that's cheap for a 2KB icon
+becomes a 300K+ token round trip for a 400KB photo, with no warning until
+it's already happened.
+**Fix:** check the file's size before ever base64-encoding it for an
+execute_code-style call. For anything past roughly 20-30KB, don't inline it
+through your own context at all — use whatever the target tool provides for
+real uploads (a REST/upload API endpoint, or if the tool is browser-based,
+drive its own UI's file input directly via browser automation with the real
+file path, which costs zero context tokens regardless of file size). Reserve
+inline base64 for genuinely tiny assets like icons and small SVGs.
+
+> **Fix prompt:** "Before embedding any binary file as base64 inside a tool
+> call (execute_code, an MCP call, etc.), run `wc -c` on the file. If it's
+> under ~20KB, base64 inline is fine. If it's larger, do NOT read/embed the
+> base64 — instead check whether the target tool has (a) a native upload API
+> taking raw bytes/a URL, or (b) a browser-drivable UI file input you can
+> target directly with the real file path via browser automation (`find` for
+> the input element, then upload with the real path — no encoding needed).
+> Report the file size and which path you're taking before proceeding."
+
+## F14 — A single-tab-bound plugin/MCP bridge silently breaks when a second browser tab opens the same tool
+
+**Symptom:** automated calls to a browser-plugin-based MCP server that were
+working start failing with a "no plugin instance connected" (or equivalent)
+error, with no change on the calling side.
+**Root cause:** some browser-plugin MCP bridges hold exactly one active
+WebSocket connection, tied to whichever tab last registered it. Opening a
+second tab to the same tool/file (e.g. via browser automation, to do
+something the MCP tool set can't do directly like a real file upload)
+silently steals or orphans that connection.
+**Fix:** before opening a second tab to a tool that already has an active MCP
+bridge, check whether the existing tab/session can be reused instead. If a
+bridge does break, look in the newly-active tab for an explicit reconnect
+affordance (a toolbar toggle, a "connect here" button) rather than assuming
+the integration is dead or restarting the whole stack.
+
+> **Fix prompt:** "An MCP tool call is failing with a 'no plugin instance
+> connected' (or similar bridge-down) error, and a second browser tab was
+> recently opened to the same application. In that tool's UI (the tab you're
+> actively driving), look for a toolbar or plugin panel with a
+> reconnect/'connect here' affordance and use it to rebind the bridge to the
+> active tab. Retry a trivial MCP call afterward to confirm the bridge is
+> live again before resuming real work."
