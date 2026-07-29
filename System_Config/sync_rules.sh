@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# sync_rules.sh — regenerate the shared rule sections of CLAUDE.md and
-# .agents/AGENTS.md from the single source System_Config/orchestrator-rules.md.
+# sync_rules.sh — regenerate shared rule sections in provider entry files from
+# the single source System_Config/orchestrator-rules.md.
 #
-#   bash System_Config/sync_rules.sh           # sync both files in place
-#   bash System_Config/sync_rules.sh --check   # exit 1 if either file has drifted
+#   bash System_Config/sync_rules.sh           # sync all three files in place
+#   bash System_Config/sync_rules.sh --check   # exit 1 if any file has drifted
 #
 # The source file defines blocks with `<!-- BLOCK:<name> -->` headers; each
-# harness file carries `<!-- SHARED:<name>:BEGIN ... -->`/`<!-- SHARED:<name>:END -->`
+# provider file carries `<!-- SHARED:<name>:BEGIN ... -->`/`<!-- SHARED:<name>:END -->`
 # markers whose contents are replaced verbatim. Text outside markers is never
 # touched, so provider-specific sections stay authored per-file.
 set -euo pipefail
@@ -27,7 +27,7 @@ for i in range(1, len(parts), 2):
     blocks[parts[i]] = parts[i + 1].rstrip("\n")
 
 drift = False
-for rel in ("CLAUDE.md", ".agents/AGENTS.md"):
+for rel in ("AGENTS.md", "CLAUDE.md", ".agents/AGENTS.md"):
     t = pathlib.Path(workspace, rel)
     text = t.read_text()
     new = text

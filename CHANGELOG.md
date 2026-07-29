@@ -6,6 +6,10 @@ All notable changes to this template are documented here. Format follows
 
 ## [Unreleased]
 
+### Changed
+- Documented Codex, Claude, Gemini/Antigravity, and Ollama invocation exactly: ordered target selection, optional models, fail-closed resolution, Ollama local-model requirement, provider-specific security limits, durable quota handoff, and no in-run replay.
+- Documented scope-gated bounded concurrency and the three supported orchestration entry formats.
+
 ### Fixed (ingest reliability, 2026-07-20)
 - `daily_ingest.sh`: auth failures (revoked/invalid API key) previously produced the identical "QUOTA/BUDGET WALL suspected" log line as a real provider quota wall — now classified separately ("AUTH FAILURE suspected") by grepping each failed clip's captured output for auth-error markers, so troubleshooting isn't misdirected
 - `daily_ingest.sh`: `~/.config/anthropic/key` is read unconditionally even when it's known-stale; `INGEST_IGNORE_KEYFILE=1` (new `config.sh` var) now skips it and falls through to login-keychain auth

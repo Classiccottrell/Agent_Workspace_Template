@@ -36,7 +36,7 @@ case "${1:-}" in
     # shellcheck source=/dev/null
     [ -f "$SYSCFG/deps.sh" ] && . "$SYSCFG/deps.sh" || true
     echo "→ Tools:"
-    for t in agy gemini claude gh node npx python3; do
+    for t in agy gemini claude codex ollama gh node npx python3; do
       if p="$(command -v "$t" 2>/dev/null)"; then
         echo "  [ok] $t $p"
         if [ "$t" = "gh" ]; then
@@ -194,10 +194,17 @@ elif command -v gemini >/dev/null 2>&1; then
   echo "    [ok]   Gemini CLI found: $(command -v gemini)"
 elif command -v claude >/dev/null 2>&1; then
   echo "    [ok]   Claude Code CLI found: $(command -v claude)"
+elif command -v codex >/dev/null 2>&1; then
+  echo "    [ok]   Codex CLI found: $(command -v codex)"
 else
-  echo "    [warn] No agent CLI found on PATH (need 'agy', 'gemini', or 'claude')."
+  echo "    [warn] No agent CLI found on PATH (need 'agy', 'gemini', 'claude', or 'codex')."
   echo "           Gemini CLI:  https://github.com/google-gemini/gemini-cli"
   echo "           Claude Code: https://docs.claude.com/en/docs/claude-code"
+fi
+if command -v ollama >/dev/null 2>&1; then
+  echo "    [ok]   Ollama found: $(command -v ollama)"
+else
+  echo "    [opt]  Ollama not found — required only when selected as an ingest target."
 fi
 
 case "$(uname -s)" in
@@ -346,26 +353,51 @@ echo "→ Note ingestion — the daily job that wikifies clips and notes into Va
 if [ -t 0 ]; then
   printf "  Source folders inside Vault_Brain/, colon-separated [sources]: "
   read -r ING_SOURCES || ING_SOURCES=""
-  printf "  Provider — auto / claude / gemini [auto]: "
-  read -r ING_PROVIDER || ING_PROVIDER=""
+  echo "  Agent targets (ordered multi-select):"
+  echo "    [ ] 1 Claude"
+  echo "    [ ] 2 Gemini / Antigravity"
+  echo "    [ ] 3 Codex"
+  echo "    [ ] 4 Ollama"
+  printf "  Select in priority order, comma-separated [keep current; fresh = legacy auto]: "
+  read -r ING_TARGET_CHOICES || ING_TARGET_CHOICES=""
+  ING_TARGETS=""
+  old_ifs="$IFS"; IFS=','
+  for choice in $ING_TARGET_CHOICES; do
+    case "$choice" in 1|claude) target=claude ;; 2|gemini|agy) target=gemini ;;
+      3|codex) target=codex ;; 4|ollama) target=ollama ;; *) target="" ;;
+    esac
+    [ -n "$target" ] && ING_TARGETS="${ING_TARGETS:+$ING_TARGETS:}$target"
+  done
+  IFS="$old_ifs"
+  printf "  Optional models (claude, gemini, codex, ollama; blank keeps current; fresh = CLI default): "
+  read -r ING_MODELS || ING_MODELS=""
   printf "  Daily run hour, 0-23 [7]: "
   read -r ING_HOUR || ING_HOUR=""
   printf "  Per-clip budget in USD, claude only [1.00]: "
   read -r ING_BUDGET || ING_BUDGET=""
 else
-  ING_SOURCES=""; ING_PROVIDER=""; ING_HOUR=""; ING_BUDGET=""
+  ING_SOURCES=""; ING_TARGETS=""; ING_MODELS=""; ING_HOUR=""; ING_BUDGET=""
   echo "  (non-interactive: keeping defaults — sources, auto, 07:00, \$1.00)"
 fi
 # Validate; anything odd falls back to the default already in config.sh.
-case "$ING_PROVIDER" in claude|gemini|auto) ;; *) ING_PROVIDER="" ;; esac
 case "$ING_HOUR" in [0-9]|1[0-9]|2[0-3]) ;; *) ING_HOUR="" ;; esac
 case "$ING_BUDGET" in *[!0-9.]*|"") ING_BUDGET="" ;; esac
+case "$ING_MODELS" in *[!A-Za-z0-9._:/,-]*) ING_MODELS="" ;; esac
 [ -n "$ING_SOURCES" ]  && sed -i.bak "s|^INGEST_SOURCES=.*|INGEST_SOURCES=\"\${INGEST_SOURCES:-${ING_SOURCES}}\"|"   "$SYSCFG/config.sh"
-[ -n "$ING_PROVIDER" ] && sed -i.bak "s|^INGEST_PROVIDER=.*|INGEST_PROVIDER=\"\${INGEST_PROVIDER:-${ING_PROVIDER}}\"|" "$SYSCFG/config.sh"
+[ -n "$ING_TARGETS" ]  && sed -i.bak "s|^INGEST_TARGETS=.*|INGEST_TARGETS=\"\${INGEST_TARGETS:-${ING_TARGETS}}\"|" "$SYSCFG/config.sh"
+if [ -n "$ING_MODELS" ]; then
+  old_ifs="$IFS"; IFS=','; set -- $ING_MODELS; IFS="$old_ifs"
+  for pair in "CLAUDE_MODEL:${1:-}" "GEMINI_MODEL:${2:-}" "CODEX_MODEL:${3:-}" "OLLAMA_MODEL:${4:-}"; do
+    key="${pair%%:*}"; value="${pair#*:}"
+    [ -n "$value" ] && sed -i.bak "s|^${key}=.*|${key}=\"\${${key}:-${value}}\"|" "$SYSCFG/config.sh"
+  done
+fi
 [ -n "$ING_HOUR" ]     && sed -i.bak "s|^INGEST_HOUR=.*|INGEST_HOUR=\"\${INGEST_HOUR:-${ING_HOUR}}\"|"                "$SYSCFG/config.sh"
 [ -n "$ING_BUDGET" ]   && sed -i.bak "s|^INGEST_MAX_BUDGET=.*|INGEST_MAX_BUDGET=\"\${INGEST_MAX_BUDGET:-${ING_BUDGET}}\"|" "$SYSCFG/config.sh"
 rm -f "$SYSCFG/config.sh.bak"
-echo "    [ok]   Ingestion config: sources=${ING_SOURCES:-sources} provider=${ING_PROVIDER:-auto} hour=${ING_HOUR:-7} budget=\$${ING_BUDGET:-1.00}"
+# Reload effective values so blank/invalid-only input reports retained config.
+source "$SYSCFG/config.sh"
+echo "    [ok]   Ingestion config: sources=${INGEST_SOURCES} targets=${INGEST_TARGETS:-legacy-auto} hour=${INGEST_HOUR} budget=\$${INGEST_MAX_BUDGET}"
 if [ "$SCHEDULE" = "auto" ] && [ -n "$ING_HOUR" ]; then
   echo "    [note] Re-rendering the ingest schedule with your hour…"
   bash "$SYSCFG/install_daily_ingest.sh" >/dev/null
@@ -460,6 +492,7 @@ echo " 3. Run the health check and open the dashboard:"
 echo "      bash System_Config/healthcheck.sh"
 echo "      open System_Config/status_page.html"
 echo " 4. Start working from this folder: run 'agy'/'gemini' (Gemini/Antigravity) or 'claude' (Claude Code)."
+echo "    Or run 'codex' for Codex. Ollama is supported as a headless ingest target, not an orchestrator."
 echo
 echo " First 15 minutes: open WELCOME.md — a guided walkthrough (first command,"
 echo " first delegation, first clip ingested). Deletable when you're done."

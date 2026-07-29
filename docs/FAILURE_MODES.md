@@ -21,16 +21,19 @@ knowledge of this repo. Run them from the workspace root.
 | F12 | A hotfix inside a vendored/upstream git clone gets silently lost | fixed — verify |
 | F13 | Embedding binary payloads as base64 through the model's own context is catastrophically expensive for some tokenizers | recurring |
 | F14 | A single-tab-bound plugin/MCP bridge silently breaks when a second browser tab opens the same tool | recurring |
+| F15 | Dispatcher scope labels imply isolation they do not enforce | trusted-input boundary |
 
 ---
 
 ## F1 — Ingest silently stops after ~5–6 clips per run
 
 **Symptom:** a big clip backlog drains only a few files per day.
-**Root cause:** provider quota wall. Each clip is one headless agent call; after
-~5–6 calls the provider throttles. `daily_ingest.sh` is designed for this — a
+**Root cause:** provider quota wall or the configured per-run cap. Each clip is
+one headless agent call. `daily_ingest.sh` is designed for this: a
 clip is only recorded in the manifest after the wiki link is verified, so
-unprocessed clips retry automatically on the next scheduled run. A clip that
+unprocessed clips retry automatically on the next scheduled run. With ordered
+`INGEST_TARGETS`, quota/rate failures save the next available provider for the
+next run; the failed clip is not replayed in the current run. A clip that
 fails or no-ops **3 times** is quarantined (skipped, logged as `QUARANTINED`)
 via `<source-dir>/.failed.log` so a poisoned clip can't burn budget forever —
 fix or remove the clip, then delete its line from `.failed.log` to retry.
@@ -49,17 +52,15 @@ fix or remove the clip, then delete its line from `.failed.log` to retry.
 ## F2 — Gemini ingest runs unbounded / costs spike
 
 **Symptom:** worry that the gemini path has no budget flag.
-**Root cause:** gemini's CLI has no `--max-budget-usd` equivalent. Its only
-ceiling is the `MAX_SECONDS` wall-clock watchdog, which applies to **both**
-provider branches (the `sleep + kill -TERM` wrapper in `run_claude`).
-**Fix:** landed — watchdog covers both; comments in the scripts name the ceiling.
+**Root cause:** Gemini, Codex, and Ollama have no `--max-budget-usd` control in
+this wrapper. Their hard local ceilings are `INGEST_MAX_SECONDS` per call and
+`INGEST_MAX_CLIPS_PER_RUN` per run.
+**Fix:** landed. `run_agent.sh` applies TERM/KILL watchdog handling to all targets.
 
-> **Fix prompt:** "Open `System_Config/daily_ingest.sh` and
-> `System_Config/friday_process.sh`. Confirm each defines a `run_claude`
-> function where BOTH the gemini and claude branches are followed by a
-> `( sleep \"$MAX_SECONDS\"; kill -TERM ... )` watchdog before `wait`. Confirm
-> `MAX_BUDGET` is passed via `--max-budget-usd` on the claude branch only, with
-> a comment noting gemini has no cost flag. Report PASS/FAIL per file with line numbers."
+> **Fix prompt:** "Open `System_Config/run_agent.sh`. Confirm Claude alone gets
+> `--max-budget-usd`; Claude, Gemini, Codex, and Ollama all route through the
+> `MAX_SECONDS` TERM/KILL watchdog. Confirm `daily_ingest.sh` enforces
+> `INGEST_MAX_CLIPS_PER_RUN`. Report PASS/FAIL with line numbers."
 
 ## F3 — Notes in subfolders never ingested
 
@@ -110,17 +111,17 @@ System Settings → Privacy & Security → Full Disk Access) and re-run the inst
 
 ## F6 — Orchestrator rules drift between providers
 
-**Symptom:** Claude and Gemini behave differently on the same workspace.
-**Root cause:** `CLAUDE.md` (Claude Code) and `.agents/AGENTS.md` (Gemini) are
-maintained as mirrors by hand; an edit lands in one and not the other.
-**Fix:** diff and reconcile; long-term fix is single-sourcing (see docs/IMPROVEMENTS.md #2).
+**Symptom:** Codex, Claude, and Gemini behave differently on the same workspace.
+**Root cause:** provider entry files contain generated shared regions plus
+provider-specific dispatch text. Editing generated regions by hand causes drift.
+**Fix:** edit `System_Config/orchestrator-rules.md`, run
+`bash System_Config/sync_rules.sh`, then `bash System_Config/sync_rules.sh --check`.
 
-> **Fix prompt:** "Compare `CLAUDE.md` and `.agents/AGENTS.md` in this repo
-> section by section (System Directives, Caveman Protocol, Wiki Queries,
-> Orchestration Rules, Git & GitHub, Documentation Integrity, HTML Template).
-> List every rule present in one file but missing or different in the other.
-> For each mismatch, propose the one-line edit that reconciles them — do not
-> change the meaning of any rule, only sync them. Apply after showing me the list."
+> **Fix prompt:** "Run `bash System_Config/sync_rules.sh --check`. If it fails,
+> edit only `System_Config/orchestrator-rules.md`, regenerate with
+> `bash System_Config/sync_rules.sh`, and rerun the check. Do not erase the
+> provider-specific dispatch sections in `CLAUDE.md`, `AGENTS.md`, or
+> `.agents/AGENTS.md`."
 
 ## F7 — Stale README after a script change
 
@@ -286,3 +287,18 @@ the integration is dead or restarting the whole stack.
 > reconnect/'connect here' affordance and use it to rebind the bridge to the
 > active tab. Retry a trivial MCP call afterward to confirm the bridge is
 > live again before resuming real work."
+
+## F15 — Dispatcher scope labels imply isolation they do not enforce
+
+**Symptom:** two tasks declared with different-looking scopes still write the
+same file, or an untrusted task row runs arbitrary shell.
+**Root cause:** `dispatch_tasks.sh` compares scope tokens literally. It rejects
+`wiki` plus `wiki`, but does not infer that `wiki` overlaps `wiki/index` or that
+two labels name the same resource. The command column executes with `bash -c`.
+**Fix:** treat task files as trusted orchestrator input, use the same exact token
+for every shared write target, and pass a positive integer concurrency bound.
+
+> **Fix prompt:** "Inspect the task TSV before dispatch. Reject duplicate IDs,
+> empty fields, non-positive concurrency, and exact repeated scope tokens. Flag
+> path-like scopes where one contains another for human review. Never accept
+> task commands from an untrusted user because they execute through `bash -c`."

@@ -73,6 +73,27 @@ trap 'restore_sources; rmdir "$LOCK_DIR" 2>/dev/null || true' EXIT
 # ── BOUNDED HEADLESS AGENT CALL ───────────────────────────────────────────────
 source "$(dirname "${BASH_SOURCE[0]}")/run_agent.sh"
 
+# Resume the provider selected after the last quota handoff. State is only
+# meaningful for the exact configured target order.
+TARGET_STATE="$LOG_DIR/daily_ingest.target"
+save_target_state() {
+  local tmp
+  tmp="$(mktemp "$LOG_DIR/.daily_ingest.target.XXXXXX")"
+  printf '%s\t%s\n' "$INGEST_TARGETS" "$AGENT_TARGET_INDEX" > "$tmp"
+  mv "$tmp" "$TARGET_STATE"
+}
+if [[ -n "$INGEST_TARGETS" && -f "$TARGET_STATE" ]]; then
+  IFS="$(printf '\t')" read -r saved_targets saved_index < "$TARGET_STATE" || true
+  if [[ "$saved_targets" == "$INGEST_TARGETS" ]]; then
+    select_agent_target_index "$saved_index" || {
+      log "FATAL: saved provider handoff has no available target"; exit 1;
+    }
+  fi
+fi
+if [[ -n "$INGEST_TARGETS" && -z "${AGENT_TYPE:-}" ]]; then
+  log "FATAL: ${AGENT_RESOLUTION_ERROR}"; exit 1
+fi
+
 # ── PER-DIRECTORY SCAN + INGEST ───────────────────────────────────────────────
 # Each source dir keeps its OWN manifest (<dir>/.ingested.log) so the legacy
 # sources/ manifest keeps working and basenames can't collide across dirs.
@@ -143,6 +164,12 @@ process_dir() {
     [[ -f "$failmf" ]] || return 0
     awk -F'\t' -v n="$1" '$2!=n' "$failmf" > "$failmf.tmp" && mv "$failmf.tmp" "$failmf"
   }
+  checkpoint_success() {
+    local hash="$1" name="$2" tmp
+    tmp="$(mktemp "$src_dir/.ingested.XXXXXX")"
+    { cat "$manifest"; printf '%s\t%s\n' "$hash" "$name"; } > "$tmp"
+    mv "$tmp" "$manifest"
+  }
 
   # ── FIND NEW NOTES (content-hash dedup) ──────────────────────────────────────
   # Capture find's exit status explicitly — process substitution would swallow it.
@@ -195,7 +222,7 @@ process_dir() {
   chmod a-w "$src_dir"/*.md 2>/dev/null || true
 
   # ── INGEST EACH CLIP INDEPENDENTLY ───────────────────────────────────────────
-  local clip src_link PROMPT rc fc log_offset chunk fail_label="QUOTA/BUDGET WALL"
+  local clip src_link PROMPT rc fc log_offset chunk failure_kind fail_label="QUOTA/BUDGET WALL"
   for clip in "${NEW[@]}"; do
     if [[ "$wall_hit" == "1" ]]; then break; fi
     if [[ "$attempted" -ge "$INGEST_MAX_CLIPS_PER_RUN" ]]; then
@@ -237,7 +264,7 @@ Constraints: create-or-append only; never overwrite a page wholesale; never dele
       # [[<dir>/<slug>]] from a wiki page or _index.md.
       if grep -rqF "[[${src_link}]]" "$VAULT/wiki/" 2>/dev/null; then
         h="$(shasum -a 256 "$src_dir/$clip" | awk '{print $1}')"
-        printf '%s\t%s\n' "$h" "$clip" >> "$manifest"
+        checkpoint_success "$h" "$clip"
         total_ingested=$((total_ingested + 1))
         log "OK: $rel_dir/$clip"
         consecutive_bad=0
@@ -253,8 +280,18 @@ Constraints: create-or-append only; never overwrite a page wholesale; never dele
       # both used to produce the identical "QUOTA/BUDGET WALL" log line, which
       # sends troubleshooting down the wrong path.
       chunk="$(tail -c +"$((log_offset + 1))" "$LOG" 2>/dev/null || true)"
-      if printf '%s' "$chunk" | grep -qiE "API key is invalid|Failed to authenticate|HTTP/1\.1 401|[^0-9]401[^0-9]"; then
+      failure_kind="$(agent_failure_kind "$chunk")"
+      if [[ "$failure_kind" == "auth" ]]; then
         fail_label="AUTH FAILURE"
+      elif [[ "$failure_kind" == "quota" ]]; then
+        fail_label="QUOTA/BUDGET WALL"
+        if advance_agent_target; then
+          save_target_state
+          log "provider handoff: subsequent clips use ${AGENT_TYPE}; failed clip was not replayed"
+          consecutive_bad=0
+        fi
+      else
+        fail_label="AGENT FAILURE"
       fi
       log "FAILED (rc=${rc}; may have timed out after ${MAX_SECONDS}s): $rel_dir/$clip — NOT recorded, will retry next run"
       consecutive_bad=$((consecutive_bad + 1))
