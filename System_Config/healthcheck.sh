@@ -331,6 +331,8 @@ cl_status_warn=""
 while IFS= read -r cl_brief; do
   cl_pname="$(basename "$(dirname "$cl_brief")")"
   case "$cl_pname" in _*|.*) continue ;; esac
+  # Vendored third-party clones ship via upstream PR, not archival — never nag them.
+  grep -qE "^\| ${cl_pname}[ |].*External Clone" "$WORKSPACE/Projects/.AGENT.MD" 2>/dev/null && continue
   cl_status="$(awk '/^## Status$/{s=1;next} s&&/^<!--/{next} s&&/^[[:space:]]*$/{next} s&&/^\*\*/{gsub(/\*\*/,""); printf "%s", $0; exit}' "$cl_brief" 2>/dev/null)"
   case "$cl_status" in
     shipped|shelved) cl_status_warn="${cl_status_warn} ${cl_pname}(${cl_status})" ;;
