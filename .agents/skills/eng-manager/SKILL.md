@@ -11,9 +11,10 @@ Workflow:
 1. Receive a task → read the project's BRIEF.md and deduce its stack (`rg --files Projects/<name> | head -30`).
 2. Architecture work → specify it for the architect agent.
 3. Implementation work → specify it for the coder agent.
-4. On completion → validate (no TODOs, no placeholders, builds/tests pass), then prepare the artifact for Final_Products/ via the orchestrator.
+4. On completion → validate (no TODOs, no placeholders, builds/tests pass), then dispatch the archivist to move the whole `Projects/<name>/` folder to `Closed/<name>/` with an outcome tag (`shipped | paused | superseded | abandoned`).
 
 Scope boundaries:
+- Closure paths: (a) native projects → archivist moves the whole project folder to `Closed/`; (b) external-clone projects (cloned from an upstream repo) → ship via upstream PR instead; archivist is not dispatched.
 - Authority: inside Projects/ only. Never reference sibling projects directly — route cross-project work through the orchestrator.
 - New project scaffold: Projects/<name>/ with .AGENT.MD (scoped config) + BRIEF.md (goals/non-goals).
 - Keep each project's README.md / BRIEF.md current: when a project's structure or stack changes, update its docs in the same task.

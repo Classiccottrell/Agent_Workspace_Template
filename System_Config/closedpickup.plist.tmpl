@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>__LABEL__</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>__WORKSPACE_ROOT__/System_Config/closed_pickup.sh</string>
+    </array>
+
+    <!-- Fire immediately when a new project folder lands in Closed/ (drag-and-drop
+         or git mv from Projects/). Also run hourly to catch any misses. -->
+    <key>WatchPaths</key>
+    <array>
+        <string>__WORKSPACE_ROOT__/Closed</string>
+    </array>
+    <key>StartInterval</key>
+    <integer>3600</integer>
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>__LOG_DIR__/closed-pickup.launchd.out</string>
+    <key>StandardErrorPath</key>
+    <string>__LOG_DIR__/closed-pickup.launchd.err</string>
+</dict>
+</plist>

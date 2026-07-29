@@ -25,7 +25,7 @@
 - [ ]
 
 ## Status
-<!-- One of: planning | active | blocked | review | shipped | archived -->
+<!-- One of: planning | active | blocked | review | shipped | shelved -->
 **planning**
 
 | Date       | Update            |

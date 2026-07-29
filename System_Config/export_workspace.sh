@@ -20,7 +20,7 @@ ARCHIVE_PATH="$DEST/$ARCHIVE_NAME"
 
 # ── INCLUDE LIST — only paths that actually exist (bash 3.2, no assoc arrays) ─
 INCLUDES=()
-for p in Vault_Brain Projects Final_Products System_Config/config.sh \
+for p in Vault_Brain Projects Closed System_Config/config.sh \
          .AGENT.MD CLAUDE.md .agents .claude/agents .claude/skills; do
   if [[ -e "$WORKSPACE/$p" ]]; then
     INCLUDES+=("$p")

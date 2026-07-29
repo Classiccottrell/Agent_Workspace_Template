@@ -1,7 +1,7 @@
 # example-project — todo-cli
 
 A tiny, illustrative project included with the template. It demonstrates the
-project lifecycle (BRIEF → active work → ship to Final_Products). The "code"
+project lifecycle (BRIEF → active work → move to Closed/). The "code"
 here is intentionally a placeholder — the point is the structure, not the tool.
 
 ## What it would do
@@ -27,5 +27,5 @@ example-project/
 
 1. `BRIEF.md` is filled in (goal, non-goals, constraints, stack, acceptance, status).
 2. Implementation happens under `active/`.
-3. On completion, the finished artifact is handed to `Final_Products/` via the
-   Orchestrator and recorded in `Final_Products/INDEX.md`.
+3. On completion, the archivist moves the whole project folder to `Closed/` via the
+   Orchestrator and records it in `Closed/INDEX.md`.

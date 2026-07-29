@@ -47,7 +47,7 @@ Status lines are appended to cards as they land — keep this file current.
 ### 8. Upstream update mechanism — ⏳ OPEN (deliberately last)
 **Note:** touches installed users' working trees — path-scope mistakes here can clobber data. Do this one attended, not via a lesser model, and dry-run first.
 **Why:** an installed user can't pull template improvements without clobbering their `Projects/`/`Vault_Brain/` data.
-> **Prompt:** "Design and add `./bootstrap.sh --update`: fetches the template's upstream, updates only system files (`System_Config/`, `.claude/agents/`, `.agents/skills/`, `CLAUDE.md`, `bootstrap.sh`) and never touches `Projects/`, `Final_Products/`, `Vault_Brain/`, `.mcp.json`. Use a git strategy (sparse checkout or path-scoped merge). Dry-run by default; show the file list before applying."
+> **Prompt:** "Design and add `./bootstrap.sh --update`: fetches the template's upstream, updates only system files (`System_Config/`, `.claude/agents/`, `.agents/skills/`, `CLAUDE.md`, `bootstrap.sh`) and never touches `Projects/`, `Closed/`, `Vault_Brain/`, `.mcp.json`. Use a git strategy (sparse checkout or path-scoped merge). Dry-run by default; show the file list before applying."
 
 ### 9. First-run onboarding — ✅ DONE 2026-07-09
 **Landed:** root `WELCOME.md` (first 15 minutes: open, delegate, clip, ingest, check) + disposable sandbox `Projects/example/` (hello.sh + toy BRIEF). `Projects/example-project/` stays as the reference brief; bootstrap prints the WELCOME pointer.
@@ -104,7 +104,7 @@ Status lines are appended to cards as they land — keep this file current.
 ### 19. Workspace export/import (anti-lock-in) — ✅ DONE 2026-07-09
 **Landed:** `export_workspace.sh` (dated tar.gz, secrets/logs/git excluded) + `import_workspace.sh` (refuses non-empty targets). Round-trip diff verified empty.
 **Why:** the whole value is a portable knowledge system; it should survive a move off this tool/machine as a plain archive.
-> **Prompt:** "Add `System_Config/export_workspace.sh` that tars `Vault_Brain/`, `Projects/`, `Final_Products/`, and config (excluding secrets, logs, node_modules, .git) into a dated portable archive, plus a matching `import_workspace.sh`. Document in `README.md`. Verify a round-trip (export → fresh dir → import) preserves the vault."
+> **Prompt:** "Add `System_Config/export_workspace.sh` that tars `Vault_Brain/`, `Projects/`, `Closed/`, and config (excluding secrets, logs, node_modules, .git) into a dated portable archive, plus a matching `import_workspace.sh`. Document in `README.md`. Verify a round-trip (export → fresh dir → import) preserves the vault."
 
 ### 20. Longitudinal observability — ✅ DONE 2026-07-09
 **Landed:** `logs/metrics.tsv` (date, pending, ingested-total, jobs, wiki pages) appended each healthcheck run, header once, append-only; last snapshot surfaced in the status page via Layer I.

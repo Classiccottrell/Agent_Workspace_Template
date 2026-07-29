@@ -311,11 +311,32 @@ EOF
 else
   check FAIL "Projects workspace" "Projects/ missing"
 fi
-if [ -d "$WORKSPACE/Final_Products" ]; then
-  [ -f "$WORKSPACE/Final_Products/INDEX.md" ] && check PASS "Final_Products index" "INDEX.md present" || check WARN "Final_Products index" "INDEX.md missing (nothing shipped yet)"
+if [ -d "$WORKSPACE/Closed" ]; then
+  [ -f "$WORKSPACE/Closed/INDEX.md" ] && check PASS "Closed/ registry" "INDEX.md present" || check WARN "Closed/ registry" "INDEX.md missing — create Closed/INDEX.md"
+  # Warn on Closed/ subfolders not yet registered in INDEX.md
+  cl_index="$WORKSPACE/Closed/INDEX.md"
+  cl_unindexed=""
+  while IFS= read -r cl_dir; do
+    cl_name="$(basename "$cl_dir")"
+    case "$cl_name" in _*|.*) continue ;; esac
+    grep -qF "$cl_name" "$cl_index" 2>/dev/null || cl_unindexed="${cl_unindexed} ${cl_name}"
+  done < <(find "$WORKSPACE/Closed" -mindepth 1 -maxdepth 1 -type d 2>/dev/null)
+  if [ -z "$cl_unindexed" ]; then check PASS "Closed/ index sync" "all subfolders registered"
+  else check WARN "Closed/ index sync" "unindexed:${cl_unindexed} — run closed_pickup.sh"; fi
 else
-  check WARN "Final_Products" "directory missing"
+  check WARN "Closed/" "directory missing"
 fi
+# Warn if a project in Projects/ has status shipped or shelved (should be in Closed/)
+cl_status_warn=""
+while IFS= read -r cl_brief; do
+  cl_pname="$(basename "$(dirname "$cl_brief")")"
+  case "$cl_pname" in _*|.*) continue ;; esac
+  cl_status="$(awk '/^## Status$/{s=1;next} s&&/^<!--/{next} s&&/^[[:space:]]*$/{next} s&&/^\*\*/{gsub(/\*\*/,""); printf "%s", $0; exit}' "$cl_brief" 2>/dev/null)"
+  case "$cl_status" in
+    shipped|shelved) cl_status_warn="${cl_status_warn} ${cl_pname}(${cl_status})" ;;
+  esac
+done < <(find "$WORKSPACE/Projects" -mindepth 2 -maxdepth 2 -name BRIEF.md 2>/dev/null)
+if [ -n "$cl_status_warn" ]; then check WARN "Shipped/shelved in Projects/" "consider moving to Closed/:${cl_status_warn}"; fi
 end_section
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -346,6 +367,18 @@ if grep -q '^\.claude/worktrees/' "$WORKSPACE/.gitignore" 2>/dev/null; then
   check PASS ".claude/worktrees ignored" ".gitignore rule present"
 else
   check WARN ".claude/worktrees ignored" ".gitignore missing .claude/worktrees/ rule"
+fi
+# committed gitlinks (mode 160000) under Closed/ in HEAD or staged (closed projects
+# that kept their own .git must NOT be committed as gitlinks — they are git-ignored)
+gl_closed_head=$(git -C "$WORKSPACE" ls-tree -r HEAD -- Closed 2>/dev/null | awk '$2=="commit"{print $4}')
+gl_closed_idx=$(git -C "$WORKSPACE" ls-files -s -- Closed 2>/dev/null | awk '$1=="160000"{print $4}')
+gl_closed_all=$(printf '%s
+%s
+' "$gl_closed_head" "$gl_closed_idx" | grep -v '^$' | sort -u | tr '\n' ' ')
+if [ -n "$gl_closed_all" ]; then
+  check FAIL "No Closed/ gitlinks tracked" "committed/staged gitlink(s) under Closed/: ${gl_closed_all}"
+else
+  check PASS "No Closed/ gitlinks tracked" "no 160000 gitlinks under Closed/"
 fi
 end_section
 # ════════════════════════════════════════════════════════════════════════════

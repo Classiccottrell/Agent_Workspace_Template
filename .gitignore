@@ -74,6 +74,14 @@ Projects/ClassicCottrell_design-system/
 Projects/UX_Skill_Repo_1.0/
 Projects/ascii-art/
 
+# ── Closed/ holds whole shipped/paused/superseded project folders (each keeps ──
+# its own .git, per the Projects/ rationale above) — only the top-level registry
+# is tracked in this repo.
+Closed/*
+!Closed/INDEX.md
+!Closed/.AGENT.MD
+!Closed/README.html
+
 # ── Tool cache / stray worktrees ───────────────────────────────────────
 **/.impeccable/
 Projects/WestCoastModern/WCM/.claude/worktrees/

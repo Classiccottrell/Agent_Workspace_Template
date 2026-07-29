@@ -52,7 +52,7 @@ This template is an Integrated Context Management (ICM) folder pattern layered o
 
 | Layer | Folder | Owner | What it holds |
 |-------|--------|-------|---------------|
-| **1. Delivery** | `Projects/`, `Final_Products/` | eng-manager / archivist | Active project workspaces and shipped artifacts |
+| **1. Delivery** | `Projects/`, `Closed/` | eng-manager / archivist | Active project workspaces and closed project folders. |
 | **2. Automation** | `System_Config/` | you (run installers) | `launchd` jobs + scripts that keep the system running |
 | **3. Knowledge** | `Vault_Brain/` | curator | Obsidian LLM-wiki: sources → wiki → schema |
 
@@ -65,7 +65,7 @@ Most agents are available for both Claude Code and Gemini — the role definitio
 | **architect** | Schema, API, structure design | `.claude/agents/architect.md` | `.agents/skills/architect/SKILL.md` | coder |
 | **coder** | Implementation only | `.claude/agents/coder.md` | `.agents/skills/coder/SKILL.md` | orchestrator |
 | **eng-manager** | `Projects/` lifecycle | `.claude/agents/eng-manager.md` | `.agents/skills/eng-manager/SKILL.md` | architect, coder |
-| **archivist** | `Final_Products/` artifacts | `.claude/agents/archivist.md` | `.agents/skills/archivist/SKILL.md` | orchestrator |
+| **archivist** | `Closed/` project closure | `.claude/agents/archivist.md` | `.agents/skills/archivist/SKILL.md` | orchestrator |
 | **curator** | `Vault_Brain/` knowledge | `.claude/agents/curator.md` | `.agents/skills/curator/SKILL.md` | orchestrator |
 | **qa** | Production-repo PR regression/QA | `.claude/agents/qa.md` | — (Claude Code only) | eng-manager |
 
@@ -103,7 +103,7 @@ your-workspace/
 ├── Projects/                   ← active project workspaces
 │   ├── _TEMPLATE/              ← copy this to start a new project
 │   └── example-project/        ← worked example
-├── Final_Products/             ← shipped, archived artifacts
+├── Closed/                     ← closed projects (moved from Projects/)
 └── Vault_Brain/                ← Obsidian LLM-wiki (open THIS folder in Obsidian)
     ├── CLAUDE.md               ← wiki schema (Layer 3)
     ├── README.md               ← how the vault works

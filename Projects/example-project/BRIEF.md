@@ -35,4 +35,4 @@ mark a task done. Single file, no external dependencies.
 |------------|---------------------------------------------------|
 | YYYY-MM-DD | Project created from _TEMPLATE.                   |
 | YYYY-MM-DD | add/list/done implemented; acceptance met.        |
-| YYYY-MM-DD | Shipped — artifact handed to Final_Products/.     |
+| YYYY-MM-DD | Shipped — project moved to Closed/.     |

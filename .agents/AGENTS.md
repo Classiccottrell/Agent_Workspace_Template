@@ -42,7 +42,7 @@ Subagents and skills are configured in `.agents/skills/`. You can define them dy
 *   **Architect** (`architect`): Schema, API, structure design.
 *   **Coder** (`coder`): Implementation only.
 *   **Eng Manager** (`eng-manager`): `Projects/` lifecycle management.
-*   **Archivist** (`archivist`): `Final_Products/` archival.
+*   **Archivist** (`archivist`): `Closed/` project closure.
 *   **Curator** (`curator`): `Vault_Brain/` knowledge management.
 *   **QA** (`qa`): Production-repo PR regression/QA. Claude Code only today (`.claude/agents/qa.md`) — no Gemini skill counterpart yet.
 

@@ -32,7 +32,7 @@
 
 ## Agent Dispatch
 * Subagents live in `.claude/agents/`. Invoke by name via the Task tool — never paste role-file text into a prompt.
-* Routing: architecture/schema → `architect`; implementation → `coder`; `Projects/` lifecycle → `eng-manager`; `Final_Products/` archival → `archivist`; `Vault_Brain/` knowledge → `curator`; brand/visual/copy/design-feedback → `creative-director`; production-repo PR regression/QA → `qa`.
+* Routing: architecture/schema → `architect`; implementation → `coder`; `Projects/` lifecycle → `eng-manager`; `Closed/` archival → `archivist`; `Vault_Brain/` knowledge → `curator`; brand/visual/copy/design-feedback → `creative-director`; production-repo PR regression/QA → `qa`.
 * For UI work, use `/master-orchestrator` to select the right skill(s) from `~/.claude/skills/` and inject them into `coder` prompts. The `.cursor/rules/skill.md` design profile is available as a fallback for Cursor IDE users.
 
 <!-- SHARED:pr_quality_gate:BEGIN (source: System_Config/orchestrator-rules.md — edit there, run sync_rules.sh) -->

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#f9f5f1" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1c1e1c" media="(prefers-color-scheme: dark)">
-<title>Final Products — Agent Workspace Template</title>
+<title>Closed — Agent Workspace Template</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:ital,wght@0,400..700;1,400..700&amp;family=Rosarivo:ital@0;1&amp;display=swap" rel="stylesheet">
@@ -67,27 +67,37 @@ h1,h2,.hero h1{font-family:var(--serif);font-weight:400;letter-spacing:0}
   <a class="back" href="../docs/index.html">← back</a>
 </div></header>
 <main><div class="wrap">
-  <p class="eyebrow">// archive</p>
-  <h1>Final Products</h1>
-  <p class="lede">A dated, indexed shelf of finished, verified work — grouped by project and linked back to its source.</p>
+  <p class="eyebrow">// closed projects</p>
+  <h1>Closed</h1>
+  <p class="lede">Whole project folders that have finished their active lifecycle — tagged with an outcome and moved here intact from <code>Projects/</code>.</p>
 
   <h2>How it works</h2>
   <ul>
-    <li>The <strong>archivist</strong> agent verifies a completed artifact, names it <code>YYYY-MM-DD_type.ext</code>, and files it in its project subfolder.</li>
-    <li>Each project folder has an <code>INDEX.md</code> artifact manifest. The root <code>INDEX.md</code> is the project registry.</li>
-    <li>Nothing lands here until it's done and checked — this folder stays a trustworthy record of output.</li>
+    <li>When a project is done (shipped, paused, superseded, or abandoned), the <strong>archivist</strong> agent runs <code>git mv Projects/&lt;name&gt;/ Closed/&lt;name&gt;/</code> — the whole folder moves intact, including any internal <code>.git/</code> history.</li>
+    <li>The root <code>INDEX.md</code> is the single master registry — one row per closed project with an outcome tag.</li>
+    <li>The <code>closed_pickup.sh</code> script runs hourly and auto-detects any subfolder not yet in <code>INDEX.md</code>, appending a placeholder row for review.</li>
+    <li>External-clone projects (cloned from an upstream repo) are never moved here — they ship via upstream PR instead.</li>
   </ul>
 
-  <div class="card">Authority is scoped: the archivist works only inside <code>Final_Products/</code> and writes only on explicit instruction.</div>
+  <div class="card">Authority is scoped: the archivist works inside <code>Closed/</code> and the single project being moved — nothing else without explicit orchestrator approval.</div>
 
   <p><a class="btn" href="INDEX.md">Browse index →</a></p>
 
-  <h2>Shipped Artifacts</h2>
-  <p style="color:var(--muted);font-size:.95rem">No artifacts archived yet. Finished work filed by the archivist will appear here.</p>
+  <h2>Outcome tags</h2>
+  <ul>
+    <li><code>shipped</code> — all acceptance criteria met; delivered.</li>
+    <li><code>paused</code> — work halted; may resume.</li>
+    <li><code>superseded</code> — replaced by another project or approach.</li>
+    <li><code>abandoned</code> — stopped; no plans to resume.</li>
+    <li><code>unspecified — needs review</code> — automated pickup default; replace when the outcome is known.</li>
+  </ul>
+
+  <h2>Closed Projects</h2>
+  <p style="color:var(--muted);font-size:.95rem">No projects closed yet. Projects moved here by the archivist will appear in <code>INDEX.md</code>.</p>
 
 </div></main>
 <footer class="site"><div class="wrap">
-  agent-workspace · Final Products · <a href="../docs/index.html">home</a> · <a href="../System_Config/status_page.html">health</a>
+  agent-workspace · Closed · <a href="../docs/index.html">home</a> · <a href="../System_Config/status_page.html">health</a>
 </div></footer>
 </body>
 </html>
