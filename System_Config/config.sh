@@ -132,6 +132,13 @@ select_agent_target_index() {
   return 1
 }
 
+provider_state_timestamp_valid() {
+  local saved_at="$1" now="$2" ttl="$3" age
+  case "$saved_at" in ''|*[!0-9]*) return 1 ;; esac
+  age=$((now - saved_at))
+  [[ "$age" -ge 0 && "$age" -le "$ttl" ]]
+}
+
 # ── Scheduler backend ─────────────────────────────────────────────────────────
 # launchd (macOS) | cron (Linux with crontab) | none (anything else).
 # The install_*.sh scripts branch on this; macOS behavior is unchanged.

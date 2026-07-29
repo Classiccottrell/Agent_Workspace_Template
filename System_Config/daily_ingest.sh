@@ -88,12 +88,15 @@ if [[ -n "$INGEST_TARGETS" && -f "$TARGET_STATE" ]]; then
   IFS="$(printf '\t')" read -r saved_targets saved_index saved_at < "$TARGET_STATE" || true
   case "${saved_index:-}" in ''|*[!0-9]*|0) saved_index=1 ;; esac
   case "${saved_at:-}" in ''|*[!0-9]*) saved_at=0 ;; esac
-  if [[ "$saved_targets" == "$INGEST_TARGETS" && $(( $(date +%s) - saved_at )) -le "$TARGET_STATE_TTL" ]]; then
+  state_now="$(date +%s)"
+  state_age=$(( state_now - saved_at ))
+  if [[ "$saved_targets" == "$INGEST_TARGETS" ]] && provider_state_timestamp_valid "$saved_at" "$state_now" "$TARGET_STATE_TTL"; then
     select_agent_target_index "$saved_index" || {
       log "WARN: saved provider unavailable; falling back to first available target"
       select_agent_target_index 1 || true
     }
   else
+    [[ "$state_age" -lt 0 ]] && log "WARN: provider state timestamp is in the future; resetting to first available target"
     select_agent_target_index 1 || true
   fi
 fi

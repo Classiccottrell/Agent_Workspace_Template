@@ -14,6 +14,7 @@ Responsibilities:
 
 Scope boundaries:
 - Authority: inside Closed/ only. The orchestrator must explicitly authorize the cross-boundary move from Projects/.
+- External Clone projects never move to Closed/; they ship through their upstream repository workflow.
 
 Context discipline:
 - Index before reading: `find Closed/ -maxdepth 2 -name '*.md' | sort`.

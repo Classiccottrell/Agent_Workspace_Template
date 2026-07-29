@@ -103,17 +103,41 @@ run "Gemini legacy argv" bash -c '
   cmp "$tmp/expected" "$CAPTURE"
 ' _ "$SYSCFG"
 
+run "Claude and Gemini configured model argv" bash -c '
+  set -euo pipefail
+  tmp=$(mktemp -d); trap "rm -rf \"$tmp\"" EXIT; mkdir -p "$tmp/.local/bin"
+  for cli in claude gemini; do
+    printf "%s\n" "#!/bin/sh" "printf \"%s\\n\" \"\$@\" > \"\$CAPTURE\"" > "$tmp/.local/bin/$cli"
+    chmod +x "$tmp/.local/bin/$cli"
+  done
+  HOME="$tmp"; PATH="$tmp/.local/bin:/usr/bin:/bin"; INGEST_TARGETS=claude:gemini
+  CLAUDE_MODEL=claude-test; GEMINI_MODEL=gemini-test
+  CAPTURE="$tmp/argv"; LOG="$tmp/log"; MAX_SECONDS=2; MAX_BUDGET=1
+  export HOME PATH INGEST_TARGETS CLAUDE_MODEL GEMINI_MODEL CAPTURE
+  source "$1/config.sh"; source "$1/run_agent.sh"
+  run_agent prompt
+  printf "%s\n" -p prompt --model claude-test --allowedTools Read,Write,Edit,Glob,Grep \
+    --disallowedTools Bash,KillShell,Task,WebFetch,WebSearch,NotebookEdit \
+    --permission-mode acceptEdits --max-budget-usd 1 > "$tmp/expected"
+  cmp "$tmp/expected" "$CAPTURE"
+  advance_agent_target; run_agent prompt
+  printf "%s\n" -p prompt --model gemini-test --sandbox --dangerously-skip-permissions > "$tmp/expected"
+  cmp "$tmp/expected" "$CAPTURE"
+' _ "$SYSCFG"
+
 run "Codex and Ollama argv" bash -c '
   set -euo pipefail
   tmp=$(mktemp -d); trap "rm -rf \"$tmp\"" EXIT; mkdir -p "$tmp/.local/bin"
   printf "%s\n" "#!/bin/sh" "printf \"%s\\n\" \"\$@\" > \"\$CAPTURE\"" > "$tmp/.local/bin/codex"
   printf "#!/bin/sh\nexit 0\n" > "$tmp/.local/bin/ollama"
   chmod +x "$tmp/.local/bin/codex" "$tmp/.local/bin/ollama"
-  HOME="$tmp"; INGEST_TARGETS=codex:ollama; CAPTURE="$tmp/argv"; LOG="$tmp/log"; MAX_SECONDS=2; MAX_BUDGET=1
-  export HOME INGEST_TARGETS CAPTURE; source "$1/config.sh"; source "$1/run_agent.sh"
-  run_agent prompt; grep -qx exec "$CAPTURE"; grep -qx prompt "$CAPTURE"
+  HOME="$tmp"; INGEST_TARGETS=codex:ollama; CODEX_MODEL=codex-test; OLLAMA_MODEL=ollama-test
+  CAPTURE="$tmp/argv"; LOG="$tmp/log"; MAX_SECONDS=2; MAX_BUDGET=1
+  export HOME INGEST_TARGETS CODEX_MODEL OLLAMA_MODEL CAPTURE; source "$1/config.sh"; source "$1/run_agent.sh"
+  run_agent prompt
+  printf "%s\n" exec --sandbox workspace-write --model codex-test prompt > "$tmp/expected"; cmp "$tmp/expected" "$CAPTURE"
   advance_agent_target; run_agent prompt
-  printf "%s\n" exec --oss --local-provider ollama --sandbox workspace-write prompt > "$tmp/expected"; cmp "$tmp/expected" "$CAPTURE"
+  printf "%s\n" exec --oss --local-provider ollama --model ollama-test --sandbox workspace-write prompt > "$tmp/expected"; cmp "$tmp/expected" "$CAPTURE"
 ' _ "$SYSCFG"
 
 run "configured targets fail closed" bash -c '
@@ -137,6 +161,10 @@ run "rate classification and handoff resume" bash -c '
 API Error: HTTP/1.1 429 Too Many Requests")" == quota ]]
   [[ "$(agent_failure_kind "Error: 401 API key is invalid")" == auth ]]
   [[ "$(agent_failure_kind "content says rate limit and 429")" == agent ]]
+  now=$(date +%s)
+  provider_state_timestamp_valid "$now" "$now" 86400
+  ! provider_state_timestamp_valid "$((now + 60))" "$now" 86400
+  ! provider_state_timestamp_valid "$((now - 86401))" "$now" 86400
   advance_agent_target
   state="$tmp/state"; state_tmp="$tmp/state.tmp"
   printf "%s\t%s\n" "$INGEST_TARGETS" "$AGENT_TARGET_INDEX" > "$state_tmp"; mv "$state_tmp" "$state"
