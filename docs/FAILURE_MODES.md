@@ -288,17 +288,7 @@ the integration is dead or restarting the whole stack.
 > active tab. Retry a trivial MCP call afterward to confirm the bridge is
 > live again before resuming real work."
 
-## F15 — Dispatcher scope labels imply isolation they do not enforce
+## F15 — Concurrent ingest corrupts shared outputs
 
-**Symptom:** two tasks declared with different-looking scopes still write the
-same file, or an untrusted task row runs arbitrary shell.
-**Root cause:** `dispatch_tasks.sh` compares scope tokens literally. It rejects
-`wiki` plus `wiki`, but does not infer that `wiki` overlaps `wiki/index` or that
-two labels name the same resource. The command column executes with `bash -c`.
-**Fix:** treat task files as trusted orchestrator input, use the same exact token
-for every shared write target, and pass a positive integer concurrency bound.
-
-> **Fix prompt:** "Inspect the task TSV before dispatch. Reject duplicate IDs,
-> empty fields, non-positive concurrency, and exact repeated scope tokens. Flag
-> path-like scopes where one contains another for human review. Never accept
-> task commands from an untrusted user because they execute through `bash -c`."
+**Symptom:** overlapping runs race wiki, index, manifest, or weekly-note writes.
+**Fix:** keep daily ingest serialized; its atomic directory lock skips overlap.

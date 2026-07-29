@@ -24,7 +24,7 @@ SKIP_BASENAMES = {
 }
 # Path fragments that are generated, vendored, history, or hook internals.
 SKIP_FRAGMENTS = (
-    "/Final_Products/",
+    "/Closed/",
     "/.git/",
     "/node_modules/",
     "/dist/",

@@ -2,7 +2,7 @@
 """
 readme-currency-check.py — PostToolUse hook for Agent Workspace Template.
 
-After any Write/Edit/MultiEdit, if the edited file is a tracked source file
+After any apply_patch/Edit/Write, if the edited file is a tracked source file
 (not a README, generated output, or vendor path), injects a directive reminding
 the agent to review and amend any governing docs that are now out of date.
 
@@ -13,7 +13,7 @@ import json
 import os
 import sys
 
-# Derive workspace root from this file's location:  hooks/ -> .claude/ -> workspace/
+# Derive workspace root from this file's location: hooks/ -> .codex/ -> workspace/
 WORKSPACE = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Basenames that ARE the docs we amend (editing them must not re-trigger the check).
@@ -24,7 +24,7 @@ SKIP_BASENAMES = {
 }
 # Path fragments that are generated, vendored, history, or hook internals.
 SKIP_FRAGMENTS = (
-    "/Final_Products/",
+    "/Closed/",
     "/.git/",
     "/node_modules/",
     "/dist/",
@@ -63,9 +63,15 @@ def main():
     except Exception:
         return
 
-    ti = payload.get("tool_input") or {}
+    ti = payload.get("tool_input") or payload.get("toolInput") or {}
     tr = payload.get("tool_response") or {}
-    path = ti.get("file_path") or tr.get("filePath") or ""
+    path = ti.get("file_path") or ti.get("filePath") or tr.get("filePath") or ""
+    if not path:
+        patch = ti.get("patch") or ti.get("input") or ""
+        for line in patch.splitlines():
+            if line.startswith(("*** Update File: ", "*** Add File: ", "*** Delete File: ")):
+                path = line.split(": ", 1)[1]
+                break
     if not path:
         return
 

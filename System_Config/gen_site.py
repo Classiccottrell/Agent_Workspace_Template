@@ -29,6 +29,7 @@ JOB_META = {
     'install_healthcheck.sh':    ('Health check',   'at login + every 4h',       'Probes layers A&ndash;H (orchestration, automation, knowledge, persistence, projects, doc currency, repo hygiene, decision hygiene) and writes the status dashboard to <code>status_page.html</code>, then publishes the snapshot to the <a class="body-link" href="health.html">microsite dashboard</a>.'),
     'install_friday_process.sh': ('Weekly notes',   'Fridays 19:00',             'Writes a 1&ndash;2 sentence weekly summary into the Master Note and regenerates <code>docs/index.html</code> via <code>gen_site.py</code>.'),
     'install_monday_init.sh':    ('Monday init',    'at login + Mon 08:00',      "Creates the week's ISO-named note from <code>Weekly_Note_Template.md</code>, carries forward open tasks, and inserts a row in the Master Note weekly index."),
+    'install_closed_pickup.sh': ('Closed pickup',  'hourly + at login',         'Scans <code>Closed/</code> for new project subfolders not yet in <code>INDEX.md</code> and appends a placeholder registry row for review.'),
     'install_sync_skills.sh':    ('Skill sync',     'on install + hourly',       'Watches <code>~/.agents/skills/</code> for <code>npx</code>-installed skills and syncs them to <code>~/.claude/skills/</code>, then flags new arrivals in the <code>master-orchestrator</code> index.'),
 }
 

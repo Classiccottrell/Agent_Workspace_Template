@@ -20,7 +20,7 @@
   2. Read matching pages (max 5)
   3. Synthesize answer with `[[citations]]`
   4. If answer is novel → file back as new wiki page or update existing
-* Schema: `Vault_Brain/CLAUDE.md`
+* Schema: the provider-neutral vault contract at `Vault_Brain/CLAUDE.md`
 
 ## Orchestration Rules
 * Break complex requests into atomic units.
@@ -42,7 +42,7 @@ Subagents and skills are configured in `.agents/skills/`. You can define them dy
 *   **Architect** (`architect`): Schema, API, structure design.
 *   **Coder** (`coder`): Implementation only.
 *   **Eng Manager** (`eng-manager`): `Projects/` lifecycle management.
-*   **Archivist** (`archivist`): `Final_Products/` archival.
+*   **Archivist** (`archivist`): `Closed/` project closure.
 *   **Curator** (`curator`): `Vault_Brain/` knowledge management.
 *   **QA** (`qa`): Production-repo PR regression/QA. Available in Codex
     (`.codex/agents/qa.toml`) and Claude Code (`.claude/agents/qa.md`); no Gemini
@@ -55,7 +55,7 @@ For UI work, load the relevant design skill(s) and inject their rules into the `
 * Pattern: a task produces a code change intended for a PR against an existing, cloned repository under `Projects/` — not a project scaffolded fresh from `Projects/_TEMPLATE/`.
 * Execute:
   1. `coder` implements the change and runs the repo's own lint/typecheck commands — mandatory, not optional.
-  2. Dispatch `qa` to run the repo's unit tests, check for existing e2e coverage before authoring new coverage, run it against a reachable dev environment, and compile a QA report (see `.claude/agents/qa.md`).
+  2. Dispatch the registered `qa` agent to run the repo's unit tests, check for existing e2e coverage before authoring new coverage, run it against a reachable dev environment, and compile a QA report.
   3. `eng-manager` validates `qa`'s report as a precondition before drafting a PR — a failed or missing QA report blocks drafting.
   4. **Stop and present the drafted PR (branch, diff, QA report) to the user for explicit go-ahead.** No PR is created without this checkpoint.
   5. Only on user approval does anything call `gh pr create`.

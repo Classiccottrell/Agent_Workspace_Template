@@ -281,7 +281,7 @@ h1,h2,.hero h1{font-family:var(--serif);font-weight:400;letter-spacing:0}
             <div class="rule-top">
         <p class="eyebrow">// what it is</p>
         <h2>Three sentences, one loop</h2>
-        <p>The orchestrator dispatches each unit of work to a scoped subagent — architect designs, coder builds, eng-manager runs projects, archivist files shipped artifacts, curator tends the knowledge wiki.</p>
+        <p>The orchestrator dispatches each unit of work to a scoped subagent — architect designs, coder builds, eng-manager runs projects, archivist closes finished projects, curator tends the knowledge wiki.</p>
         <p>A clip lands in <code>Vault_Brain/sources/</code>, a scheduled headless Claude distills it into a wiki page, and you review the result in your chosen knowledge app — Obsidian or VS Code + Foam.</p>
         <p>A self-check probes every layer — delivery, automation, knowledge, and documentation currency — and writes a status page that confirms the whole system is healthy.</p>
             </div>
@@ -295,8 +295,8 @@ h1,h2,.hero h1{font-family:var(--serif);font-weight:400;letter-spacing:0}
           <div class="layer">
             <span class="ord" aria-hidden="true">1</span>
             <h3>Delivery</h3>
-            <p class="path">Projects/ · Final_Products/</p>
-            <p>Active project workspaces and shipped artifacts. Owned by eng-manager and archivist.</p>
+            <p class="path">Projects/ · Closed/</p>
+            <p>Active project workspaces and closed project folders. Owned by eng-manager and archivist.</p>
           </div>
           <div class="layer">
             <span class="ord" aria-hidden="true">2</span>
@@ -316,7 +316,7 @@ h1,h2,.hero h1{font-family:var(--serif);font-weight:400;letter-spacing:0}
           <div id="agents" class="side-section reveal">
             <div class="rule-top">
         <p class="eyebrow">// agent roster</p>
-        <h2><!-- gen:agent-count -->6<!-- /gen:agent-count --> scoped subagents</h2>
+        <h2><!-- gen:agent-count -->7<!-- /gen:agent-count --> scoped subagents</h2>
         <p>Subagents live in <code>.claude/agents/</code> and are invoked by name via the Task tool — never paste their role text into a prompt.</p>
         <div class="tbl-scroll">
           <table>
@@ -327,11 +327,12 @@ h1,h2,.hero h1{font-family:var(--serif);font-weight:400;letter-spacing:0}
             <tbody>
 <!-- gen:agents-start -->
               <tr><td><strong>architect</strong></td><td>System designer for the workspace</td><td><code>.claude/agents/architect.md</code></td><td>coder</td></tr>
-              <tr><td><strong>archivist</strong></td><td>Production-artifact archivist for Final_Products/</td><td><code>.claude/agents/archivist.md</code></td><td>orchestrator</td></tr>
+              <tr><td><strong>archivist</strong></td><td>Closed/ project registry curator</td><td><code>.claude/agents/archivist.md</code></td><td>orchestrator</td></tr>
               <tr><td><strong>coder</strong></td><td>Implementation engineer for the workspace</td><td><code>.claude/agents/coder.md</code></td><td>orchestrator</td></tr>
               <tr><td><strong>creative-director</strong></td><td>Elite Creative Director and Brand Strategist</td><td><code>.claude/agents/creative-director.md</code></td><td>orchestrator</td></tr>
               <tr><td><strong>curator</strong></td><td>Knowledge curator for the Vault_Brain Obsidian LLM-wiki</td><td><code>.claude/agents/curator.md</code></td><td>orchestrator</td></tr>
               <tr><td><strong>eng-manager</strong></td><td>Project lifecycle controller for Projects/</td><td><code>.claude/agents/eng-manager.md</code></td><td>architect, coder</td></tr>
+              <tr><td><strong>qa</strong></td><td>Quality-assurance verifier for pull requests against existing, cloned reposit...</td><td><code>.claude/agents/qa.md</code></td><td>orchestrator</td></tr>
 <!-- gen:agents-end -->
             </tbody>
           </table>
@@ -377,9 +378,16 @@ h1,h2,.hero h1{font-family:var(--serif);font-weight:400;letter-spacing:0}
             <div class="rule-top">
         <p class="eyebrow">// automation &amp; health</p>
         <h2>launchd jobs that keep it running</h2>
-        <p><code>bootstrap.sh</code> can install <strong><!-- gen:jobs-count -->5<!-- /gen:jobs-count --></strong> <code>launchd</code> agents — it asks first, default No. You can also run each installer directly later.</p>
+        <p><code>bootstrap.sh</code> can install <strong><!-- gen:jobs-count -->7<!-- /gen:jobs-count --></strong> <code>launchd</code> agents — it asks first, default No. You can also run each installer directly later.</p>
         <div class="jobs">
 <!-- gen:jobs-start -->
+          <div class="job">
+            <div class="pip-row"><span class="pip" aria-hidden="true"></span><span>healthy</span></div>
+            <h3>Closed pickup</h3>
+            <p class="sched tabnum">hourly + at login</p>
+            <p>Scans <code>Closed/</code> for new project subfolders not yet in <code>INDEX.md</code> and appends a placeholder registry row for review.</p>
+            <p class="inst">install_closed_pickup.sh</p>
+          </div>
           <div class="job">
             <div class="pip-row"><span class="pip" aria-hidden="true"></span><span>healthy</span></div>
             <h3>Daily ingest</h3>
@@ -414,6 +422,13 @@ h1,h2,.hero h1{font-family:var(--serif);font-weight:400;letter-spacing:0}
             <p class="sched tabnum">on install + hourly</p>
             <p>Watches <code>~/.agents/skills/</code> for <code>npx</code>-installed skills and syncs them to <code>~/.claude/skills/</code>, then flags new arrivals in the <code>master-orchestrator</code> index.</p>
             <p class="inst">install_sync_skills.sh</p>
+          </div>
+          <div class="job">
+            <div class="pip-row"><span class="pip" aria-hidden="true"></span><span>healthy</span></div>
+            <h3>Vault Snapshot</h3>
+            <p class="sched tabnum">scheduled</p>
+            <p>Installed by <code>install_vault_snapshot.sh</code>.</p>
+            <p class="inst">install_vault_snapshot.sh</p>
           </div>
 <!-- gen:jobs-end -->
         </div>
@@ -452,7 +467,7 @@ h1,h2,.hero h1{font-family:var(--serif);font-weight:400;letter-spacing:0}
 │   ├── install_*.sh          <span class="cmt">← launchd installers (idempotent)</span>
 │   └── logs/                 <span class="cmt">← per-job logs</span>
 ├── Projects/                 <span class="cmt">← active project workspaces</span>
-├── Final_Products/           <span class="cmt">← shipped, archived artifacts</span>
+├── Closed/                   <span class="cmt">← closed projects (moved from Projects/)</span>
 └── Vault_Brain/              <span class="cmt">← Obsidian LLM-wiki (open in Obsidian)</span>
     ├── CLAUDE.md             <span class="cmt">← wiki schema (Layer 3)</span>
     ├── wiki/                 <span class="cmt">← one page per entity</span>

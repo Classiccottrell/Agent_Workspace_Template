@@ -2,13 +2,12 @@
   "hooks": {
     "PostToolUse": [
       {
-        "matcher": "Write|Edit|MultiEdit",
+        "matcher": "apply_patch|Edit|Write",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 '/Users/mattcottrell/Documents/Directory_CC/Projects/Agent_Workspace_Template/.codex/hooks/readme-currency-check.py' 2>/dev/null || true",
-            "timeout": 15,
-            "statusMessage": "README currency check"
+            "command": "root=$(git rev-parse --show-toplevel 2>/dev/null) && python3 \"$root/.codex/hooks/readme-currency-check.py\"",
+            "timeout": 15
           }
         ]
       }

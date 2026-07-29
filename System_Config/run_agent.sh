@@ -3,12 +3,12 @@
 # Extracted from daily_ingest.sh / friday_process.sh's near-identical run_claude().
 # Expects from the caller's environment: $CLAUDE $AGENT_TYPE $MAX_BUDGET $MAX_SECONDS $LOG $VAULT
 #
-# File tools only; Bash and other escape hatches denied; cwd = vault so the sandbox
-# confines writes to the vault tree; budget + wall-clock watchdog bound the run.
+# cwd = vault and workspace-write confine Codex/Ollama writes to the vault tree.
+# Codex exposes no per-run USD budget or tool allow-list; MAX_SECONDS is its hard bound.
 agent_failure_kind() {
-  if printf '%s' "$1" | grep -qiE "API key is invalid|Failed to authenticate|HTTP/1\.1 401|[^0-9]401[^0-9]"; then
+  if grep -qiE '^[[:space:]]*(Error|API Error):.*(API key is invalid|Failed to authenticate|HTTP/1\.1 401|[^0-9]401([^0-9]|$))' <<<"$1"; then
     printf '%s\n' auth
-  elif printf '%s' "$1" | grep -qiE "rate.?limit|quota|too many requests|HTTP/1\.1 429|[^0-9]429[^0-9]|budget.*(exceeded|reached)"; then
+  elif grep -qiE '^[[:space:]]*(Error|API Error):.*(rate.?limit|quota|too many requests|HTTP/1\.1 429|[^0-9]429([^0-9]|$)|budget.*(exceeded|reached))' <<<"$1"; then
     printf '%s\n' quota
   else
     printf '%s\n' agent
@@ -36,15 +36,11 @@ run_agent() {
         "$CLAUDE" exec --sandbox workspace-write "$prompt" >> "$LOG" 2>&1 &
       fi ;;
     ollama)
-      model="${AGENT_MODEL:-}"
-      if [[ -z "$model" ]]; then
-        model="$("$CLAUDE" list 2>>"$LOG" | awk 'NR==2{print $1; exit}')"
-      fi
-      if [[ -z "$model" ]]; then
-        echo "ollama target needs OLLAMA_MODEL or at least one installed model (ollama pull <model>)" >> "$LOG"
-        return 2
-      fi
-      "$CLAUDE" run "$model" "$prompt" >> "$LOG" 2>&1 & ;;
+      if [[ -n "${AGENT_MODEL:-}" ]]; then
+        "$CLAUDE" exec --oss --local-provider ollama --model "$AGENT_MODEL" --sandbox workspace-write "$prompt" >> "$LOG" 2>&1 &
+      else
+        "$CLAUDE" exec --oss --local-provider ollama --sandbox workspace-write "$prompt" >> "$LOG" 2>&1 &
+      fi ;;
     *)
       if [[ -n "${AGENT_MODEL:-}" ]]; then
         "$CLAUDE" -p "$prompt" --model "$AGENT_MODEL" \

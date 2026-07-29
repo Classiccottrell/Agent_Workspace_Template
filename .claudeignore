@@ -66,3 +66,6 @@ Thumbs.db
 # Docker & CI artifacts
 .dockerignore
 certs/
+
+# Git object databases (from Closed/ project subfolders that retain their own .git)
+.git/

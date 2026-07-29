@@ -16,6 +16,7 @@
 
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/config.sh"
+validate_agent_config || exit 1
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 # WORKSPACE / VAULT / LOG_DIR / CLAUDE / INGEST_* come from config.sh.
@@ -76,18 +77,24 @@ source "$(dirname "${BASH_SOURCE[0]}")/run_agent.sh"
 # Resume the provider selected after the last quota handoff. State is only
 # meaningful for the exact configured target order.
 TARGET_STATE="$LOG_DIR/daily_ingest.target"
+TARGET_STATE_TTL="${INGEST_TARGET_STATE_TTL:-86400}"
 save_target_state() {
   local tmp
   tmp="$(mktemp "$LOG_DIR/.daily_ingest.target.XXXXXX")"
-  printf '%s\t%s\n' "$INGEST_TARGETS" "$AGENT_TARGET_INDEX" > "$tmp"
+  printf '%s\t%s\t%s\n' "$INGEST_TARGETS" "$AGENT_TARGET_INDEX" "$(date +%s)" > "$tmp"
   mv "$tmp" "$TARGET_STATE"
 }
 if [[ -n "$INGEST_TARGETS" && -f "$TARGET_STATE" ]]; then
-  IFS="$(printf '\t')" read -r saved_targets saved_index < "$TARGET_STATE" || true
-  if [[ "$saved_targets" == "$INGEST_TARGETS" ]]; then
+  IFS="$(printf '\t')" read -r saved_targets saved_index saved_at < "$TARGET_STATE" || true
+  case "${saved_index:-}" in ''|*[!0-9]*|0) saved_index=1 ;; esac
+  case "${saved_at:-}" in ''|*[!0-9]*) saved_at=0 ;; esac
+  if [[ "$saved_targets" == "$INGEST_TARGETS" && $(( $(date +%s) - saved_at )) -le "$TARGET_STATE_TTL" ]]; then
     select_agent_target_index "$saved_index" || {
-      log "FATAL: saved provider handoff has no available target"; exit 1;
+      log "WARN: saved provider unavailable; falling back to first available target"
+      select_agent_target_index 1 || true
     }
+  else
+    select_agent_target_index 1 || true
   fi
 fi
 if [[ -n "$INGEST_TARGETS" && -z "${AGENT_TYPE:-}" ]]; then
@@ -165,10 +172,7 @@ process_dir() {
     awk -F'\t' -v n="$1" '$2!=n' "$failmf" > "$failmf.tmp" && mv "$failmf.tmp" "$failmf"
   }
   checkpoint_success() {
-    local hash="$1" name="$2" tmp
-    tmp="$(mktemp "$src_dir/.ingested.XXXXXX")"
-    { cat "$manifest"; printf '%s\t%s\n' "$hash" "$name"; } > "$tmp"
-    mv "$tmp" "$manifest"
+    printf '%s\t%s\n' "$1" "$2" >> "$manifest"
   }
 
   # ── FIND NEW NOTES (content-hash dedup) ──────────────────────────────────────
@@ -269,6 +273,10 @@ Constraints: create-or-append only; never overwrite a page wholesale; never dele
         log "OK: $rel_dir/$clip"
         consecutive_bad=0
         clear_fail "$clip"
+        if [[ -n "$INGEST_TARGETS" && "$AGENT_TARGET_INDEX" -ne 1 ]]; then
+          select_agent_target_index 1 || true
+          save_target_state
+        fi
       else
         log "NO-OP (exit 0 but no wiki link to ${src_link}): $rel_dir/$clip — NOT recorded, will retry next run"
         consecutive_bad=$((consecutive_bad + 1))

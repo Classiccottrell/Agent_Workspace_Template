@@ -28,5 +28,9 @@ my-new-project/
 └── archive/     ← superseded or paused work
 ```
 
-When the project ships, the finished artifact is handed to `Final_Products/`
-via the Orchestrator (see `Final_Products/.AGENT.MD`).
+> `archive/` is for superseded work-in-progress *within* the project (separate from
+> moving the whole project folder to `Closed/` when the project is done).
+
+When the project ships or is otherwise done, the archivist moves the whole
+`Projects/<name>/` folder to `Closed/<name>/` (tagged with an outcome:
+`shipped | paused | superseded | abandoned`).

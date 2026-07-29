@@ -20,7 +20,7 @@
   2. Read matching pages (max 5)
   3. Synthesize answer with `[[citations]]`
   4. If answer is novel → file back as new wiki page or update existing
-* Schema: `Vault_Brain/CLAUDE.md`
+* Schema: the provider-neutral vault contract at `Vault_Brain/CLAUDE.md`
 
 ## Orchestration Rules
 * Break complex requests into atomic units.
@@ -32,7 +32,7 @@
 
 ## Agent Dispatch
 * Subagents live in `.claude/agents/`. Invoke by name via the Task tool — never paste role-file text into a prompt.
-* Routing: architecture/schema → `architect`; implementation → `coder`; `Projects/` lifecycle → `eng-manager`; `Final_Products/` archival → `archivist`; `Vault_Brain/` knowledge → `curator`; brand/visual/copy/design-feedback → `creative-director`; production-repo PR regression/QA → `qa`.
+* Routing: architecture/schema → `architect`; implementation → `coder`; `Projects/` lifecycle → `eng-manager`; `Closed/` archival → `archivist`; `Vault_Brain/` knowledge → `curator`; brand/visual/copy/design-feedback → `creative-director`; production-repo PR regression/QA → `qa`.
 * For UI work, use `/master-orchestrator` to select the right skill(s) from `~/.claude/skills/` and inject them into `coder` prompts. The `.cursor/rules/skill.md` design profile is available as a fallback for Cursor IDE users.
 
 <!-- SHARED:pr_quality_gate:BEGIN (source: System_Config/orchestrator-rules.md — edit there, run sync_rules.sh) -->
@@ -40,7 +40,7 @@
 * Pattern: a task produces a code change intended for a PR against an existing, cloned repository under `Projects/` — not a project scaffolded fresh from `Projects/_TEMPLATE/`.
 * Execute:
   1. `coder` implements the change and runs the repo's own lint/typecheck commands — mandatory, not optional.
-  2. Dispatch `qa` to run the repo's unit tests, check for existing e2e coverage before authoring new coverage, run it against a reachable dev environment, and compile a QA report (see `.claude/agents/qa.md`).
+  2. Dispatch the registered `qa` agent to run the repo's unit tests, check for existing e2e coverage before authoring new coverage, run it against a reachable dev environment, and compile a QA report.
   3. `eng-manager` validates `qa`'s report as a precondition before drafting a PR — a failed or missing QA report blocks drafting.
   4. **Stop and present the drafted PR (branch, diff, QA report) to the user for explicit go-ahead.** No PR is created without this checkpoint.
   5. Only on user approval does anything call `gh pr create`.

@@ -35,14 +35,14 @@ cd agent-workspace
 
 `bootstrap.sh` also has three utility modes: `--check` (install doctor: tools found/missing + background-job status), `--uninstall` (remove the background jobs, keep all data), and `--help`.
 
-`bootstrap.sh` is idempotent and never deletes or overwrites your data. It makes scripts executable, creates logs, seeds `.mcp.json` when absent, and asks before scheduling. Its text-checkbox target picker accepts an ordered comma-separated list: Claude, Gemini/Antigravity, Codex, or Ollama. Invalid choices are ignored, so mixed valid/invalid input keeps valid targets. Blank or invalid-only input leaves the current config unchanged; on a fresh clone that means legacy auto mode (`agy` → `gemini` → `claude`). Optional model fields map by position to those four providers; blank fields keep current values, which are CLI defaults on a fresh clone. An explicit target list fails closed if none is installed. Ollama also needs `OLLAMA_MODEL` or at least one local model from `ollama list`.
+`bootstrap.sh` is idempotent and never deletes or overwrites your data. It makes scripts executable, creates logs, seeds `.mcp.json` when absent, and asks before scheduling. Its target picker accepts an ordered comma-separated list: Claude, Gemini/Antigravity, Codex, or Ollama, plus explicit legacy auto mode. Missing CLIs warn during setup and are skipped at runtime. Optional model fields map by position to those four providers; blank fields keep current values, which are CLI defaults on a fresh clone. Ollama requires both `codex` and `ollama`; it runs through `codex exec --oss --local-provider ollama` so vault file writes use the Codex workspace sandbox.
 
 **Optional tooling** (detected, never required):
 - **GitHub CLI (`gh`)** — `brew install gh && gh auth login`. Agents use it for commit/push/PR work as plain shell commands instead of burning model tokens on git plumbing.
 - **node/npx** — needed by the skill sync (`npx skills`) and Playwright. Projects with a web UI can use `npx playwright test` or the Playwright agent CLI (`npm i -g @playwright/cli`) to generate and run browser checks; Playwright stays per-project, never at the workspace root.
 
 Open this workspace in your AI CLI and you're operating:
-- **Codex** — `codex` from the workspace root. Rules load from `AGENTS.md`; agents live in `.codex/agents/`.
+- **Codex** — `codex` from the workspace root. Rules load from `AGENTS.md`; agents live in `.codex/agents/`. Codex has no per-agent enforced tool allow-list and `codex exec` has no per-run USD budget flag; ingest uses `workspace-write` plus the wall-clock watchdog.
 - **Claude Code** — `claude` from the workspace root. Orchestrator rules load from `CLAUDE.md`; agent roster in `.claude/agents/`.
 - **Gemini CLI** — `gemini` from the workspace root. Orchestrator rules load from `.agents/AGENTS.md`; skill roster in `.agents/skills/`.
 
@@ -54,22 +54,22 @@ This template is an Integrated Context Management (ICM) folder pattern layered o
 
 | Layer | Folder | Owner | What it holds |
 |-------|--------|-------|---------------|
-| **1. Delivery** | `Projects/`, `Final_Products/` | eng-manager / archivist | Active project workspaces and shipped artifacts |
+| **1. Delivery** | `Projects/`, `Closed/` | eng-manager / archivist | Active project workspaces and closed project folders. |
 | **2. Automation** | `System_Config/` | you (run installers) | `launchd` jobs + scripts that keep the system running |
 | **3. Knowledge** | `Vault_Brain/` | curator | Obsidian LLM-wiki: sources → wiki → schema |
 
 ### Agent roster
 
-Five delivery roles ship for all three providers. Creative Director ships for Claude and Gemini; QA ships for Codex and Claude.
+Five delivery roles ship for all three providers. Creative Director ships for Claude only; QA ships for Codex and Claude.
 
 | Agent | Scope | Codex | Claude Code | Gemini |
 |-------|-------|-------|-------------|--------|
 | **architect** | Schema, API, structure design | `.codex/agents/architect.toml` | `.claude/agents/architect.md` | `.agents/skills/architect/SKILL.md` |
 | **coder** | Implementation | `.codex/agents/coder.toml` | `.claude/agents/coder.md` | `.agents/skills/coder/SKILL.md` |
 | **eng-manager** | `Projects/` lifecycle | `.codex/agents/eng-manager.toml` | `.claude/agents/eng-manager.md` | `.agents/skills/eng-manager/SKILL.md` |
-| **archivist** | `Final_Products/` | `.codex/agents/archivist.toml` | `.claude/agents/archivist.md` | `.agents/skills/archivist/SKILL.md` |
+| **archivist** | `Closed/` project closure | `.codex/agents/archivist.toml` | `.claude/agents/archivist.md` | `.agents/skills/archivist/SKILL.md` |
 | **curator** | `Vault_Brain/` | `.codex/agents/curator.toml` | `.claude/agents/curator.md` | `.agents/skills/curator/SKILL.md` |
-| **creative-director** | Brand, copy, visual direction | — | `.claude/agents/creative-director.md` | `.agents/skills/creative-director/SKILL.md` |
+| **creative-director** | Brand, copy, visual direction | — | `.claude/agents/creative-director.md` | — |
 | **qa** | Production-repo PR QA | `.codex/agents/qa.toml` | `.claude/agents/qa.md` | — |
 
 **Claude Code** — agents are invoked by name via the Task tool; never paste role text into a prompt.  
@@ -89,7 +89,7 @@ your-workspace/
 ├── .cursor/rules/skill.md      ← design-engineering skill profile (injected for UI work)
 ├── .agents/                    ← Gemini CLI orchestration root
 │   ├── AGENTS.md               ← Gemini orchestrator directives
-│   └── skills/                 ← architect, coder, eng-manager, archivist, curator
+│   └── skills/                 ← architect, coder, eng-manager, archivist, curator, how-i-write
 ├── .claude/
 │   ├── settings.json           ← project permissions + MCP allow-list
 │   └── agents/                 ← five delivery roles + creative-director + qa
@@ -108,7 +108,7 @@ your-workspace/
 ├── Projects/                   ← active project workspaces
 │   ├── _TEMPLATE/              ← copy this to start a new project
 │   └── example-project/        ← worked example
-├── Final_Products/             ← shipped, archived artifacts
+├── Closed/                     ← closed projects (moved from Projects/)
 └── Vault_Brain/                ← Obsidian LLM-wiki (open THIS folder in Obsidian)
     ├── CLAUDE.md               ← wiki schema (Layer 3)
     ├── README.md               ← how the vault works
@@ -150,7 +150,7 @@ Start a fresh weekly note any time with `bash System_Config/monday_init.sh`. Ful
 - **Relocatable** — nothing is hardcoded. Every script sources `System_Config/config.sh`, which derives `$WORKSPACE`, the vault paths, and the `launchd` label namespace from its own location and your environment. Clone the workspace anywhere and it just works. Override the label namespace with `export AGENT_WS_LABEL_PREFIX=com.acme.vaultbrain` before installing.
 - **Docs stay current** — after any change to a script, agent, config, or the structure, update the governing doc in the same task. The health check flags a README that is older than the files it documents.
 - **Append-only knowledge** — the wiki and weekly logs are create-or-append; agents never overwrite or delete vault content.
-- **Concurrency is opt-in and scope-gated** — `dispatch_tasks.sh` requires a positive process bound and rejects duplicate IDs or exact duplicate scope tokens before running commands through `bash -c`. It does not infer path containment or semantic overlap, so task files are trusted orchestrator input and must declare every shared write scope with the same token. Daily ingest stays serialized because wiki, index, and weekly-note writes overlap.
+- **Daily ingest is serialized** — wiki, index, manifest, and weekly-note writes overlap, so concurrent ingestion is intentionally unsupported.
 - **One `.mcp.json` per machine** — `.mcp.json.example` is tracked; your real `.mcp.json` (with any server URLs or credentials) is git-ignored. Never commit it. **MCP servers travel with the workspace:** after cloning, edit `.mcp.json` (bootstrap seeds it from the example) and allow-list the servers in `.claude/settings.json` (`enabledMcpjsonServers`) — no per-project re-adding, no global config to copy around. The example ships with disabled server presets (filesystem, github, fetch) under `_disabled_examples` to copy from.
 - **Versioning** — `VERSION` holds the current semver (starts `0.1.0`); `CHANGELOG.md` follows Keep a Changelog. Bump `VERSION` and cut a dated section from `## [Unreleased]` on template releases; day-to-day work accumulates under Unreleased.
 

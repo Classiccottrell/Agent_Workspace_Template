@@ -358,15 +358,22 @@ if [ -t 0 ]; then
   echo "    [ ] 2 Gemini / Antigravity"
   echo "    [ ] 3 Codex"
   echo "    [ ] 4 Ollama"
+  echo "    [ ] 0 Legacy auto (Gemini, then Claude)"
   printf "  Select in priority order, comma-separated [keep current; fresh = legacy auto]: "
   read -r ING_TARGET_CHOICES || ING_TARGET_CHOICES=""
   ING_TARGETS=""
   old_ifs="$IFS"; IFS=','
   for choice in $ING_TARGET_CHOICES; do
-    case "$choice" in 1|claude) target=claude ;; 2|gemini|agy) target=gemini ;;
+    case "$choice" in 0|auto) INGEST_TARGETS=""; INGEST_PROVIDER="auto"; target="" ;;
+      1|claude) target=claude ;; 2|gemini|agy) target=gemini ;;
       3|codex) target=codex ;; 4|ollama) target=ollama ;; *) target="" ;;
     esac
-    [ -n "$target" ] && ING_TARGETS="${ING_TARGETS:+$ING_TARGETS:}$target"
+    if [ -n "$target" ]; then
+      if ! command -v "$target" >/dev/null 2>&1 && { [ "$target" != gemini ] || ! command -v agy >/dev/null 2>&1; }; then
+        echo "    [warn] $target CLI is not installed; this target will be skipped at runtime."
+      fi
+      ING_TARGETS="${ING_TARGETS:+$ING_TARGETS:}$target"
+    fi
   done
   IFS="$old_ifs"
   printf "  Optional models (claude, gemini, codex, ollama; blank keeps current; fresh = CLI default): "
@@ -385,6 +392,7 @@ case "$ING_BUDGET" in *[!0-9.]*|"") ING_BUDGET="" ;; esac
 case "$ING_MODELS" in *[!A-Za-z0-9._:/,-]*) ING_MODELS="" ;; esac
 [ -n "$ING_SOURCES" ]  && sed -i.bak "s|^INGEST_SOURCES=.*|INGEST_SOURCES=\"\${INGEST_SOURCES:-${ING_SOURCES}}\"|"   "$SYSCFG/config.sh"
 [ -n "$ING_TARGETS" ]  && sed -i.bak "s|^INGEST_TARGETS=.*|INGEST_TARGETS=\"\${INGEST_TARGETS:-${ING_TARGETS}}\"|" "$SYSCFG/config.sh"
+[ "${ING_TARGET_CHOICES:-}" = "0" ] && sed -i.bak "s|^INGEST_TARGETS=.*|INGEST_TARGETS=\"\${INGEST_TARGETS:-}\"|" "$SYSCFG/config.sh"
 if [ -n "$ING_MODELS" ]; then
   old_ifs="$IFS"; IFS=','; set -- $ING_MODELS; IFS="$old_ifs"
   for pair in "CLAUDE_MODEL:${1:-}" "GEMINI_MODEL:${2:-}" "CODEX_MODEL:${3:-}" "OLLAMA_MODEL:${4:-}"; do
@@ -400,8 +408,11 @@ source "$SYSCFG/config.sh"
 echo "    [ok]   Ingestion config: sources=${INGEST_SOURCES} targets=${INGEST_TARGETS:-legacy-auto} hour=${INGEST_HOUR} budget=\$${INGEST_MAX_BUDGET}"
 if [ "$SCHEDULE" = "auto" ] && [ -n "$ING_HOUR" ]; then
   echo "    [note] Re-rendering the ingest schedule with your hour…"
-  bash "$SYSCFG/install_daily_ingest.sh" >/dev/null
-  echo "    [ok]   Daily ingest rescheduled to ${ING_HOUR}:00."
+  if bash "$SYSCFG/install_daily_ingest.sh" >/dev/null; then
+    echo "    [ok]   Daily ingest rescheduled to ${ING_HOUR}:00."
+  else
+    echo "    [warn] Daily ingest was not rescheduled; finish CLI setup, then rerun its installer."
+  fi
 fi
 
 # ---------------------------------------------------------------------------

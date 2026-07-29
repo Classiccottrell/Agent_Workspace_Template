@@ -1,7 +1,7 @@
 # System_Config — Automation Hub
 
-Scheduled jobs and installers that run the workspace. Five launchd agents (clip
-ingestion, Friday close-out, Monday note init, health check, skill sync) plus their scripts. All
+Scheduled jobs and installers that run the workspace. Six launchd agents (clip
+ingestion, Friday close-out, Monday note init, health check, skill sync, closed-project pickup) plus their scripts. All
 scripts target macOS `/bin/bash` **3.2** — no bash 4+ features (no associative
 arrays). Every scheduled script also runs by hand — the LaunchAgents only ADD the
 automatic trigger; manual kickoff always works.
@@ -50,7 +50,6 @@ and **no output**, before the script runs. The scripts' own logs still live in
 | `orchestrator-rules.md` | **Single source** for rule sections shared by `AGENTS.md`, `CLAUDE.md`, and `.agents/AGENTS.md`. Edit here, then run `sync_rules.sh`. |
 | `sync_rules.sh` | Regenerate the `SHARED:*` marker regions in `AGENTS.md`, `CLAUDE.md`, and `.agents/AGENTS.md` from `orchestrator-rules.md`. `--check` exits 1 on drift. |
 | `run_agent.sh` | Sourced library: `run_agent <prompt>` — the single provider case (Claude, Gemini/Antigravity, Codex, Ollama flags + watchdog) shared by `daily_ingest.sh` and `friday_process.sh`. Watchdog sends TERM, then KILL 20s later (a wedged CLI can't hang the job). |
-| `dispatch_tasks.sh` | Sourced bounded dispatcher. Input rows are `id<TAB>colon:scopes<TAB>command`; the bound must be a positive integer. Duplicate IDs or exact duplicate scope tokens fail before execution. Scope matching is literal, not path-aware. Commands execute through `bash -c`, so task files are trusted orchestrator input, not an untrusted-input boundary. |
 | `deps.sh` | Recorded tested versions of the external CLIs; `./bootstrap.sh --check` prints an informational drift line when installed versions differ. |
 | `test.sh` | Template self-test: `bash -n` + `shellcheck --severity=error` over every script, rules-drift check, schema check, `py_compile` on the Python (hook + `gen_site.py`), and JSON validation of `.claude/settings.json` / `.mcp.json.example`. Run locally anytime; CI runs it on every push (`.github/workflows/ci.yml`). |
 | `migrate_vault.sh` | Vault schema migration runner (`Vault_Brain/.vault-schema` marker, TARGET_SCHEMA constant). No-ops when current; errors if the vault is newer than the template. |
@@ -74,6 +73,9 @@ and **no output**, before the script runs. The scripts' own logs still live in
 | `sync-skills.sh` | Sync skills installed via `npx skills add -g` from `~/.agents/skills/` into `~/.claude/skills/` (Claude Code's actual read path), then flag any unindexed skills in `master-orchestrator`. |
 | `syncskills.plist.tmpl` | launchd agent template: fires via WatchPaths on `~/.agents/skills` + hourly + at login. Rendered into `~/Library/LaunchAgents/` by the installer. |
 | `install_sync_skills.sh` | Render + install/reload the skill-sync agent (idempotent). |
+| `closed_pickup.sh` | Hourly backfill script: scans `Closed/` for project subfolders not yet in `INDEX.md` and appends a placeholder row with outcome `unspecified — needs review`. `DRY_RUN=1` support. Calls `update_active_projects.sh` after adding rows. |
+| `closedpickup.plist.tmpl` | launchd agent template: fires via WatchPaths on `Closed/` + hourly + at login. Rendered into `~/Library/LaunchAgents/` by the installer. |
+| `install_closed_pickup.sh` | Render + install/reload the closed-pickup agent (idempotent). |
 | `friday_archive.sh` | Archive the week's note (manual / `cron 0 18 * * 5`). |
 | `obsidian-webclipper-template.json` | Obsidian Web Clipper template → writes clips to the vault's `sources/` folder with frontmatter (filename via `{{title\|safe_name}}`). |
 | `logs/` | Per-job **script** logs (`daily_ingest.log`, `healthcheck.log`, …) in the workspace. The launchd `.out`/`.err` redirects live in `~/Library/Logs/$LABEL_PREFIX/` (see Prerequisites). |
@@ -119,6 +121,7 @@ The installers render each `*.plist.tmpl` into
 - `com.<username>.vaultbrain.fridayprocess.plist`
 - `com.<username>.vaultbrain.mondayinit.plist`
 - `com.<username>.vaultbrain.healthcheck.plist`
+- `com.<username>.vaultbrain.closedpickup.plist`
 
 (`<username>` defaults to your `$USER`; override with `$AGENT_WS_LABEL_PREFIX`.)
 
@@ -150,11 +153,13 @@ bash System_Config/install_friday_process.sh
 bash System_Config/install_monday_init.sh
 bash System_Config/install_healthcheck.sh
 bash System_Config/install_sync_skills.sh
+bash System_Config/install_closed_pickup.sh
 launchctl bootout gui/$(id -u)/com.${USER}.vaultbrain.dailyingest
 launchctl bootout gui/$(id -u)/com.${USER}.vaultbrain.fridayprocess
 launchctl bootout gui/$(id -u)/com.${USER}.vaultbrain.mondayinit
 launchctl bootout gui/$(id -u)/com.${USER}.vaultbrain.healthcheck
 launchctl bootout gui/$(id -u)/com.${USER}.vaultbrain.syncskills
+launchctl bootout gui/$(id -u)/com.${USER}.vaultbrain.closedpickup
 
 # Skill sync
 bash    System_Config/sync-skills.sh        # manual sync + re-index
@@ -170,9 +175,10 @@ launchctl list | grep vaultbrain
 - **Auth:** headless `claude` uses the login keychain (unlocked while logged in).
   Optional fallback for detached runs: `~/.config/anthropic/key` (mode 0600).
 - **Provider controls:** Claude gets an allow-list, denied shell/network/task tools,
-  edit permission mode, and the USD cap. Codex uses `workspace-write` sandbox.
-  Gemini uses its sandbox plus `--dangerously-skip-permissions`; Ollama has no
-  equivalent tool sandbox or USD cap. All run from the vault and share the watchdog.
+  edit permission mode, and the USD cap. Codex uses `workspace-write` but exposes
+  no per-run USD cap or per-agent tool allow-list. Gemini uses its sandbox plus
+  `--dangerously-skip-permissions`. Ollama runs through Codex OSS with the same
+  workspace sandbox. All run from the vault and share the watchdog.
 - **Ingest safety:** source notes are locked read-only during a run; verified
   success is required before the manifest checkpoint. Provider output still writes
   wiki files, so keep backups and do not treat Ollama or prompt constraints as a

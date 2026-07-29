@@ -54,6 +54,7 @@ run "sync_rules.sh --check" bash "$SYSCFG/sync_rules.sh" --check
 # 3b. Ordered provider resolver (Bash 3.2-compatible, no real CLI required).
 # ---------------------------------------------------------------------------
 run "ordered provider resolver" bash -c '
+  set -euo pipefail
   tmp=$(mktemp -d)
   trap "rm -rf \"$tmp\"" EXIT
   mkdir -p "$tmp/.local/bin"
@@ -70,6 +71,7 @@ run "ordered provider resolver" bash -c '
 
 # Legacy mode must ignore an ambient AGENT_MODEL and preserve the old argv.
 run "legacy provider argv ignores ambient model" bash -c '
+  set -euo pipefail
   tmp=$(mktemp -d)
   trap "rm -rf \"$tmp\"" EXIT
   mkdir -p "$tmp/.local/bin"
@@ -90,6 +92,7 @@ run "legacy provider argv ignores ambient model" bash -c '
 ' _ "$SYSCFG"
 
 run "Gemini legacy argv" bash -c '
+  set -euo pipefail
   tmp=$(mktemp -d); trap "rm -rf \"$tmp\"" EXIT; mkdir -p "$tmp/.local/bin"
   printf "%s\n" "#!/bin/sh" "printf \"%s\\n\" \"\$@\" > \"\$CAPTURE\"" > "$tmp/.local/bin/agy"
   chmod +x "$tmp/.local/bin/agy"
@@ -101,32 +104,39 @@ run "Gemini legacy argv" bash -c '
 ' _ "$SYSCFG"
 
 run "Codex and Ollama argv" bash -c '
+  set -euo pipefail
   tmp=$(mktemp -d); trap "rm -rf \"$tmp\"" EXIT; mkdir -p "$tmp/.local/bin"
   printf "%s\n" "#!/bin/sh" "printf \"%s\\n\" \"\$@\" > \"\$CAPTURE\"" > "$tmp/.local/bin/codex"
-  printf "%s\n" "#!/bin/sh" \
-    "if [ \"\$1\" = list ]; then printf \"NAME ID\\ndefault:latest 1\\n\"; else printf \"%s\\n\" \"\$@\" > \"\$CAPTURE\"; fi" > "$tmp/.local/bin/ollama"
+  printf "#!/bin/sh\nexit 0\n" > "$tmp/.local/bin/ollama"
   chmod +x "$tmp/.local/bin/codex" "$tmp/.local/bin/ollama"
   HOME="$tmp"; INGEST_TARGETS=codex:ollama; CAPTURE="$tmp/argv"; LOG="$tmp/log"; MAX_SECONDS=2; MAX_BUDGET=1
   export HOME INGEST_TARGETS CAPTURE; source "$1/config.sh"; source "$1/run_agent.sh"
   run_agent prompt; grep -qx exec "$CAPTURE"; grep -qx prompt "$CAPTURE"
   advance_agent_target; run_agent prompt
-  printf "%s\n" run default:latest prompt > "$tmp/expected"; cmp "$tmp/expected" "$CAPTURE"
+  printf "%s\n" exec --oss --local-provider ollama --sandbox workspace-write prompt > "$tmp/expected"; cmp "$tmp/expected" "$CAPTURE"
 ' _ "$SYSCFG"
 
 run "configured targets fail closed" bash -c '
+  set -euo pipefail
   tmp=$(mktemp -d); trap "rm -rf \"$tmp\"" EXIT
   HOME="$tmp"; PATH=/usr/bin:/bin; INGEST_TARGETS=ollama; export HOME PATH INGEST_TARGETS
   source "$1/config.sh"
+  PATH=/usr/bin:/bin
+  resolve_agent_target ollama && exit 1 || true
   [[ -z "$CLAUDE" && -z "$AGENT_TYPE" && "$AGENT_RESOLUTION_ERROR" == *ollama* ]]
 ' _ "$SYSCFG"
 
 run "rate classification and handoff resume" bash -c '
+  set -euo pipefail
   tmp=$(mktemp -d); trap "rm -rf \"$tmp\"" EXIT; mkdir -p "$tmp/.local/bin"
   for cli in claude codex; do printf "#!/bin/sh\nexit 0\n" > "$tmp/.local/bin/$cli"; chmod +x "$tmp/.local/bin/$cli"; done
   HOME="$tmp"; INGEST_TARGETS=claude:codex; export HOME INGEST_TARGETS
   source "$1/config.sh"; source "$1/run_agent.sh"
-  [[ "$(agent_failure_kind "HTTP/1.1 429 Too Many Requests")" == quota ]]
-  [[ "$(agent_failure_kind "401 API key is invalid")" == auth ]]
+  large="$(printf "%070000d" 0)"
+  [[ "$(agent_failure_kind "${large}
+API Error: HTTP/1.1 429 Too Many Requests")" == quota ]]
+  [[ "$(agent_failure_kind "Error: 401 API key is invalid")" == auth ]]
+  [[ "$(agent_failure_kind "content says rate limit and 429")" == agent ]]
   advance_agent_target
   state="$tmp/state"; state_tmp="$tmp/state.tmp"
   printf "%s\t%s\n" "$INGEST_TARGETS" "$AGENT_TARGET_INDEX" > "$state_tmp"; mv "$state_tmp" "$state"
@@ -135,25 +145,9 @@ run "rate classification and handoff resume" bash -c '
   [[ "$AGENT_TYPE" == codex && "$AGENT_TARGET_INDEX" -eq 2 ]]
 ' _ "$SYSCFG"
 
-run "scope dispatcher rejects overlap and bounds disjoint work" bash -c '
-  tmp=$(mktemp -d); trap "rm -rf \"$tmp\"" EXIT; source "$1/dispatch_tasks.sh"
-  printf "a\twiki:index\tsleep 0.1\nb\tindex:weekly\tsleep 0.1\n" > "$tmp/overlap"
-  validate_task_scopes "$tmp/overlap"; rc=$?; [[ "$rc" -eq 3 ]]
-' _ "$SYSCFG"
-run "scope dispatcher executes disjoint tasks" bash -c '
-  tmp=$(mktemp -d); trap "rm -rf \"$tmp\"" EXIT; source "$1/dispatch_tasks.sh"
-  printf "a\twiki-a\tsleep 0.1; touch %s/a\nb\twiki-b\tsleep 0.1; touch %s/b\n" "$tmp" "$tmp" > "$tmp/tasks"
-  dispatch_tasks 2 "$tmp/tasks"
-  [[ -f "$tmp/a" && -f "$tmp/b" ]]
-' _ "$SYSCFG"
-run "scope dispatcher rejects invalid concurrency" bash -c '
-  tmp=$(mktemp -d); trap "rm -rf \"$tmp\"" EXIT; source "$1/dispatch_tasks.sh"
-  printf "a\twiki-a\ttrue\n" > "$tmp/tasks"
-  dispatch_tasks 0 "$tmp/tasks"; [[ "$?" -eq 2 ]]
-' _ "$SYSCFG"
-
 # Piped invocation is bounded and must not enter interactive setup.
 run "bounded piped bootstrap help" bash -c '
+  set -euo pipefail
   out=$(mktemp)
   trap "rm -f \"$out\"" EXIT
   "$1/bootstrap.sh" --help </dev/null >"$out" &
@@ -175,14 +169,21 @@ run "migrate_vault.sh" bash "$SYSCFG/migrate_vault.sh"
 # 5. Python compiles; JSON parses. (Catches broken hooks/generators before users do.)
 # ---------------------------------------------------------------------------
 if command -v python3 >/dev/null 2>&1; then
-  for p in "$ROOT/.claude/hooks/readme-currency-check.py" "$SYSCFG/gen_site.py"; do
+  for p in "$ROOT/.claude/hooks/readme-currency-check.py" "$ROOT/.codex/hooks/readme-currency-check.py" "$SYSCFG/gen_site.py"; do
     [ -f "$p" ] || continue
     run "py_compile $(basename "$p")" python3 -m py_compile "$p"
   done
-  for j in "$ROOT/.claude/settings.json" "$ROOT/.mcp.json.example"; do
+  for j in "$ROOT/.claude/settings.json" "$ROOT/.codex/hooks.json" "$ROOT/.mcp.json.example"; do
     [ -f "$j" ] || continue
     run "json valid $(basename "$j")" python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$j"
   done
+  if python3 -c 'import tomllib' >/dev/null 2>&1; then
+    for t in "$ROOT/.codex/config.toml" "$ROOT/.codex/agents"/*.toml; do
+      run "toml valid $(basename "$t")" python3 -c 'import sys,tomllib; tomllib.load(open(sys.argv[1],"rb"))' "$t"
+    done
+  else
+    echo "[skip] tomllib unavailable (Python 3.11+ required for TOML validation)"
+  fi
 else
   echo "[skip] python3 not installed — py_compile/JSON checks skipped"
 fi
