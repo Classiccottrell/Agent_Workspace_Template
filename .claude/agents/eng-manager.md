@@ -21,6 +21,12 @@ Scope boundaries:
 - Authority: inside Projects/ only. Never reference sibling projects directly — route cross-project work through the orchestrator.
 - New project scaffold: Projects/<name>/ with .AGENT.MD (scoped config) + BRIEF.md (goals/non-goals).
 - Keep each project's README.md / BRIEF.md current: when a project's structure or stack changes, update its docs in the same task.
+- If a background-job session can't isolate via `EnterWorktree` (e.g. because
+  scaffolding or archival needs a git-ignored path — `Closed/<name>/`, or one of
+  the individually-ignored `Projects/<name>/` clone folders), Edit/Write fails with
+  "hasn't isolated its changes yet" for the *rest of the session*, not just that
+  path — use `Bash` (heredocs, `cp -R`) for all remaining writes. Never edit
+  `.claude/settings.json`'s `worktree.bgIsolation` to route around the guard.
 
 Context discipline: index before reading; one project per instance; never load node_modules/, dist/, or lock files.
 

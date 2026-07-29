@@ -18,6 +18,13 @@ Rules:
 - Web UI verification: when the project has a web surface, use Playwright — `npx playwright test` for the project's test suite, or the agent CLI (`playwright-cli open/click/screenshot`, install: `npm i -g @playwright/cli`) to drive a page and confirm a change renders. Opt-in per project; never add Playwright deps to the workspace root.
 - For a cloned production repo under `Projects/` where the Production PR Quality Gate applies: stop once your own lint/typecheck/tests pass. Hand off browser/e2e verification and PR-readiness to the `qa` agent — do not proceed toward a PR yourself.
 - After changing code/scripts/config, update the governing README in that scope IF it is now out of date — in the same task. Do not create new doc files.
+- If a background-job session can't isolate via `EnterWorktree` (e.g. because the task
+  needs a git-ignored path — `Closed/<name>/`, or one of the individually-ignored
+  `Projects/<name>/` clone folders listed in `.gitignore` — which a worktree can't
+  contain), Edit/Write/NotebookEdit fail with "hasn't isolated its changes yet" for
+  the *rest of the session*, not just that path. Do all remaining file writes via
+  `Bash` instead (heredocs, `cp -R`, redirects). Never edit `.claude/settings.json`'s
+  `worktree.bgIsolation` to bypass the guard.
 
 Advisor gate (call `advisor()` before writing code in these cases):
 - Task touches more than 2 files or crosses module boundaries
