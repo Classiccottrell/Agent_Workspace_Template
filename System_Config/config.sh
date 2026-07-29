@@ -17,12 +17,20 @@ KB_STRATEGY="${KB_STRATEGY:-obsidian}"
 # ── Ingest configuration — set by bootstrap.sh, editable here anytime ─────────
 # INGEST_SOURCES  - colon-separated dirs (relative to Vault_Brain/) scanned by
 #                   daily_ingest.sh. Each dir keeps its own .ingested.log manifest.
-# INGEST_PROVIDER - auto|claude|gemini. "auto" uses PATH detection below.
+# INGEST_PROVIDER - legacy auto|claude|gemini selector.
+# INGEST_TARGETS  - optional ordered, colon-separated claude|gemini|codex|ollama.
+#                   Empty preserves legacy provider resolution byte-for-behavior.
+# *_MODEL         - optional model override; empty uses that CLI's default.
 # INGEST_HOUR/MINUTE - daily launchd schedule (rendered into the plist on install).
-# INGEST_MAX_BUDGET  - per-clip USD ceiling (claude only; gemini has no cost flag).
+# INGEST_MAX_BUDGET  - per-clip USD ceiling (claude only; other CLIs have no cost flag).
 # INGEST_MAX_SECONDS - per-clip wall-clock watchdog (both providers).
 INGEST_SOURCES="${INGEST_SOURCES:-sources:Raw_Notes}"
 INGEST_PROVIDER="${INGEST_PROVIDER:-auto}"
+INGEST_TARGETS="${INGEST_TARGETS:-}"
+CLAUDE_MODEL="${CLAUDE_MODEL:-}"
+GEMINI_MODEL="${GEMINI_MODEL:-}"
+CODEX_MODEL="${CODEX_MODEL:-}"
+OLLAMA_MODEL="${OLLAMA_MODEL:-}"
 # INGEST_IGNORE_KEYFILE=1 skips ~/.config/anthropic/key and relies on the
 # login keychain instead — use if that file ever holds a stale/revoked key.
 INGEST_IGNORE_KEYFILE="${INGEST_IGNORE_KEYFILE:-0}"
@@ -56,6 +64,81 @@ fi
 export AGENT_TYPE
 export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
+# resolve_agent_target <target> — updates legacy CLAUDE/AGENT_TYPE plus model.
+# Gemini accepts either the Antigravity `agy` name or upstream `gemini`.
+resolve_agent_target() {
+  local target="$1" bin=""
+  case "$target" in
+    claude) bin="$(command -v claude || true)"; AGENT_MODEL="$CLAUDE_MODEL" ;;
+    gemini)
+      bin="$(command -v agy || command -v gemini || true)"
+      AGENT_MODEL="$GEMINI_MODEL"
+      ;;
+    codex)  bin="$(command -v codex || true)"; AGENT_MODEL="$CODEX_MODEL" ;;
+    ollama)
+      command -v ollama >/dev/null 2>&1 || return 1
+      bin="$(command -v codex || true)"
+      AGENT_MODEL="$OLLAMA_MODEL"
+      ;;
+    *) return 1 ;;
+  esac
+  [[ -n "$bin" ]] || return 1
+  CLAUDE="$bin"
+  AGENT_TYPE="$target"
+  export CLAUDE AGENT_TYPE AGENT_MODEL
+}
+
+AGENT_TARGET_INDEX=1
+if [[ -n "$INGEST_TARGETS" ]]; then
+  OLD_TARGET_IFS="$IFS"; IFS=':'; AGENT_TARGET_LIST=($INGEST_TARGETS); IFS="$OLD_TARGET_IFS"
+  while [[ "$AGENT_TARGET_INDEX" -le "${#AGENT_TARGET_LIST[@]}" ]]; do
+    resolve_agent_target "${AGENT_TARGET_LIST[$((AGENT_TARGET_INDEX - 1))]}" && break
+    AGENT_TARGET_INDEX=$((AGENT_TARGET_INDEX + 1))
+  done
+  if [[ "$AGENT_TARGET_INDEX" -gt "${#AGENT_TARGET_LIST[@]}" ]]; then
+    CLAUDE=""
+    AGENT_TYPE=""
+    AGENT_MODEL=""
+    AGENT_RESOLUTION_ERROR="none of the configured INGEST_TARGETS are installed: $INGEST_TARGETS"
+  fi
+else
+  # Legacy mode never accepted a model override. Ignore ambient shell state so
+  # the original Claude/Gemini argv remains unchanged.
+  unset AGENT_MODEL
+fi
+
+# Advance only after a rate/quota failure. Callers checkpoint completed work
+# before invoking this, and never replay the failed task on the next provider.
+advance_agent_target() {
+  [[ -n "$INGEST_TARGETS" ]] || return 1
+  AGENT_TARGET_INDEX=$((AGENT_TARGET_INDEX + 1))
+  while [[ "$AGENT_TARGET_INDEX" -le "${#AGENT_TARGET_LIST[@]}" ]]; do
+    resolve_agent_target "${AGENT_TARGET_LIST[$((AGENT_TARGET_INDEX - 1))]}" && return 0
+    AGENT_TARGET_INDEX=$((AGENT_TARGET_INDEX + 1))
+  done
+  return 1
+}
+
+select_agent_target_index() {
+  local wanted="$1"
+  [[ -n "$INGEST_TARGETS" ]] || return 1
+  case "$wanted" in ''|*[!0-9]*|0) return 1 ;; esac
+  [[ "$wanted" -le "${#AGENT_TARGET_LIST[@]}" ]] || return 1
+  AGENT_TARGET_INDEX="$wanted"
+  while [[ "$AGENT_TARGET_INDEX" -le "${#AGENT_TARGET_LIST[@]}" ]]; do
+    resolve_agent_target "${AGENT_TARGET_LIST[$((AGENT_TARGET_INDEX - 1))]}" && return 0
+    AGENT_TARGET_INDEX=$((AGENT_TARGET_INDEX + 1))
+  done
+  return 1
+}
+
+provider_state_timestamp_valid() {
+  local saved_at="$1" now="$2" ttl="$3" age
+  case "$saved_at" in ''|*[!0-9]*) return 1 ;; esac
+  age=$((now - saved_at))
+  [[ "$age" -ge 0 && "$age" -le "$ttl" ]]
+}
+
 # ── Scheduler backend ─────────────────────────────────────────────────────────
 # launchd (macOS) | cron (Linux with crontab) | none (anything else).
 # The install_*.sh scripts branch on this; macOS behavior is unchanged.
@@ -87,11 +170,31 @@ remove_cron_job() {
   rm -f "$tmp"
 }
 
-# validate_config — sanity-check the sourced config. Never exits; only
+# validate_config_base — config required by every script, including non-agent installers.
+validate_config_base() {
+  local var val
+  for var in WORKSPACE VAULT SOURCES LOG_DIR LABEL_PREFIX SCHEDULER INGEST_SOURCES \
+             INGEST_PROVIDER INGEST_HOUR INGEST_MINUTE INGEST_MAX_BUDGET INGEST_MAX_SECONDS; do
+    eval "val=\"\${$var:-}\""
+    if [[ -z "$val" ]]; then echo "config.sh: $var is unset/empty" >&2; return 1; fi
+  done
+  [[ -d "$WORKSPACE" ]] || { echo "config.sh: WORKSPACE dir missing: $WORKSPACE" >&2; return 1; }
+  [[ -d "$VAULT" ]] || { echo "config.sh: VAULT dir missing: $VAULT" >&2; return 1; }
+}
+
+validate_agent_config() {
+  validate_config_base || return 1
+  if [[ -z "${CLAUDE:-}" || -z "${AGENT_TYPE:-}" ]]; then
+    echo "config.sh: ${AGENT_RESOLUTION_ERROR:-agent target is unresolved}" >&2
+    return 1
+  fi
+}
+
+# validate_config — backward-compatible base validation. Never exits; only
 # returns 0/1, so callers decide whether to abort. bash 3.2 safe (no arrays).
 validate_config() {
   local var val
-  for var in WORKSPACE VAULT SOURCES LOG_DIR LABEL_PREFIX CLAUDE AGENT_TYPE \
+  for var in WORKSPACE VAULT SOURCES LOG_DIR LABEL_PREFIX \
              SCHEDULER INGEST_SOURCES INGEST_PROVIDER INGEST_HOUR INGEST_MINUTE \
              INGEST_MAX_BUDGET INGEST_MAX_SECONDS; do
     eval "val=\"\${$var:-}\""
@@ -125,6 +228,15 @@ validate_config() {
     auto|claude|gemini) : ;;
     *) echo "config.sh: INGEST_PROVIDER must be auto|claude|gemini: $INGEST_PROVIDER" >&2; return 1 ;;
   esac
+
+  local target old_ifs="$IFS"
+  IFS=':'
+  for target in $INGEST_TARGETS; do
+    case "$target" in claude|gemini|codex|ollama) : ;;
+      *) echo "config.sh: bad INGEST_TARGETS entry: $target" >&2; IFS="$old_ifs"; return 1 ;;
+    esac
+  done
+  IFS="$old_ifs"
 
   return 0
 }

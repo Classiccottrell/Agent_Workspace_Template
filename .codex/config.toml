@@ -1,0 +1,23 @@
+[agents.architect]
+description = "System architecture and schema design."
+config_file = "agents/architect.toml"
+
+[agents.archivist]
+description = "Closed-project lifecycle and outcome registry."
+config_file = "agents/archivist.toml"
+
+[agents.coder]
+description = "Scoped implementation and verification."
+config_file = "agents/coder.toml"
+
+[agents.curator]
+description = "Vault_Brain knowledge curation."
+config_file = "agents/curator.toml"
+
+[agents.eng-manager]
+description = "Projects lifecycle control."
+config_file = "agents/eng-manager.toml"
+
+[agents.qa]
+description = "Production-repository regression verification."
+config_file = "agents/qa.toml"

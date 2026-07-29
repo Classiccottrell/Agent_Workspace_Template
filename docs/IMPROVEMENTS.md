@@ -15,9 +15,12 @@ Status lines are appended to cards as they land — keep this file current.
 > **Prompt:** "In `System_Config/`, the 5 `install_*.sh` scripts render `.plist.tmpl` files for macOS launchd. Add an OS branch: on Linux render an equivalent `cron` entry, on Windows print WSL/Task-Scheduler guidance. Keep macOS behavior byte-identical. Add a `SCHEDULER` detect in `config.sh`. Show me the diff for one installer (`install_daily_ingest.sh`) as the pattern before doing the rest."
 
 ### 2. Single-source orchestrator rules — ✅ DONE 2026-07-09
-**Landed:** shared sections live in `System_Config/orchestrator-rules.md`; `sync_rules.sh` regenerates the `SHARED:*` marker regions in `CLAUDE.md` + `.agents/AGENTS.md`; `--check` exits 1 on drift (verified with a live drift test).
+**Landed:** shared sections live in `System_Config/orchestrator-rules.md`;
+`sync_rules.sh` regenerates the `SHARED:*` regions in `AGENTS.md`, `CLAUDE.md`,
+and `.agents/AGENTS.md`; `--check` exits 1 on drift.
 **Why:** `CLAUDE.md` and `.agents/AGENTS.md` are near-verbatim mirrors — every rule change must be edited twice and drifts (see docs/FAILURE_MODES.md F6).
-> **Prompt:** "`CLAUDE.md` (Claude) and `.agents/AGENTS.md` (Gemini) duplicate the same orchestration rules. Extract the shared body into `System_Config/orchestrator-rules.md` and have both files include/reference it, or add a `make sync-rules` that regenerates both from the source. Do not change the actual rules. Prove the two outputs match."
+> **Verification:** "Run `bash System_Config/sync_rules.sh --check` and confirm
+> Codex, Claude, and Gemini entry files all report in sync."
 
 ### 3. Install doctor + clean uninstaller — ✅ DONE 2026-07-09
 **Landed:** `./bootstrap.sh --check` (tools + job status + FDA reminder), `--uninstall` (confirm, bootout + plist/cron removal, data untouched), `--help`.
@@ -61,8 +64,10 @@ Status lines are appended to cards as they land — keep this file current.
 
 ## Future-proofing (11–20)
 
-### 11. Central model registry — ✅ CLOSED (not needed) 2026-07-09
-**Audit result:** zero hardcoded model IDs anywhere in the template scripts, plists, or agent files — the CLIs run without `--model` and use their configured defaults. Registry would be dead flexibility; reopen only if a script gains a `--model` flag.
+### 11. Central model registry — ✅ CLOSED (provider overrides landed)
+**Audit result:** no model IDs are hardcoded. `CLAUDE_MODEL`, `GEMINI_MODEL`,
+`CODEX_MODEL`, and `OLLAMA_MODEL` are optional overrides in `config.sh`; blank
+values use CLI defaults. A separate registry would duplicate that configuration.
 **Why:** model IDs churn; scattered hardcodes make every bump a hunt.
 > **Prompt:** "Grep the repo for hardcoded model identifiers (`claude-*`, `gemini-*`, `opus`, `sonnet`, `haiku`). Consolidate them into a single `System_Config/models.sh` (e.g. `MODEL_INGEST`, `MODEL_ORCHESTRATOR`) sourced by the scripts, so a model rename is a one-line change. List every occurrence before consolidating."
 
@@ -96,10 +101,16 @@ Status lines are appended to cards as they land — keep this file current.
 **Why:** `gh`, Playwright, `agy`, `npx skills` all evolve; a breaking upstream change fails silently in a background job.
 > **Prompt:** "Add a `System_Config/deps.sh` recording the tested version of each external CLI (`gh`, `node`, `playwright-cli`, `agy`/`gemini`, `claude`) and a `--check-deps` mode in `bootstrap.sh` that warns when the installed version differs from tested. Informational, never blocks. List current installed versions first."
 
-### 18. Provider-agnostic invocation layer — ✅ DONE 2026-07-09
-**Landed:** `System_Config/run_agent.sh` (sourced library, byte-equal flags + watchdog) now the single provider branch; `daily_ingest.sh` and `friday_process.sh` source it. Flag changes happen in one place.
+### 18. Provider-agnostic invocation layer — ✅ DONE
+**Landed:** `System_Config/run_agent.sh` handles Claude, Gemini/Antigravity,
+Codex, and Ollama with optional provider-specific models and one watchdog.
+`config.sh` supports ordered targets, fail-closed resolution, and quota-only
+handoff. `daily_ingest.sh` persists handoff state across runs without replaying
+the failed clip in-run.
 **Why:** the claude-vs-gemini flag differences are copy-pasted across `daily_ingest.sh` and `friday_process.sh`; a new provider or flag change means editing every script.
-> **Prompt:** "Extract the provider-branch `run_claude` function in `System_Config/daily_ingest.sh` and `friday_process.sh` into one shared `System_Config/run_agent.sh` that both source, so provider/flag logic lives in one place. Behavior must stay identical per provider. Diff both callers before and after."
+> **Verification:** "Inspect `System_Config/run_agent.sh` and confirm all four
+> provider cases live there. Confirm `daily_ingest.sh` and `friday_process.sh`
+> source it and do not duplicate provider argument construction."
 
 ### 19. Workspace export/import (anti-lock-in) — ✅ DONE 2026-07-09
 **Landed:** `export_workspace.sh` (dated tar.gz, secrets/logs/git excluded) + `import_workspace.sh` (refuses non-empty targets). Round-trip diff verified empty.
