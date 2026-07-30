@@ -25,6 +25,10 @@ out/
 *.log
 *.tmp
 
+# ── Python bytecode cache ────────────────────────────────────────────────
+__pycache__/
+*.pyc
+
 # ── System_Config runtime artifacts ──────────────────────────────────────
 # Keep the logs/ directory (via .gitkeep) but ship none of its contents.
 System_Config/logs/*
