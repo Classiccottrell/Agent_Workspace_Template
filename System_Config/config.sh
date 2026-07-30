@@ -180,6 +180,15 @@ validate_config_base() {
   done
   [[ -d "$WORKSPACE" ]] || { echo "config.sh: WORKSPACE dir missing: $WORKSPACE" >&2; return 1; }
   [[ -d "$VAULT" ]] || { echo "config.sh: VAULT dir missing: $VAULT" >&2; return 1; }
+
+  local target old_ifs="$IFS"
+  IFS=':'
+  for target in $INGEST_TARGETS; do
+    case "$target" in claude|gemini|codex|ollama) : ;;
+      *) echo "config.sh: bad INGEST_TARGETS entry: $target" >&2; IFS="$old_ifs"; return 1 ;;
+    esac
+  done
+  IFS="$old_ifs"
 }
 
 validate_agent_config() {
