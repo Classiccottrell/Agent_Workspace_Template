@@ -43,6 +43,7 @@ TOTAL=0; PASS_N=0; WARN_N=0; FAIL_N=0
 OVERALL="PASS"
 ROWS=""; SECTIONS=""; JSON_ITEMS=""
 CUR_SECTION=""; CUR_ICON=""
+NONPASS_NAMES=""   # "<STATUS>\t<check name>" per line — drives Chat notification dedup
 
 esc()      { printf '%s' "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'; }
 json_esc() { printf '%s' "$1" | tr '\n\r\t' '   ' | sed 's/\\/\\\\/g; s/"/\\"/g'; }
@@ -57,6 +58,10 @@ check() {
     FAIL) FAIL_N=$((FAIL_N + 1)); dot="fail"; OVERALL="FAIL" ;;
     *)    st="WARN"; WARN_N=$((WARN_N + 1)); dot="warn"; [ "$OVERALL" = "PASS" ] && OVERALL="WARN" ;;
   esac
+  if [ "$st" != "PASS" ]; then
+    NONPASS_NAMES="${NONPASS_NAMES}${st}	${name}
+"
+  fi
   ROWS="${ROWS}<tr class=\"${dot}\"><td class=\"s\"><span class=\"dot ${dot}\"></span>${st}</td><td class=\"n\">$(esc "$name")</td><td class=\"d\">$(esc "$detail")</td></tr>"
   [ -n "$JSON_ITEMS" ] && comma=","
   JSON_ITEMS="${JSON_ITEMS}${comma}{\"layer\":\"$(json_esc "$CUR_SECTION")\",\"status\":\"${st}\",\"name\":\"$(json_esc "$name")\",\"detail\":\"$(json_esc "$detail")\"}"
@@ -562,4 +567,25 @@ fi
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] healthcheck: ${OVERALL} (pass=${PASS_N} warn=${WARN_N} fail=${FAIL_N})" >> "$SYSCFG/logs/healthcheck.log"
 echo "Status: ${OVERALL} — ${PASS_N} pass / ${WARN_N} warn / ${FAIL_N} fail"
 echo "Wrote ${OUT_HTML}"
+# ════════════════════════════════════════════════════════════════════════════
+# NOTIFY — push to Google Chat only when the set of failing checks CHANGES
+# ════════════════════════════════════════════════════════════════════════════
+# Signature = sorted set of non-PASS check names, so a stable warning stays quiet
+# while a changed set re-notifies. Recovery is announced too. Names/counts only —
+# never vault content. No-ops cleanly when System_Config/.notify.env is absent.
+NOTIFY_STATE="$SYSCFG/logs/.notify_state"
+_sig_body="$(printf '%s' "$NONPASS_NAMES" | sort)"
+_sig="$(printf '%s' "$_sig_body" | shasum -a 256 2>/dev/null | awk '{print $1}')"
+_prev="$(cat "$NOTIFY_STATE" 2>/dev/null || true)"
+if [ "$_sig" != "$_prev" ]; then
+  if [ -z "$_sig_body" ]; then
+    _msg="All clear — ${PASS_N} checks passing."
+  else
+    _msg="$(printf '%s pass / %s warn / %s fail\n\n%s' "$PASS_N" "$WARN_N" "$FAIL_N" \
+            "$(printf '%s' "$_sig_body" | sed 's/^/• /')")"
+  fi
+  [ -r "$SYSCFG/notify.sh" ] && bash "$SYSCFG/notify.sh" "Healthcheck: ${OVERALL}" "$_msg" || true
+  printf '%s' "$_sig" > "$NOTIFY_STATE" 2>/dev/null || true
+fi
+
 exit 0

@@ -37,6 +37,26 @@ mkdir -p "$LOG_DIR"
 ts() { date "+%Y-%m-%d %H:%M:%S"; }
 log() { echo "[$(ts)] $*" >> "$LOG"; }
 
+# ── EINTR-SAFE STATE APPEND ───────────────────────────────────────────────────
+# A backgrounded watchdog's SIGCHLD can land mid-open()/write() on the manifest.
+# Bash does not retry the interrupted syscall, so the redirect fails with EINTR and
+# `set -e` kills the run before it can log an outcome or its closing "done" line.
+# Retry, then degrade to a warning — a missed manifest line costs one redundant
+# re-ingest, while aborting the script costs the whole run.
+# Callers must tolerate a non-zero return (`|| true`) so a failed write is never fatal.
+append_state() {  # append_state <file> <content> — append line(s)
+  local f="$1" content="$2" i
+  if [[ -z "$content" ]]; then return 0; fi
+  for i in 1 2 3; do
+    if printf '%s\n' "$content" >> "$f" 2>/dev/null; then
+      return 0
+    fi
+    sleep 1
+  done
+  log "WARN: state append failed for $f after 3 attempts — will retry next run"
+  return 1
+}
+
 log "daily_ingest start (sources: ${INGEST_SOURCES})"
 
 # ── DATES ─────────────────────────────────────────────────────────────────────
