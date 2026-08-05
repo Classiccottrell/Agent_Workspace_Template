@@ -189,6 +189,21 @@ run "bounded piped bootstrap help" bash -c '
 ' _ "$ROOT"
 
 # ---------------------------------------------------------------------------
+# 3c. Health notification dedup and Closed registry matching regressions.
+# ---------------------------------------------------------------------------
+HEALTHCHECK_LIB_ONLY=1 source "$SYSCFG/healthcheck.sh"
+TMP_TEST="$(mktemp -d)"
+printf '| Project | Folder | Outcome | Closed Date | Notes |\n| foobar | [`foobar/`](foobar/) | ok | 2026-01-01 | mentions foo |\n' > "$TMP_TEST/index.md"
+rejects_collision() { ! closed_registry_has foo "$1"; }
+failed_unacknowledged() { ! persist_notification_signature "$1" abc false && [ ! -e "$1" ]; }
+successful_acknowledged() { persist_notification_signature "$1" abc true && [ "$(cat "$1")" = abc ]; }
+run "closed registry rejects name collisions" rejects_collision "$TMP_TEST/index.md"
+run "closed registry exact project match" closed_registry_has foobar "$TMP_TEST/index.md"
+run "failed notification is not acknowledged" failed_unacknowledged "$TMP_TEST/state"
+run "successful notification is acknowledged" successful_acknowledged "$TMP_TEST/state"
+rm -rf "$TMP_TEST"
+
+# ---------------------------------------------------------------------------
 # 4. Vault schema gate.
 # ---------------------------------------------------------------------------
 run "migrate_vault.sh" bash "$SYSCFG/migrate_vault.sh"

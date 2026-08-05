@@ -63,6 +63,12 @@ else
 fi
 export AGENT_TYPE
 export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+# The global SessionEnd hook in ~/.claude/settings.json shells out to `node`, which
+# may live under nvm and be absent from the PATH above — every headless call then
+# logs "node: command not found", noise that masks real errors. Append the newest
+# nvm node bin when one exists; a no-op on machines without nvm.
+NVM_NODE_BIN="$(ls -td "$HOME"/.nvm/versions/node/*/bin 2>/dev/null | head -1 || true)"
+if [ -n "${NVM_NODE_BIN:-}" ]; then export PATH="$PATH:$NVM_NODE_BIN"; fi
 
 # resolve_agent_target <target> — updates legacy CLAUDE/AGENT_TYPE plus model.
 # Gemini accepts either the Antigravity `agy` name or upstream `gemini`.

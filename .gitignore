@@ -85,3 +85,6 @@ Closed/*
 # ── Tool cache / stray worktrees ───────────────────────────────────────
 **/.impeccable/
 Projects/WestCoastModern/WCM/.claude/worktrees/
+
+# Local-only secrets — notify.sh Google Chat webhook URL embeds a secret token
+System_Config/.notify.env
