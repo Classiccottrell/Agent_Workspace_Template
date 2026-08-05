@@ -125,6 +125,8 @@ The current weekly note is always `weekly-logs/YYYY-Www.md` (ISO week number, e.
 
 **When a key decision is made:** also add a row to the `## Decisions` table with the decision, rationale, and date.
 
+**Backstop:** the per-session judgment call above ("add a Decisions row when a key decision is made") is easy to forget in the moment, with nothing else checking for it afterward. `System_Config/friday_process.sh`'s weekly close-out runs a supervised "C. DECISIONS SWEEP" step that re-scans the week's `## Claude Sessions` entries and `## The Signal` for anything not yet reflected as a `## Decisions` row and appends it — the mechanism that actually keeps the table current week to week.
+
 Do NOT rewrite or summarize other sections. Append only. Weekly logs are the user's space.
 
 ### Wiki — when Claude updates pages

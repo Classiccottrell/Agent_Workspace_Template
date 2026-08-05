@@ -1,7 +1,8 @@
 # PRODUCT.md — Agent Workspace Template microsite
 
 The GitHub Pages microsite for the **Agent Workspace Template**: a one-person,
-multi-agent operating environment for Claude Code. The site has two surfaces.
+multi-agent operating environment for Codex, Claude Code, and Gemini CLI. The
+site has two surfaces.
 
 ## Surfaces & register
 

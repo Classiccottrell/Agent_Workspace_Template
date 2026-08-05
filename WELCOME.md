@@ -7,11 +7,12 @@ You just ran `./bootstrap.sh`. This is the walkthrough. Delete this file when do
 ## 1. Open the workspace
 
 ```bash
-claude    # or: gemini
+codex     # or: claude / gemini
 ```
 
 Run either from the workspace root. Orchestrator rules load automatically —
-`CLAUDE.md` for Claude Code, `.agents/AGENTS.md` for Gemini CLI. No setup step.
+`AGENTS.md` for Codex, `CLAUDE.md` for Claude Code, and `.agents/AGENTS.md` for
+Gemini CLI. No setup step.
 
 ## 2. Try one command
 
