@@ -6,6 +6,14 @@ All notable changes to this template are documented here. Format follows
 
 ## [Unreleased]
 
+### Changed
+- Documented Codex, Claude, Gemini/Antigravity, and Ollama invocation exactly: ordered target selection, optional models, fail-closed resolution, Ollama through Codex OSS, provider-specific security limits, expiring quota handoff, and no in-run replay.
+- Removed unused scope dispatcher; ingestion remains serialized.
+
+### Added
+- Root `AGENTS.md`, registered Codex agent roster in `.codex/config.toml`, and relocatable Codex post-edit documentation hook.
+- Provider-state and cross-provider roster checks in workspace health reporting.
+
 ### Fixed (ingest reliability, 2026-07-20)
 - `daily_ingest.sh`: auth failures (revoked/invalid API key) previously produced the identical "QUOTA/BUDGET WALL suspected" log line as a real provider quota wall — now classified separately ("AUTH FAILURE suspected") by grepping each failed clip's captured output for auth-error markers, so troubleshooting isn't misdirected
 - `daily_ingest.sh`: `~/.config/anthropic/key` is read unconditionally even when it's known-stale; `INGEST_IGNORE_KEYFILE=1` (new `config.sh` var) now skips it and falls through to login-keychain auth

@@ -21,6 +21,25 @@
 # to abort. bash 3.2 compatible (no associative arrays). Always exits 0.
 
 set -uo pipefail
+
+closed_registry_has() {
+  awk -F'|' -v n="$1" '
+    BEGIN { needle = "`" n "/`" }
+    NF >= 3 {
+      p = $2; gsub(/^[ \t]+|[ \t]+$/, "", p)
+      if (p == n || index($3, needle) > 0) { found = 1; exit }
+    }
+    END { exit !found }
+  ' "$2"
+}
+
+persist_notification_signature() {
+  local state="$1" signature="$2"; shift 2
+  "$@" || return 1
+  printf '%s' "$signature" > "$state"
+}
+
+[ "${HEALTHCHECK_LIB_ONLY:-0}" = "1" ] && return 0
 source "$(dirname "${BASH_SOURCE[0]}")/config.sh"
 
 # WORKSPACE / VAULT / SOURCES / LOG_DIR / LABEL_PREFIX come from config.sh.
@@ -102,6 +121,7 @@ doc_check() {
 # ════════════════════════════════════════════════════════════════════════════
 begin_section "Orchestration & Agents" "&#129517;"
 [ -s "$WORKSPACE/CLAUDE.md" ] && check PASS "Orchestrator instructions" "CLAUDE.md present" || check FAIL "Orchestrator instructions" "CLAUDE.md missing or empty"
+[ -s "$WORKSPACE/AGENTS.md" ] && check PASS "Codex instructions" "AGENTS.md present" || check FAIL "Codex instructions" "AGENTS.md missing or empty"
 [ -s "$WORKSPACE/.AGENT.MD" ] && check PASS "Coordination matrix" ".AGENT.MD present" || check WARN "Coordination matrix" ".AGENT.MD missing or empty"
 for rf in claude.md architect.md coder.md; do
   [ -s "$WORKSPACE/$rf" ] && check PASS "Role file: $rf" "present" || check WARN "Role file: $rf" "missing or empty"
@@ -136,6 +156,15 @@ if [ -d "$AGENTS" ]; then
   fi
 else
   check FAIL "Subagents directory" ".claude/agents/ MISSING — roles are prose only"
+fi
+codex_ok=0
+for ag in architect coder eng-manager archivist curator qa; do
+  [ -s "$WORKSPACE/.codex/agents/$ag.toml" ] && codex_ok=$((codex_ok + 1))
+done
+if [ -s "$WORKSPACE/.codex/config.toml" ] && [ "$codex_ok" -eq 6 ]; then
+  check PASS "Codex agent roster" "6/6 agents registered"
+else
+  check FAIL "Codex agent roster" "${codex_ok}/6 agent files; config.toml registration required"
 fi
 end_section
 
@@ -279,6 +308,18 @@ else
   check FAIL "Memory store" "memory dir missing"
 fi
 [ -r "$HOME/.config/anthropic/key" ] && check PASS "Headless auth" "key file present" || check PASS "Headless auth" "login keychain (key file optional)"
+target_state="$LOG_DIR/daily_ingest.target"
+if [ -n "$INGEST_TARGETS" ]; then
+  [ -n "${CLAUDE:-}" ] && check PASS "Ingest provider" "${AGENT_TYPE} resolved: $CLAUDE" || check WARN "Ingest provider" "${AGENT_RESOLUTION_ERROR:-unresolved}"
+  if [ -f "$target_state" ]; then
+    IFS="$(printf '\t')" read -r state_targets state_index state_at < "$target_state" || true
+    case "${state_index:-}" in ''|*[!0-9]*|0) check WARN "Provider state" "invalid saved index; next run resets to 1" ;;
+      *) check PASS "Provider state" "saved target index ${state_index}" ;;
+    esac
+  else
+    check PASS "Provider state" "no handoff pinned"
+  fi
+fi
 end_section
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -324,7 +365,7 @@ if [ -d "$WORKSPACE/Closed" ]; then
   while IFS= read -r cl_dir; do
     cl_name="$(basename "$cl_dir")"
     case "$cl_name" in _*|.*) continue ;; esac
-    grep -qF "$cl_name" "$cl_index" 2>/dev/null || cl_unindexed="${cl_unindexed} ${cl_name}"
+    closed_registry_has "$cl_name" "$cl_index" 2>/dev/null || cl_unindexed="${cl_unindexed} ${cl_name}"
   done < <(find "$WORKSPACE/Closed" -mindepth 1 -maxdepth 1 -type d 2>/dev/null)
   if [ -z "$cl_unindexed" ]; then check PASS "Closed/ index sync" "all subfolders registered"
   else check WARN "Closed/ index sync" "unindexed:${cl_unindexed} — run closed_pickup.sh"; fi
@@ -337,7 +378,7 @@ while IFS= read -r cl_brief; do
   cl_pname="$(basename "$(dirname "$cl_brief")")"
   case "$cl_pname" in _*|.*) continue ;; esac
   # Vendored third-party clones ship via upstream PR, not archival — never nag them.
-  grep -qE "^\| ${cl_pname}[ |].*External Clone" "$WORKSPACE/Projects/.AGENT.MD" 2>/dev/null && continue
+  grep -qE "^\|[[:space:]]*${cl_pname}[[:space:]|].*External Clone" "$WORKSPACE/Projects/.AGENT.MD" 2>/dev/null && continue
   cl_status="$(awk '/^## Status$/{s=1;next} s&&/^<!--/{next} s&&/^[[:space:]]*$/{next} s&&/^\*\*/{gsub(/\*\*/,""); printf "%s", $0; exit}' "$cl_brief" 2>/dev/null)"
   case "$cl_status" in
     shipped|shelved) cl_status_warn="${cl_status_warn} ${cl_pname}(${cl_status})" ;;
@@ -350,10 +391,10 @@ end_section
 # LAYER F — Documentation Currency (READMEs vs the files they document)
 # ════════════════════════════════════════════════════════════════════════════
 begin_section "Documentation Currency" "&#128221;"
-doc_check "Workspace/README" "$WORKSPACE/README.md" "$WORKSPACE/CLAUDE.md" "$WORKSPACE/.AGENT.MD" "$AGENTS"/*.md
+doc_check "Workspace/README" "$WORKSPACE/README.md" "$WORKSPACE/CLAUDE.md" "$WORKSPACE/AGENTS.md" "$WORKSPACE/.AGENT.MD" "$AGENTS"/*.md "$WORKSPACE/.codex/config.toml" "$WORKSPACE/.codex/agents"/*.toml
 doc_check "System_Config/README" "$SYSCFG/README.md" "$SYSCFG"/*.sh "$SYSCFG"/*.plist.tmpl
 doc_check "Vault_Brain/README" "$VAULT/README.md" "$VAULT/CLAUDE.md" "$SYSCFG/daily_ingest.sh" "$SYSCFG/monday_init.sh" "$SYSCFG/friday_archive.sh"
-doc_check ".AGENT.MD workspace map" "$WORKSPACE/.AGENT.MD" "$AGENTS"/*.md
+doc_check ".AGENT.MD workspace map" "$WORKSPACE/.AGENT.MD" "$AGENTS"/*.md "$WORKSPACE/.codex/agents"/*.toml
 end_section
 
 
@@ -584,8 +625,10 @@ if [ "$_sig" != "$_prev" ]; then
     _msg="$(printf '%s pass / %s warn / %s fail\n\n%s' "$PASS_N" "$WARN_N" "$FAIL_N" \
             "$(printf '%s' "$_sig_body" | sed 's/^/• /')")"
   fi
-  [ -r "$SYSCFG/notify.sh" ] && bash "$SYSCFG/notify.sh" "Healthcheck: ${OVERALL}" "$_msg" || true
-  printf '%s' "$_sig" > "$NOTIFY_STATE" 2>/dev/null || true
+  if [ -r "$SYSCFG/notify.sh" ]; then
+    persist_notification_signature "$NOTIFY_STATE" "$_sig" \
+      bash "$SYSCFG/notify.sh" "Healthcheck: ${OVERALL}" "$_msg" || true
+  fi
 fi
 
 exit 0

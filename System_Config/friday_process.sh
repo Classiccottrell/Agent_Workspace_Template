@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # friday_process.sh — Weekly close-out (runs Fri 16:30 via launchd)
-# Claude writes a summary to a scratch file and does append-only wiki cross-refs;
-# deterministic bash then edits the Master Note row (with backup + validation +
-# rollback) and stamps the close-out. The note STAYS in weekly-logs/.
+# Claude writes a summary to a scratch file, does append-only wiki cross-refs,
+# and sweeps this week's note for undocumented decisions (append-only Decisions
+# rows); deterministic bash then edits the Master Note row (with backup +
+# validation + rollback) and stamps the close-out. The note STAYS in weekly-logs/.
 #
 #   Activate:    bash System_Config/install_friday_process.sh
 #   Manual run:  bash System_Config/friday_process.sh [YYYY-Www]
@@ -67,7 +68,7 @@ fi
 # ── DRY RUN ───────────────────────────────────────────────────────────────────
 if [[ "${DRY_RUN:-0}" == "1" ]]; then
   echo "── DRY RUN — would process $NOTE_REL ──"
-  echo "  → Claude writes a 1–2 sentence summary to ${SUMMARY_REL} + appends wiki cross-refs"
+  echo "  → Claude writes a 1–2 sentence summary to ${SUMMARY_REL} + appends wiki cross-refs + sweeps for undocumented Decisions rows"
   echo "  → bash edits the Master Note row for [[${WEEK_TAG}]] deterministically (backup + validate + rollback)"
   echo "  → bash stamps a close-out line into the note's Claude Sessions (note stays in weekly-logs/)"
   log "dry run — no Claude call"; exit 0
@@ -92,11 +93,11 @@ fi
 chmod a-w "$VAULT/sources"/*.md 2>/dev/null || true
 rm -f "$SUMMARY_ABS" 2>/dev/null || true
 
-# ── CLAUDE: summary text + append-only cross-refs (NEVER edits the Master Note) ─
+# ── CLAUDE: summary text + append-only cross-refs + Decisions sweep (NEVER edits the Master Note) ─
 PROMPT="You are running headlessly for the Friday weekly close-out of the Vault_Brain wiki.
 First read CLAUDE.md for the schema, then read ${NOTE_REL}.
 
-Do exactly two things:
+Do exactly three things:
 
 A. SUMMARY → scratch file. Write a single-line 1–2 sentence summary of what actually mattered this week (drawn from 'The Signal', 'Decisions', and 'Claude Sessions') to the file ${SUMMARY_REL} using the Write tool. One line only: NO newlines, and do NOT use the '|' character (it breaks the table). Write nothing else to that file.
 
@@ -105,7 +106,9 @@ B. CROSS-REFERENCES. For each project/entity named in a '#### Heading' under 'Th
    - If no page exists and it is a substantive ongoing project/technology/person, create one per CLAUDE.md's page format and add it to wiki/_index.md.
    - Skip trivial one-off tasks and bare links.
 
-DO NOT edit 'Master Note.md'. DO NOT edit ${NOTE_REL}. DO NOT touch sources/. Create-or-append only; never delete; stay within this vault."
+C. DECISIONS SWEEP. Read this week's '## Claude Sessions' entries and 'The Signal' section. For any decision described there that is NOT already reflected as a row in ${NOTE_REL}'s '## Decisions' table, APPEND one '| Decision | Rationale | Date |' row per the table's existing format — decision in past tense, rationale in one clause, date in YYYY-MM-DD. This is the backstop for the per-session judgment call ('Claude Contribution Protocol' in CLAUDE.md), since that judgment call is easy to forget in the moment, with nothing else checking for it afterward. Append-only: never rewrite, reorder, or delete an existing Decisions row. If nothing qualifies, add nothing.
+
+DO NOT edit 'Master Note.md'. DO NOT touch sources/. In step C only, ${NOTE_REL} may be edited to append a Decisions row — do not touch any other part of it (Claude Sessions, The Signal, The Noise, etc. stay off-limits in this step). Create-or-append only; never delete; stay within this vault."
 
 source "$(dirname "${BASH_SOURCE[0]}")/run_agent.sh"
 
