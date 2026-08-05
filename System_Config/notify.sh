@@ -15,9 +15,8 @@
 # copy the URL. Requires the Workspace admin setting "let users add and use
 # incoming webhooks"; the button is greyed out when the org has it disabled.
 #
-# Contract: this script NEVER fails its caller. A missing config, a dead network or
-# a 4xx from Chat all exit 0 after logging — an alerting path must not be able to
-# break the job it reports on.
+# Contract: exit 0 only after Chat accepts the message. Disabled/failed delivery
+# exits 1 so callers can retry deduped alerts; callers must treat it as best-effort.
 #
 # Payload policy: callers pass counts, check names and job names only. Never vault
 # content, note titles or clip filenames — this posts into a corporate Chat space.
@@ -54,7 +53,7 @@ notify_local() {
 if [[ -z "${GCHAT_WEBHOOK_URL:-}" ]]; then
   log "no-op: GCHAT_WEBHOOK_URL unset (create $ENV_FILE to enable Chat delivery) — ${TITLE}"
   [[ "${GCHAT_FALLBACK_LOCAL:-0}" == "1" ]] && notify_local "$TITLE" "$BODY"
-  exit 0
+  exit 1
 fi
 
 # Build the payload with python3 so quotes, newlines and unicode in the body cannot
@@ -70,15 +69,15 @@ print(json.dumps({"text": text}))
 if [[ -z "$PAYLOAD" ]]; then
   log "ERROR: could not encode payload — ${TITLE}"
   notify_local "$TITLE" "$BODY"
-  exit 0
+  exit 1
 fi
 
-HTTP_CODE="$(curl -sS -o /dev/null -w '%{http_code}' \
+HTTP_CODE="$(printf 'url = "%s"\n' "$GCHAT_WEBHOOK_URL" | curl -sS -o /dev/null -w '%{http_code}' \
   --max-time 20 \
   -X POST \
   -H 'Content-Type: application/json; charset=UTF-8' \
   -d "$PAYLOAD" \
-  "$GCHAT_WEBHOOK_URL" 2>>"$LOG")"
+  --config - 2>>"$LOG")"
 
 if [[ "$HTTP_CODE" == "200" ]]; then
   log "sent (200): ${TITLE}"
@@ -86,6 +85,7 @@ if [[ "$HTTP_CODE" == "200" ]]; then
 else
   log "FAILED (http ${HTTP_CODE:-none}): ${TITLE} — falling back to local notification"
   notify_local "$TITLE" "$BODY"
+  exit 1
 fi
 
 exit 0

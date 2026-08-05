@@ -21,6 +21,25 @@
 # to abort. bash 3.2 compatible (no associative arrays). Always exits 0.
 
 set -uo pipefail
+
+closed_registry_has() {
+  awk -F'|' -v n="$1" '
+    BEGIN { needle = "`" n "/`" }
+    NF >= 3 {
+      p = $2; gsub(/^[ \t]+|[ \t]+$/, "", p)
+      if (p == n || index($3, needle) > 0) { found = 1; exit }
+    }
+    END { exit !found }
+  ' "$2"
+}
+
+persist_notification_signature() {
+  local state="$1" signature="$2"; shift 2
+  "$@" || return 1
+  printf '%s' "$signature" > "$state"
+}
+
+[ "${HEALTHCHECK_LIB_ONLY:-0}" = "1" ] && return 0
 source "$(dirname "${BASH_SOURCE[0]}")/config.sh"
 
 # WORKSPACE / VAULT / SOURCES / LOG_DIR / LABEL_PREFIX come from config.sh.
@@ -324,7 +343,7 @@ if [ -d "$WORKSPACE/Closed" ]; then
   while IFS= read -r cl_dir; do
     cl_name="$(basename "$cl_dir")"
     case "$cl_name" in _*|.*) continue ;; esac
-    grep -qF "$cl_name" "$cl_index" 2>/dev/null || cl_unindexed="${cl_unindexed} ${cl_name}"
+    closed_registry_has "$cl_name" "$cl_index" 2>/dev/null || cl_unindexed="${cl_unindexed} ${cl_name}"
   done < <(find "$WORKSPACE/Closed" -mindepth 1 -maxdepth 1 -type d 2>/dev/null)
   if [ -z "$cl_unindexed" ]; then check PASS "Closed/ index sync" "all subfolders registered"
   else check WARN "Closed/ index sync" "unindexed:${cl_unindexed} — run closed_pickup.sh"; fi
@@ -584,8 +603,10 @@ if [ "$_sig" != "$_prev" ]; then
     _msg="$(printf '%s pass / %s warn / %s fail\n\n%s' "$PASS_N" "$WARN_N" "$FAIL_N" \
             "$(printf '%s' "$_sig_body" | sed 's/^/• /')")"
   fi
-  [ -r "$SYSCFG/notify.sh" ] && bash "$SYSCFG/notify.sh" "Healthcheck: ${OVERALL}" "$_msg" || true
-  printf '%s' "$_sig" > "$NOTIFY_STATE" 2>/dev/null || true
+  if [ -r "$SYSCFG/notify.sh" ]; then
+    persist_notification_signature "$NOTIFY_STATE" "$_sig" \
+      bash "$SYSCFG/notify.sh" "Healthcheck: ${OVERALL}" "$_msg" || true
+  fi
 fi
 
 exit 0
