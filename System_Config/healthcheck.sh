@@ -62,7 +62,7 @@ TOTAL=0; PASS_N=0; WARN_N=0; FAIL_N=0
 OVERALL="PASS"
 ROWS=""; SECTIONS=""; JSON_ITEMS=""
 CUR_SECTION=""; CUR_ICON=""
-NONPASS_NAMES=""   # "<STATUS>\t<check name>" per line — drives Chat notification dedup
+NONPASS_NAMES=""   # "<STATUS>\t<check name>" per line — drives notification dedup
 
 esc()      { printf '%s' "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'; }
 json_esc() { printf '%s' "$1" | tr '\n\r\t' '   ' | sed 's/\\/\\\\/g; s/"/\\"/g'; }
@@ -609,7 +609,7 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] healthcheck: ${OVERALL} (pass=${PASS_N} war
 echo "Status: ${OVERALL} — ${PASS_N} pass / ${WARN_N} warn / ${FAIL_N} fail"
 echo "Wrote ${OUT_HTML}"
 # ════════════════════════════════════════════════════════════════════════════
-# NOTIFY — push to Google Chat only when the set of failing checks CHANGES
+# NOTIFY — raise a desktop notification only when the set of failing checks CHANGES
 # ════════════════════════════════════════════════════════════════════════════
 # Signature = sorted set of non-PASS check names, so a stable warning stays quiet
 # while a changed set re-notifies. Recovery is announced too. Names/counts only —

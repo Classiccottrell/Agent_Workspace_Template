@@ -24,6 +24,9 @@
 # Config: System_Config/.notify.env (git-ignored, optional). See .notify.env.example.
 #   NOTIFY_ENABLED=0   silence every notification
 #   NOTIFY_OSASCRIPT   override the osascript binary (test seam)
+#   NOTIFY_SEND_BIN    override the notify-send binary (test seam)
+# An explicitly exported value always beats the file, so a caller can silence or
+# redirect a single invocation without editing config.
 #
 # Contract:
 #   exit 0 — a notification was raised, OR was deliberately suppressed
@@ -68,10 +71,16 @@ done
 TITLE="${1:-$WORKSPACE_NAME}"
 BODY="${2:-}"
 
+_pre_enabled="${NOTIFY_ENABLED-}"; _pre_osa="${NOTIFY_OSASCRIPT-}"; _pre_send="${NOTIFY_SEND_BIN-}"
 if [[ -r "$ENV_FILE" ]]; then
   # shellcheck disable=SC1090
   . "$ENV_FILE" || true
 fi
+# Caller-supplied values win over the file — see the config note in the header.
+[[ -n "$_pre_enabled" ]] && NOTIFY_ENABLED="$_pre_enabled"
+[[ -n "$_pre_osa" ]]     && NOTIFY_OSASCRIPT="$_pre_osa"
+[[ -n "$_pre_send" ]]    && NOTIFY_SEND_BIN="$_pre_send"
+true
 
 _sig=""; _state=""
 
@@ -116,6 +125,7 @@ TITLE_LINE="$CHIP $TITLE"
 SUBTITLE="$WORKSPACE_NAME${EVENT:+ · $EVENT}"
 DISPLAY_BODY="${BODY:- }"
 OSASCRIPT="${NOTIFY_OSASCRIPT:-osascript}"
+NOTIFY_SEND="${NOTIFY_SEND_BIN:-notify-send}"
 
 deliver_osascript() {
   command -v "$OSASCRIPT" >/dev/null 2>&1 || return 127
@@ -127,8 +137,8 @@ APPLESCRIPT
 }
 
 deliver_notify_send() {
-  command -v notify-send >/dev/null 2>&1 || return 127
-  notify-send "$TITLE_LINE" "$DISPLAY_BODY" 2>>"$LOG"
+  command -v "$NOTIFY_SEND" >/dev/null 2>&1 || return 127
+  "$NOTIFY_SEND" "$TITLE_LINE" "$DISPLAY_BODY" 2>>"$LOG"
 }
 
 if deliver_osascript || deliver_notify_send; then
