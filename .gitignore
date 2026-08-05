@@ -86,5 +86,5 @@ Closed/*
 **/.impeccable/
 Projects/WestCoastModern/WCM/.claude/worktrees/
 
-# Local-only secrets — notify.sh Google Chat webhook URL embeds a secret token
+# Local-only, machine-specific settings for notify.sh / spend.sh
 System_Config/.notify.env

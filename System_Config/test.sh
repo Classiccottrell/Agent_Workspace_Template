@@ -204,6 +204,41 @@ run "successful notification is acknowledged" successful_acknowledged "$TMP_TEST
 rm -rf "$TMP_TEST"
 
 # ---------------------------------------------------------------------------
+# 3d. notify.sh delivery contract. Stubbed binaries, so this is deterministic on
+#     any platform and raises no real banner: exit 0 only when a notification was
+#     raised or deliberately suppressed, exit 1 when delivery was attempted and
+#     failed — with the dedup signature left unwritten so the alert retries.
+# ---------------------------------------------------------------------------
+NOTIFY_TMP="$(mktemp -d)"
+printf '#!/bin/sh\nexit 0\n' > "$NOTIFY_TMP/ok"; chmod +x "$NOTIFY_TMP/ok"
+NOTIFY_SELFTEST_STATE="$SYSCFG/logs/.notify_events/selftest"
+rm -f "$NOTIFY_SELFTEST_STATE"
+
+notify_delivers() {
+  NOTIFY_OSASCRIPT="$NOTIFY_TMP/ok" bash "$SYSCFG/notify.sh" \
+    --event selftest --dedup sig-a "selftest" "body" && [ -s "$NOTIFY_SELFTEST_STATE" ]
+}
+notify_dedupes() {
+  NOTIFY_OSASCRIPT="$NOTIFY_TMP/ok" bash "$SYSCFG/notify.sh" \
+    --event selftest --dedup sig-a "selftest" "body"
+}
+notify_failure_retries() {
+  rm -f "$NOTIFY_SELFTEST_STATE"
+  ! NOTIFY_OSASCRIPT="$NOTIFY_TMP/absent" NOTIFY_SEND_BIN="$NOTIFY_TMP/absent" \
+      bash "$SYSCFG/notify.sh" --event selftest --dedup sig-b "selftest" "body" \
+    && [ ! -e "$NOTIFY_SELFTEST_STATE" ]
+}
+notify_disabled_is_quiet() {
+  NOTIFY_ENABLED=0 NOTIFY_OSASCRIPT="$NOTIFY_TMP/absent" NOTIFY_SEND_BIN="$NOTIFY_TMP/absent" \
+    bash "$SYSCFG/notify.sh" --event selftest "selftest" "body"
+}
+run "notify.sh delivers and records the dedup signature" notify_delivers
+run "notify.sh dedupes an unchanged signature" notify_dedupes
+run "notify.sh exits 1 on failed delivery, leaving no dedup state" notify_failure_retries
+run "notify.sh honours NOTIFY_ENABLED=0 over .notify.env" notify_disabled_is_quiet
+rm -rf "$NOTIFY_TMP"; rm -f "$NOTIFY_SELFTEST_STATE"
+
+# ---------------------------------------------------------------------------
 # 4. Vault schema gate.
 # ---------------------------------------------------------------------------
 run "migrate_vault.sh" bash "$SYSCFG/migrate_vault.sh"
