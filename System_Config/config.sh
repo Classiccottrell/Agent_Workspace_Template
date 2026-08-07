@@ -41,6 +41,11 @@ INGEST_MAX_SECONDS="${INGEST_MAX_SECONDS:-900}"
 # Per-RUN ceiling: caps worst-case unattended spend at CLIPS_PER_RUN × MAX_BUDGET
 # regardless of backlog size. Remaining clips carry to the next scheduled run.
 INGEST_MAX_CLIPS_PER_RUN="${INGEST_MAX_CLIPS_PER_RUN:-10}"
+# Decisions-sweep schedule (twice daily) — see decisions_sweep.sh.
+DECISIONSSWEEP_NOON_HOUR="${DECISIONSSWEEP_NOON_HOUR:-12}"
+DECISIONSSWEEP_NOON_MINUTE="${DECISIONSSWEEP_NOON_MINUTE:-0}"
+DECISIONSSWEEP_EVENING_HOUR="${DECISIONSSWEEP_EVENING_HOUR:-18}"
+DECISIONSSWEEP_EVENING_MINUTE="${DECISIONSSWEEP_EVENING_MINUTE:-0}"
 # Resolve the agent CLI (prioritizing Gemini/Antigravity, falling back to claude).
 # The Gemini CLI ships as either `agy` (Antigravity) or `gemini`; accept both.
 # NOTE: $CLAUDE holds whichever binary won — it is the GEMINI binary when
@@ -180,7 +185,9 @@ remove_cron_job() {
 validate_config_base() {
   local var val
   for var in WORKSPACE VAULT SOURCES LOG_DIR LABEL_PREFIX SCHEDULER INGEST_SOURCES \
-             INGEST_PROVIDER INGEST_HOUR INGEST_MINUTE INGEST_MAX_BUDGET INGEST_MAX_SECONDS; do
+             INGEST_PROVIDER INGEST_HOUR INGEST_MINUTE INGEST_MAX_BUDGET INGEST_MAX_SECONDS \
+             DECISIONSSWEEP_NOON_HOUR DECISIONSSWEEP_NOON_MINUTE \
+             DECISIONSSWEEP_EVENING_HOUR DECISIONSSWEEP_EVENING_MINUTE; do
     eval "val=\"\${$var:-}\""
     if [[ -z "$val" ]]; then echo "config.sh: $var is unset/empty" >&2; return 1; fi
   done
@@ -202,7 +209,9 @@ validate_config() {
   local var val
   for var in WORKSPACE VAULT SOURCES LOG_DIR LABEL_PREFIX \
              SCHEDULER INGEST_SOURCES INGEST_PROVIDER INGEST_HOUR INGEST_MINUTE \
-             INGEST_MAX_BUDGET INGEST_MAX_SECONDS; do
+             INGEST_MAX_BUDGET INGEST_MAX_SECONDS \
+             DECISIONSSWEEP_NOON_HOUR DECISIONSSWEEP_NOON_MINUTE \
+             DECISIONSSWEEP_EVENING_HOUR DECISIONSSWEEP_EVENING_MINUTE; do
     eval "val=\"\${$var:-}\""
     if [[ -z "$val" ]]; then
       echo "config.sh: $var is unset/empty" >&2

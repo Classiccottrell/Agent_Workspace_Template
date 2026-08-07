@@ -83,6 +83,7 @@ h1,h2,.hero h1{font-family:var(--serif);font-weight:400;letter-spacing:0}
       <tr><td>Daily clip ingest</td><td>Files new clips into the knowledge wiki as reference pages.</td><td><span class="sched">daily 07:00 + login</span></td></tr>
       <tr><td>Monday note</td><td>Creates the week's note, carries tasks forward, folds in weekend edits.</td><td><span class="sched">login + Mon 08:00</span></td></tr>
       <tr><td>Friday close-out</td><td>Summarizes the week into the master index and snapshots the note.</td><td><span class="sched">Fri 16:30</span></td></tr>
+      <tr><td>Decisions sweep</td><td>Free-tier-first (local Ollama, paid claude/codex fallback on failure) sweep of the week's note for undocumented decisions.</td><td><span class="sched">noon + 18:00</span></td></tr>
       <tr><td>Health check</td><td>Probes every layer and rewrites the status dashboard.</td><td><span class="sched">login + every 4h</span></td></tr>
       <tr><td>Skill sync</td><td>Syncs <code>npx</code>-installed skills from <code>~/.agents/skills/</code> to <code>~/.claude/skills/</code>.</td><td><span class="sched">on install + hourly</span></td></tr>
     </tbody>

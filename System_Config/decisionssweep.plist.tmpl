@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>__LABEL__</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>__WORKSPACE_ROOT__/System_Config/decisions_sweep.sh</string>
+    </array>
+
+    <!-- Runs twice daily — noon and evening, from config.sh's
+         DECISIONSSWEEP_NOON_*/DECISIONSSWEEP_EVENING_* (default 12:00 / 18:00).
+         An array under StartCalendarInterval fires the job at EACH dict's
+         time. If the Mac is ASLEEP at a fire time, launchd runs it once at
+         next wake; the sweep is an idempotent append-only re-scan, so a
+         missed/late/duplicate run is harmless. -->
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict>
+            <key>Hour</key>
+            <integer>__DECISIONSSWEEP_NOON_HOUR__</integer>
+            <key>Minute</key>
+            <integer>__DECISIONSSWEEP_NOON_MINUTE__</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>__DECISIONSSWEEP_EVENING_HOUR__</integer>
+            <key>Minute</key>
+            <integer>__DECISIONSSWEEP_EVENING_MINUTE__</integer>
+        </dict>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>__LOG_DIR__/decisions_sweep.launchd.out</string>
+    <key>StandardErrorPath</key>
+    <string>__LOG_DIR__/decisions_sweep.launchd.err</string>
+</dict>
+</plist>
