@@ -133,6 +133,7 @@ total_new=0
 # dirs — global, not per-dir) means a throttled provider, not bad luck. Stop
 # burning watchdog time; the NEXT SCHEDULED RUN is the retry — no in-run retries.
 consecutive_bad=0
+just_handed_off=0
 attempted=0
 wall_hit=0
 cap_hit=0
@@ -320,12 +321,17 @@ Constraints: create-or-append only; never overwrite a page wholesale; never dele
           save_target_state
           log "provider handoff: subsequent clips use ${AGENT_TYPE}; failed clip was not replayed"
           consecutive_bad=0
+          just_handed_off=1
         fi
       else
         fail_label="AGENT FAILURE"
       fi
       log "FAILED (rc=${rc}; may have timed out after ${MAX_SECONDS}s): $rel_dir/$clip — NOT recorded, will retry next run"
-      consecutive_bad=$((consecutive_bad + 1))
+      if [[ "${just_handed_off:-0}" -eq 1 ]]; then
+        just_handed_off=0
+      else
+        consecutive_bad=$((consecutive_bad + 1))
+      fi
       bump_fail "$clip"
     fi
 

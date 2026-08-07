@@ -93,7 +93,7 @@ All are env-overridable per run.
 | `INGEST_SOURCES` | `sources:Raw_Notes` | Colon-separated dirs (relative to `Vault_Brain/`) scanned for new `.md` notes. Each keeps its own `.ingested.log`. |
 | `INGEST_PROVIDER` | `auto` | `auto` (PATH detection: agy → gemini → claude), or force `claude` / `gemini`. |
 | `INGEST_TARGETS` | empty | Optional ordered colon list: `claude:gemini:codex:ollama`. Empty keeps legacy `INGEST_PROVIDER` behavior. Gemini resolves `agy` before `gemini`. An explicit list with no installed target fails closed. |
-| `CLAUDE_MODEL` / `GEMINI_MODEL` / `CODEX_MODEL` / `OLLAMA_MODEL` | empty | Optional target-specific override; empty defers to the CLI default. Ollama uses the first locally installed model or exits with an actionable error when none exists. |
+| `CLAUDE_MODEL` / `GEMINI_MODEL` / `CODEX_MODEL` / `OLLAMA_MODEL` | empty | Optional target-specific override; empty defers to the CLI default. For Ollama, an empty value omits `--model` and defers to Codex's own OSS/ollama default-model selection. |
 | `INGEST_HOUR` / `INGEST_MINUTE` | `7` / `0` | Daily launchd schedule, rendered into the plist on install. |
 | `INGEST_MAX_BUDGET` | `1.00` | Per-clip USD ceiling — claude only (gemini has no cost flag). |
 | `INGEST_MAX_SECONDS` | `900` | Per-call watchdog for all four providers; TERM then KILL 20 seconds later. |
