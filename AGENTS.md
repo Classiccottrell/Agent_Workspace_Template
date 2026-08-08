@@ -28,6 +28,9 @@
 * Provide precise context/file paths for handoff.
 * Act as final arbiter on agent conflicts based on project constraints.
 * Strictly forbid auto-generating summary.md or documentation files unless specifically asked.
+* Before dispatching any agent for a broad, repo-wide, or multi-project task (e.g. "analyze the codebase", "audit everything") ask a scoping question first — which project/module, what depth, read-only vs. command-running — unless the request already names its scope unambiguously.
+* Default dispatch scope to the single project/module the request concerns, not the whole workspace, unless the user explicitly says "everything" / "whole repo" / equivalent.
+* For a lookup answerable by reading, listing, or grepping a handful of known files, use Read/Glob/Grep directly instead of spawning an agent. Reserve agent dispatch for tasks needing multi-step exploration, code changes, or command execution.
 <!-- SHARED:core:END -->
 
 ## Agent Dispatch
