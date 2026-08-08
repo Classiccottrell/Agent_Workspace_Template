@@ -17,7 +17,7 @@ SYSCFG="$ROOT/System_Config"
 # ---------------------------------------------------------------------------
 # Argument handling — --check / --uninstall / --help run before normal setup.
 # ---------------------------------------------------------------------------
-SUFFIXES="dailyingest healthcheck fridayprocess mondayinit syncskills"
+SUFFIXES="dailyingest healthcheck fridayprocess mondayinit syncskills decisionssweep"
 
 case "${1:-}" in
   --help)
@@ -122,8 +122,16 @@ case "${1:-}" in
           done
         elif [ "$SCHEDULER" = "cron" ]; then
           for s in $SUFFIXES; do
-            remove_cron_job "$s"
-            echo "  removed cron entry: $s"
+            # decisionssweep installs two cron entries (noon + evening), each under
+            # its own marker — see install_decisions_sweep.sh.
+            if [ "$s" = "decisionssweep" ]; then
+              remove_cron_job "decisionssweep-noon"
+              remove_cron_job "decisionssweep-evening"
+              echo "  removed cron entries: decisionssweep-noon, decisionssweep-evening"
+            else
+              remove_cron_job "$s"
+              echo "  removed cron entry: $s"
+            fi
           done
         fi
         echo "→ Automation removed. Data (Vault_Brain/, Projects/, logs) untouched."
@@ -249,7 +257,7 @@ if [ "$(uname -s)" = "Darwin" ]; then
   echo "Weekly-note + ingest automation — how do you want to run it?"
   echo "  [a] auto   — install launchd agents: daily ingest (07:00), health check,"
   echo "               Friday close-out (16:30), Monday note init (login + Mon 08:00),"
-  echo "               skill sync (on npx install + hourly)"
+  echo "               skill sync (on npx install + hourly), decisions sweep (12:00 + 18:00)"
   echo "  [m] manual — no agents; you run the scripts by hand when you want"
   echo "  [s] skip   — decide later (default)"
   printf "Choose [a/m/s]: "
@@ -275,6 +283,7 @@ case "$SCHEDULE" in
     bash "$SYSCFG/install_friday_process.sh"
     bash "$SYSCFG/install_monday_init.sh"
     bash "$SYSCFG/install_sync_skills.sh"
+    bash "$SYSCFG/install_decisions_sweep.sh"
     echo "→ Automation installed. Verify with: launchctl list | grep vaultbrain"
     ;;
   manual)
@@ -283,16 +292,18 @@ case "$SCHEDULE" in
     echo "      bash System_Config/monday_init.sh      # start the week (DRY_RUN=1 to preview)"
     echo "      bash System_Config/friday_process.sh   # close out the week"
     echo "      bash System_Config/daily_ingest.sh     # ingest new clips"
+    echo "      bash System_Config/decisions_sweep.sh  # sweep for undocumented decisions"
     echo "    Switch to auto anytime by running the install_*.sh scripts."
     ;;
   *)
     echo
-    echo "→ Skipping scheduling for now. Install later — auto (all five agents):"
+    echo "→ Skipping scheduling for now. Install later — auto (all six agents):"
     echo "      bash System_Config/install_daily_ingest.sh"
     echo "      bash System_Config/install_healthcheck.sh"
     echo "      bash System_Config/install_friday_process.sh"
     echo "      bash System_Config/install_monday_init.sh"
     echo "      bash System_Config/install_sync_skills.sh"
+    echo "      bash System_Config/install_decisions_sweep.sh"
     echo "    …or just run them by hand (manual): bash System_Config/monday_init.sh, etc."
     ;;
 esac
@@ -413,6 +424,75 @@ if [ "$SCHEDULE" = "auto" ] && [ -n "$ING_HOUR" ]; then
   else
     echo "    [warn] Daily ingest was not rescheduled; finish CLI setup, then rerun its installer."
   fi
+fi
+
+# ---------------------------------------------------------------------------
+# 5d. Notifications — local delivery is unconditional and the default; webhook
+#     delivery (Slack, Google Chat) is additive and opt-in.
+# ---------------------------------------------------------------------------
+echo
+echo "→ Notifications — how should scheduled jobs alert you when something needs attention?"
+echo "  [1] Local only (macOS Notification Center)         (default)"
+echo "  [2] Local + Google Chat webhook"
+echo "  [3] Local + Slack webhook"
+echo "  [4] Local + both webhooks"
+if [ -t 0 ]; then
+  printf "Choose [1-4, default 1]: "
+  read -r NOTIFY_CHOICE || NOTIFY_CHOICE=""
+else
+  NOTIFY_CHOICE=""
+  echo "(non-interactive: defaulting to local-only)"
+fi
+case "$NOTIFY_CHOICE" in
+  2|3|4) : ;;
+  *)     NOTIFY_CHOICE="1" ;;
+esac
+
+NOTIFY_GCHAT_URL=""; NOTIFY_SLACK_URL=""
+if { [ "$NOTIFY_CHOICE" = "2" ] || [ "$NOTIFY_CHOICE" = "4" ]; } && [ -t 0 ]; then
+  printf "  Google Chat webhook URL (blank to skip / keep current): "
+  read -r NOTIFY_GCHAT_URL || NOTIFY_GCHAT_URL=""
+fi
+case "$NOTIFY_GCHAT_URL" in
+  ""|https://*) : ;;
+  *) echo "    [warn] Google Chat URL must start with https:// — skipping."; NOTIFY_GCHAT_URL="" ;;
+esac
+if { [ "$NOTIFY_CHOICE" = "3" ] || [ "$NOTIFY_CHOICE" = "4" ]; } && [ -t 0 ]; then
+  printf "  Slack webhook URL (blank to skip / keep current): "
+  read -r NOTIFY_SLACK_URL || NOTIFY_SLACK_URL=""
+fi
+case "$NOTIFY_SLACK_URL" in
+  ""|https://*) : ;;
+  *) echo "    [warn] Slack URL must start with https:// — skipping."; NOTIFY_SLACK_URL="" ;;
+esac
+
+NOTIFY_ENV="$SYSCFG/.notify.env"
+if [ -n "$NOTIFY_GCHAT_URL" ] || [ -n "$NOTIFY_SLACK_URL" ]; then
+  if [ ! -f "$NOTIFY_ENV" ]; then
+    if [ -f "$SYSCFG/.notify.env.example" ]; then
+      cp "$SYSCFG/.notify.env.example" "$NOTIFY_ENV"
+    else
+      : > "$NOTIFY_ENV"
+    fi
+    chmod 600 "$NOTIFY_ENV"
+  fi
+  # Idempotent replace-else-append per key. sed is unsafe here — a webhook URL's
+  # query string contains '&', which sed's replacement text reads as "whole
+  # match" — so filter the old line out, then append the new one instead.
+  set_notify_key() {
+    key="$1"; value="$2"
+    [ -n "$value" ] || return 0
+    tmp="$(mktemp)"
+    grep -v "^${key}=" "$NOTIFY_ENV" > "$tmp" 2>/dev/null || true
+    printf '%s="%s"\n' "$key" "$value" >> "$tmp"
+    mv "$tmp" "$NOTIFY_ENV"
+  }
+  set_notify_key "GCHAT_WEBHOOK_URL" "$NOTIFY_GCHAT_URL"
+  set_notify_key "SLACK_WEBHOOK_URL" "$NOTIFY_SLACK_URL"
+  chmod 600 "$NOTIFY_ENV"
+  echo "    [ok]   Webhook notification(s) saved to System_Config/.notify.env (mode 600)."
+else
+  echo "    [ok]   Notifications: local only (macOS Notification Center)."
 fi
 
 # ---------------------------------------------------------------------------

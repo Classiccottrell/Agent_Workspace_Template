@@ -13,6 +13,8 @@ All notable changes to this template are documented here. Format follows
 ### Added
 - Root `AGENTS.md`, registered Codex agent roster in `.codex/config.toml`, and relocatable Codex post-edit documentation hook.
 - Provider-state and cross-provider roster checks in workspace health reporting.
+- `notify.sh`: opt-in Slack/Google Chat webhook delivery (`GCHAT_WEBHOOK_URL` / `SLACK_WEBHOOK_URL` in `.notify.env`), additive to the existing unconditional local-notification transport; webhook URL piped to `curl --config -` on stdin so it never appears in `ps`. New `NOTIFY_ENV_FILE` test seam for hermetic testing regardless of a real `.notify.env` on the machine.
+- Twice-daily "decisions sweep" job (`decisions_sweep.sh`, `ollama_agent.py`, `install_decisions_sweep.sh`, `decisionssweep.plist.tmpl`): a local Ollama model reviews the current weekly note's `## Decisions` section and proposes edits, escalating once to a paid claude/codex agent on failure or a confirmed no-op. Auto-installed by `bootstrap.sh`'s existing `SCHEDULE=auto` job group. `config.sh` gains four `DECISIONSSWEEP_*` vars; `healthcheck.sh` gains LaunchAgent installed/loaded checks; `deps.sh` gains `python3`/`ollama`.
 
 ### Fixed (ingest reliability, 2026-07-20)
 - `daily_ingest.sh`: auth failures (revoked/invalid API key) previously produced the identical "QUOTA/BUDGET WALL suspected" log line as a real provider quota wall — now classified separately ("AUTH FAILURE suspected") by grepping each failed clip's captured output for auth-error markers, so troubleshooting isn't misdirected

@@ -54,6 +54,7 @@ OUT_HTML="$SYSCFG/status_page.html"
 OUT_JSON="$SYSCFG/status.json"
 INGEST_LABEL="$LABEL_PREFIX.dailyingest"
 HEALTH_LABEL="$LABEL_PREFIX.healthcheck"
+DECISIONSSWEEP_LABEL="$LABEL_PREFIX.decisionssweep"
 
 NOW_HUMAN="$(date '+%Y-%m-%d %H:%M:%S %Z')"
 NOW_EPOCH="$(date +%s)"
@@ -181,6 +182,16 @@ if [ -n "$iline" ]; then
   else                          check FAIL "Ingest job state" "loaded; last exit ${iexit} (failed — check Full Disk Access)"; fi
 else
   check FAIL "Ingest job state" "not loaded in launchd"
+fi
+[ -f "$HOME/Library/LaunchAgents/${DECISIONSSWEEP_LABEL}.plist" ] && check PASS "Decisions-sweep LaunchAgent" "plist installed" || check FAIL "Decisions-sweep LaunchAgent" "plist NOT installed"
+dsline="$(launchctl list 2>/dev/null | grep "$DECISIONSSWEEP_LABEL" || true)"
+if [ -n "$dsline" ]; then
+  dsexit="$(printf '%s' "$dsline" | awk '{print $2}')"
+  if   [ "$dsexit" = "0" ]; then check PASS "Decisions-sweep job state" "loaded; last exit 0"
+  elif [ "$dsexit" = "-" ]; then check WARN "Decisions-sweep job state" "loaded; not run yet this session"
+  else                           check FAIL "Decisions-sweep job state" "loaded; last exit ${dsexit} (failed — check Full Disk Access)"; fi
+else
+  check FAIL "Decisions-sweep job state" "not loaded in launchd"
 fi
 if [ -f "$SYSCFG/logs/daily_ingest.log" ]; then
   # Tie recency to a SUCCESSFUL-completion marker, not just any log line, so a
